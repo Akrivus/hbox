@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Tajikistan
+  m_EditorClassIdentifier: 
+  Title: Tajikistan
+  Pronouns: she/her
+  Name: Tajikistan
+  Aliases:
+  - Tajikistan
+  Players:
+  - Emomali
+  - Zarif
+  - Rustam
+  - Sirojiddin
+  - Sultan
+  - Abdurahmonov
+  - Daler
+  - Shodmonov
+  - Nozim
+  - Muhammadsharif
+  - Nematullo
+  Neighbor: {fileID: 0}
+  MapName: Tajikistan
+  IsLegacy: 0
+  Voice: tr-TR-Standard-D
+  ColorScheme: 1B
+  Costume: ':flag_tj:'
+  Prompt: {fileID: 4900000, guid: 7ce57bfbf6a5e87478212a217e28b504, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0453697
+  Volume: 1
+  Color: {r: 0.5178319, g: 0.37086257, b: 0.22223467, a: 1}
+  Color1: {r: 0.79607844, g: 0, b: 0, a: 1}
+  Color2: {r: 0, g: 0.4, b: 0, a: 1}
+  Color3: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

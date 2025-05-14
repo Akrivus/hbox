@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Yugoslavia
+  m_EditorClassIdentifier: 
+  Title: Yugoslavia
+  Pronouns: she/her
+  Name: Yugoslavia
+  Aliases:
+  - Yugoslavia
+  Players:
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  - Tito
+  Neighbor: {fileID: 0}
+  MapName: Serbia
+  IsLegacy: 0
+  Voice: pt-PT-Standard-C
+  ColorScheme: 1B
+  Costume: <:flag_yu:1339246195889016913>
+  Prompt: {fileID: 4900000, guid: 2af6fb598b2cb3a4aada422225adedc7, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0014117
+  Volume: 1
+  Color: {r: 0.5610582, g: 0.28401023, b: 0.39970744, a: 1}
+  Color1: {r: 0.87058824, g: 0, b: 0, a: 1}
+  Color2: {r: 0, g: 0.21960784, b: 0.5803922, a: 1}
+  Color3: {r: 1, g: 1, b: 1, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

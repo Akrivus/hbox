@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Romania
+  m_EditorClassIdentifier: 
+  Title: Romania
+  Pronouns: she/her
+  Name: Romania
+  Aliases:
+  - Romania
+  Players:
+  - Klaus
+  - Nicolae
+  - Dan
+  - Marcel
+  - Daciana
+  - Victor
+  - Laura
+  - Mihai
+  - Andrei
+  - Tudor
+  - Emil
+  Neighbor: {fileID: 0}
+  MapName: Romania
+  IsLegacy: 0
+  Voice: ro-RO-Standard-A
+  ColorScheme: 1B
+  Costume: ':flag_ro:'
+  Prompt: {fileID: 4900000, guid: 8d250fd2322a3224fb766061243dc39c, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.009706
+  Volume: 1
+  Color: {r: 0.57709336, g: 0.33787557, b: 0.22984971, a: 1}
+  Color1: {r: 0, g: 0.16862746, b: 0.49411765, a: 1}
+  Color2: {r: 0.80784315, g: 0.06666667, b: 0.14901961, a: 1}
+  Color3: {r: 0.9882353, g: 0.81960785, b: 0.08627451, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

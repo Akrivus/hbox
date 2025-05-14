@@ -1,0 +1,44 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using UnityEngine;
+
+public class NoiseTagger : MonoBehaviour, ISubGenerator
+{
+    public static string[] SoundGroups;
+
+    private void Awake()
+    {
+        if (SoundGroups == null)
+            SoundGroups = Resources.LoadAll<SoundGroup>($"{ChatManager.Instance.name}/SoundGroups")
+                .Select(t => t.name)
+                .ToArray();
+    }
+
+    public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
+    {
+        var names = chat.Names;
+
+        var soundGroups = await SelectSoundGroup(prompt, chat, names);
+        foreach (var s in soundGroups)
+            chat.Actors.Get(s.Key.Reference).SoundGroup = s.Value;
+
+        return chat;
+    }
+
+    private async Task<Dictionary<ActorContext, string>> SelectSoundGroup(PromptResolver prompt, Chat chat, string[] names)
+    {
+        var options = string.Join(", ", SoundGroups);
+        var characters = string.Join("\n- ", names);
+        var message = await LLM.CompleteAsync(await prompt.Resolve(options, characters, chat.Log), true);
+
+        var lines = message.Parse(names);
+
+        return lines
+            .Where(line => names.Contains(line.Key))
+            .ToDictionary(
+                line => chat.Actors.Get(line.Key),
+                line => line.Value);
+    }
+}

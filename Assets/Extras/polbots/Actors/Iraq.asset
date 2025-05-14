@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Iraq
+  m_EditorClassIdentifier: 
+  Title: Iraq
+  Pronouns: he/him
+  Name: Iraq
+  Aliases:
+  - Iraq
+  Players:
+  - Nouri
+  - Haider
+  - Masrour
+  - Nechirvan
+  - Ahmed
+  - Ali
+  - Adnan
+  - Hoshyar
+  - Hanan
+  - Kadhim
+  - Zaha
+  Neighbor: {fileID: 0}
+  MapName: Iraq
+  IsLegacy: 0
+  Voice: ar-XA-Standard-B
+  ColorScheme: 1B
+  Costume: ':flag_iq:'
+  Prompt: {fileID: 4900000, guid: af13e886977e71347b002de66ab710fb, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0896996
+  Volume: 1
+  Color: {r: 0.55400497, g: 0.33182, b: 0.35402492, a: 1}
+  Color1: {r: 0.08235294, g: 0.078431375, b: 0.08235294, a: 1}
+  Color2: {r: 0.87058824, g: 0.18039216, b: 0.26666668, a: 1}
+  Color3: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

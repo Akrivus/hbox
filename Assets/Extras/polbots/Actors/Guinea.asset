@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Guinea
+  m_EditorClassIdentifier: 
+  Title: Guinea
+  Pronouns: she/her
+  Name: Guinea
+  Aliases:
+  - Guinea
+  Players:
+  - Alpha
+  - Cellou
+  - Kassory
+  - Makanera
+  - Ousmane
+  - "Mar\xE8me"
+  - Aboubacar
+  - Boubacar
+  - Nasa
+  - Bah
+  - Nafissatou
+  Neighbor: {fileID: 0}
+  MapName: Guinea
+  IsLegacy: 0
+  Voice: fr-FR-Standard-A
+  ColorScheme: 4B
+  Costume: ':flag_gn:'
+  Prompt: {fileID: 4900000, guid: 879d49c6bf7611741b3e8e81b004f31d, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0089519
+  Volume: 1
+  Color: {r: 0.57648945, g: 0.4710044, b: 0.19351564, a: 1}
+  Color1: {r: 0, g: 0.5803922, b: 0.3764706, a: 1}
+  Color2: {r: 0.80784315, g: 0.06666667, b: 0.14901961, a: 1}
+  Color3: {r: 0.9882353, g: 0.81960785, b: 0.08627451, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

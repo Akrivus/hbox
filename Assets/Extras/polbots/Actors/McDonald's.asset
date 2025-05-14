@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: McDonald's
+  m_EditorClassIdentifier: 
+  Title: McDonald's (unverified)
+  Pronouns: he/him
+  Name: McDonald's
+  Aliases:
+  - McDonald's
+  - McDonalds
+  - McDonald
+  - McD's
+  - McDs
+  - McD
+  - Maccas
+  Players:
+  - Ronald
+  - Grimace
+  - Birdie
+  - Mayor McCheese
+  - Officer Big Mac
+  - Hamburgler
+  - Mick
+  - Mack
+  - One-Eyed Sally
+  - Long John Silver
+  - Winky
+  Neighbor: {fileID: 11400000, guid: 878c3e70ffb418a4d95899fe3872c1a4, type: 2}
+  MapName: United States
+  IsLegacy: 1
+  Voice: en-US-Standard-J
+  ColorScheme: 1A
+  Costume: <:flag_mcds:1341591405281149028>
+  Prompt: {fileID: 4900000, guid: c8b1bfa58def7b040a5929a575855953, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.180233
+  Volume: 1.5
+  Color: {r: 0.86380005, g: 0.30573365, b: 0.16474856, a: 1}
+  Color1: {r: 0.8392157, g: 0.16862746, b: 0.11764706, a: 1}
+  Color2: {r: 1, g: 0.8, b: 0, a: 1}
+  Color3: {r: 1, g: 0.79607844, b: 0, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 983b7e52ae7aab844b100a74a4de2349, type: 3}
+  m_Name: Calm
+  m_EditorClassIdentifier: 
+  Name: Calm
+  Score: 0.5
+  Color: {r: 0.0010265113, g: 0.41914934, b: 0.64056283, a: 1}
+  Eyes: {fileID: 2800000, guid: 27ff4c0a26b848e4ab9fccb9d1861948, type: 3}
+  Lips: {fileID: 2800000, guid: 3ab548c6f09410a449d4e891b4ee19a8, type: 3}

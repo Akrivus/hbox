@@ -1,0 +1,3 @@
+[submodule "Assets/Scripts/_core"]
+	path = Assets/Scripts/_core
+	url = https://github.com/Akrivus/CharacterCore/

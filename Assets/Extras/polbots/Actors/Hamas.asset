@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Hamas
+  m_EditorClassIdentifier: 
+  Title: Hamas (unverified)
+  Pronouns: he/him
+  Name: Hamas
+  Aliases:
+  - Hamas
+  Players:
+  - Ismail
+  - Khaled
+  - Yahya
+  - Mousa
+  - Ahmed
+  - Mahmoud
+  - Ayman
+  - Osama
+  - Hossam
+  - Raziq
+  - Mounir
+  Neighbor: {fileID: 11400000, guid: 943200c4e952b77419fcc4cf87607322, type: 2}
+  MapName: Palestine
+  IsLegacy: 1
+  Voice: he-IL-Standard-D
+  ColorScheme: 4C
+  Costume: <:flag_ps_hm:1337103282442731614>
+  Prompt: {fileID: 4900000, guid: f123534ddf741ce4a9f518ef5ab66e77, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0096335
+  Volume: 1
+  Color: {r: 0.14803725, g: 0.56096894, b: 0.14803725, a: 1}
+  Color1: {r: 0, g: 0.49803922, b: 0, a: 1}
+  Color2: {r: 0, g: 0.49019608, b: 0, a: 1}
+  Color3: {r: 1, g: 1, b: 1, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

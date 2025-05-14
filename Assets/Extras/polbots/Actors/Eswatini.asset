@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Eswatini
+  m_EditorClassIdentifier: 
+  Title: Eswatini
+  Pronouns: he/him
+  Name: Eswatini
+  Aliases:
+  - Eswatini
+  - Swaziland
+  Players:
+  - Amahle
+  - Thulani
+  - Phumzile
+  - Matsapha
+  - Mduduzi
+  - Sibusiso
+  - Nhlanhla
+  - Sibongile
+  - Tobeka
+  - Vusimuzi
+  - Mfulu
+  Neighbor: {fileID: 0}
+  MapName: Eswatini
+  IsLegacy: 0
+  Voice: en-GB-Standard-D
+  ColorScheme: 2C
+  Costume: ':flag_sz:'
+  Prompt: {fileID: 4900000, guid: 2e8192944ec998f42b1442f369bbd158, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.1072274
+  Volume: 1
+  Color: {r: 0.42852288, g: 0.3150955, b: 0.44751164, a: 1}
+  Color1: {r: 0.24313726, g: 0.36862746, b: 0.7294118, a: 1}
+  Color2: {r: 0.69803923, g: 0.050980393, b: 0.050980393, a: 1}
+  Color3: {r: 0, g: 0, b: 0, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

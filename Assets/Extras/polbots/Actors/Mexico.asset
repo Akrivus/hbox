@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Mexico
+  m_EditorClassIdentifier: 
+  Title: Mexico
+  Pronouns: he/him
+  Name: Mexico
+  Aliases:
+  - Mexico
+  Players:
+  - "Andr\xE9s"
+  - Claudia
+  - Salvador
+  - Eruviel
+  - Yalitza
+  - Carlos
+  - Diego
+  - Gael
+  - Javier
+  - Patricia
+  - "L\xF3pez"
+  Neighbor: {fileID: 0}
+  MapName: Mexico
+  IsLegacy: 0
+  Voice: es-US-Standard-C
+  ColorScheme: 4B
+  Costume: ':flag_mx:'
+  Prompt: {fileID: 4900000, guid: b4a883aeb54423e459f7019a0010624c, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0091863
+  Volume: 1
+  Color: {r: 0.5673612, g: 0.46635795, b: 0.43838772, a: 1}
+  Color1: {r: 0, g: 0.4117647, b: 0.2784314, a: 1}
+  Color2: {r: 0.80784315, g: 0.06666667, b: 0.14901961, a: 1}
+  Color3: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

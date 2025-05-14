@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0199aa06a1aa5104393693c7381211d0, type: 3}
+  m_Name: Club
+  m_EditorClassIdentifier: 
+  Name: Club
+  Sounds:
+  - {fileID: 8300000, guid: 1a4c79f46f6c7fa42ae1e3d6e0593b90, type: 3}
+  - {fileID: 8300000, guid: b415c91374c54e14cb32d9e7c7d51e6e, type: 3}
+  - {fileID: 8300000, guid: 809172c77517e554fb152b90446cfe05, type: 3}

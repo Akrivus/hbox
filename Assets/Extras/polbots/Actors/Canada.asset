@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Canada
+  m_EditorClassIdentifier: 
+  Title: Canada
+  Pronouns: he/him
+  Name: Canada
+  Aliases:
+  - Canada
+  Players:
+  - Justin
+  - Jagmeet
+  - Elizabeth
+  - "Fran\xE7oise"
+  - Richard
+  - Mary
+  - Michael
+  - Celine
+  - David
+  - Stephen
+  - Margaret
+  Neighbor: {fileID: 0}
+  MapName: Canada
+  IsLegacy: 0
+  Voice: en-US-Standard-A
+  ColorScheme: 1A
+  Costume: ':flag_ca:'
+  Prompt: {fileID: 4900000, guid: c2cf8a512952a764faf5f52ea947cd9b, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0510468
+  Volume: 1
+  Color: {r: 0.8386697, g: 0.43388695, b: 0.40275174, a: 1}
+  Color1: {r: 0.8392157, g: 0.16862746, b: 0.11764706, a: 1}
+  Color2: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}
+  Color3: {r: 0.8392157, g: 0.17254902, b: 0.12941177, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

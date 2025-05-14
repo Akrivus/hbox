@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: New Zealand
+  m_EditorClassIdentifier: 
+  Title: New Zealand
+  Pronouns: she/her
+  Name: New Zealand
+  Aliases:
+  - New Zealand
+  Players:
+  - Jacinda
+  - Jacqui
+  - Simon
+  - Marama
+  - David
+  - Ariana
+  - Pemainia
+  - Helen
+  - Peter
+  - Taika
+  - Gareth
+  Neighbor: {fileID: 0}
+  MapName: New Zealand
+  IsLegacy: 0
+  Voice: en-AU-Standard-C
+  ColorScheme: 2A
+  Costume: ':flag_nz:'
+  Prompt: {fileID: 4900000, guid: 5bec7ea0d8ec7a948a22d4ff6e6fb861, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.092324
+  Volume: 1
+  Color: {r: 0.17252012, g: 0.20661934, b: 0.47907335, a: 1}
+  Color1: {r: 0, g: 0.14117648, b: 0.49411765, a: 1}
+  Color2: {r: 0.80784315, g: 0.10980392, b: 0.16862746, a: 1}
+  Color3: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

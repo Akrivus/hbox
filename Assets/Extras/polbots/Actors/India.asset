@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: India
+  m_EditorClassIdentifier: 
+  Title: India
+  Pronouns: he/him
+  Name: India
+  Aliases:
+  - India
+  Players:
+  - Narendra
+  - Rahul
+  - Mamata
+  - Sonia
+  - Arvind
+  - Ratan
+  - Kiran
+  - Ravi
+  - Amit
+  - Shashi
+  - Priya
+  Neighbor: {fileID: 0}
+  MapName: India
+  IsLegacy: 0
+  Voice: en-IN-Standard-C
+  ColorScheme: 4B
+  Costume: ':flag_in:'
+  Prompt: {fileID: 4900000, guid: 63d3b29b979b8574e9558f269ddaf7f3, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0728798
+  Volume: 1
+  Color: {r: 0.60189307, g: 0.62624574, b: 0.30568498, a: 1}
+  Color1: {r: 1, g: 0.6039216, b: 0.2, a: 1}
+  Color2: {r: 0.07450981, g: 0.53333336, b: 0.03137255, a: 1}
+  Color3: {r: 0.96862745, g: 0.96862745, b: 0.96862745, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

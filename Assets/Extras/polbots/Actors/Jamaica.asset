@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Jamaica
+  m_EditorClassIdentifier: 
+  Title: Jamaica
+  Pronouns: he/him
+  Name: Jamaica
+  Aliases:
+  - Jamaica
+  Players:
+  - Portia
+  - Andrew
+  - Mark
+  - Lisa
+  - Usain
+  - Bob
+  - Dawn
+  - Peter
+  - Marlene
+  - P.J.
+  - Usain
+  Neighbor: {fileID: 0}
+  MapName: Jamaica
+  IsLegacy: 0
+  Voice: fr-CA-Wavenet-D
+  ColorScheme: 4B
+  Costume: ':flag_jm:'
+  Prompt: {fileID: 4900000, guid: e824d6bd9e010f64e83dc6a6399ed9f8, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0718883
+  Volume: 1
+  Color: {r: 0.28399715, g: 0.5180576, b: 0.12180622, a: 1}
+  Color1: {r: 0.08235294, g: 0.078431375, b: 0.08235294, a: 1}
+  Color2: {r: 0, g: 0.60784316, b: 0.22352941, a: 1}
+  Color3: {r: 1, g: 0.827451, b: 0.007843138, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

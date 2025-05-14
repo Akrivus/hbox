@@ -1,0 +1,200 @@
+{
+  "main": {
+    "id": "5dd22bafc28cf00c",
+    "type": "split",
+    "children": [
+      {
+        "id": "c8f13761075fdf10",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5af026a68ac21c85",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "2fb91be3c248c820",
+    "type": "split",
+    "children": [
+      {
+        "id": "03293e112d75c9ea",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6efcdd000311eb8f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "575290662bf4be00",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "0b654337e0cf635e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "67b67f56aabf0369",
+    "type": "split",
+    "children": [
+      {
+        "id": "ffc1e628d5dac226",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3b2487917222fc25",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Countries/Afghanistan.png",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Afghanistan"
+            }
+          },
+          {
+            "id": "e4d9d62626fcfd19",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Countries/Afghanistan.png",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Afghanistan"
+            }
+          },
+          {
+            "id": "e183923fcb54eaa9",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c0d53c41c51b49ea",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Countries/Afghanistan.png"
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Afghanistan"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "6efcdd000311eb8f",
+  "lastOpenFiles": [
+    "Prompts/Untitled 1.md.meta",
+    "Prompts/Untitled 1.md",
+    "Prompts/Untitled.md.meta",
+    "Prompts/Untitled.md",
+    "Prompts/Office Hours/Dialogue Generation.md.meta",
+    "Prompts/Office Hours/Segment Generation.md.meta",
+    "Prompts/Office Hours.meta",
+    "Prompts/Office Hours/Segment Generation.md",
+    "Prompts/Office Hours/Dialogue Generation.md",
+    "Prompts/Office Hours/Office Hours - Segments.md",
+    "Prompts/Office Hours/Office Hours - Dialogue.md",
+    "Prompts/Office Hours",
+    "Prompts/Untitled",
+    "Prompts/Office Hours - Segments.md",
+    "Prompts/Office Hours - Topics.md",
+    "Prompts/Office Hours - Dialogue.md",
+    "Prompts/Office Hours - Dialogue Generation.md",
+    "Prompts/Office Hours - Linear Dialogue Generation.md",
+    "Prompts/Countries/Comoros.md.meta",
+    "Prompts/Countries/Ethiopia.md.meta",
+    "Prompts/Countries/Bahrain.md.meta",
+    "Prompts/Countries/United Kingdom.md.meta",
+    "Prompts/Countries/Vatican City.md",
+    "Prompts/Countries/Nazi Germany.md",
+    "Prompts/Countries/Imperial Japan.md",
+    "Prompts/Countries/Taiwan.md",
+    "Prompts/Countries/Hong Kong.md",
+    "Prompts/Countries/Somaliland.md",
+    "Prompts/Countries/Taliban.md",
+    "Prompts/Countries/Daesh.md",
+    "Prompts/Countries/Hamas.md",
+    "Prompts/Countries/Hezbollah.md",
+    "Prompts/Countries/Palestine.md",
+    "Prompts/Countries/Western Sahara.md",
+    "Prompts/Countries/Greenland.md",
+    "Prompts/Countries/Falkland Islands.md"
+  ]
+}

@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Ethiopia
+  m_EditorClassIdentifier: 
+  Title: Ethiopia
+  Pronouns: she/her
+  Name: Ethiopia
+  Aliases:
+  - Ethiopia
+  Players:
+  - Abiy
+  - Meles
+  - Hailemariam
+  - Esayas
+  - Alemitu
+  - Merera
+  - Birtukan
+  - Yemane
+  - Miriam
+  - Amanuel
+  - Kjetil
+  Neighbor: {fileID: 0}
+  MapName: Ethiopia
+  IsLegacy: 0
+  Voice: en-IN-Standard-A
+  ColorScheme: 4C
+  Costume: ':flag_et:'
+  Prompt: {fileID: 4900000, guid: df4ca79146b908b428cff1b4c0b407b4, type: 3}
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  SpeakingRate: 1
+  Pitch: 1.0267444
+  Volume: 1
+  Color: {r: 0.4611822, g: 0.3888448, b: 0.20519331, a: 1}
+  Color1: {r: 0.85882354, g: 0.07058824, b: 0.09411765, a: 1}
+  Color2: {r: 0.03137255, g: 0.5372549, b: 0.19215687, a: 1}
+  Color3: {r: 0.9882353, g: 0.8666667, b: 0.039215688, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}
