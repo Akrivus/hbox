@@ -31,13 +31,11 @@ MonoBehaviour:
   - Richard
   - Emma
   Neighbor: {fileID: 0}
-  MapName: Falkland Islands
   IsLegacy: 0
-  Voice: en-GB-Standard-F
   ColorScheme: 1A
   Costume: ':flag_fk:'
-  Prompt: {fileID: 4900000, guid: b10423d04acc20a4dbcdc4c4a1b99525, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-F
   SpeakingRate: 1
   Pitch: 1.005677
   Volume: 1

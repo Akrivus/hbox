@@ -30,13 +30,11 @@ MonoBehaviour:
   - Allan
   - Louise
   Neighbor: {fileID: 0}
-  MapName: Papua New Guinea
   IsLegacy: 0
-  Voice: en-AU-Standard-C
   ColorScheme: 2C
   Costume: ':flag_pg:'
-  Prompt: {fileID: 4900000, guid: c1f9c3caa56ab494c8ecaf6e36f5b3f3, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-AU-Standard-C
   SpeakingRate: 1
   Pitch: 1.096458
   Volume: 1

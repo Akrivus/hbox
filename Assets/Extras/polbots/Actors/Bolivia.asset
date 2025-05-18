@@ -31,13 +31,11 @@ MonoBehaviour:
   - Juan
   - Marcelo
   Neighbor: {fileID: 0}
-  MapName: Bolivia
   IsLegacy: 0
-  Voice: es-US-Standard-A
   ColorScheme: 4C
   Costume: ':flag_bo:'
-  Prompt: {fileID: 4900000, guid: b9d5ba9c39a843e44acf8d3f4db66f38, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-A
   SpeakingRate: 1
   Pitch: 1.0990229
   Volume: 1

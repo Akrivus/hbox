@@ -30,13 +30,11 @@ MonoBehaviour:
   - Hassouna
   - Omer
   Neighbor: {fileID: 0}
-  MapName: Djibouti
   IsLegacy: 0
-  Voice: ar-XA-Standard-B
   ColorScheme: 2B
   Costume: ':flag_dj:'
-  Prompt: {fileID: 4900000, guid: 941860f509dcce44d8c107722368a208, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
   SpeakingRate: 1
   Pitch: 1.0260205
   Volume: 1

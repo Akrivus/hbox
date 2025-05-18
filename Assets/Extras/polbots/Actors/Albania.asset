@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ana
   - Cindy
   Neighbor: {fileID: 0}
-  MapName: Albania
   IsLegacy: 0
-  Voice: he-IL-Standard-A
   ColorScheme: 1B
   Costume: ':flag_al:'
-  Prompt: {fileID: 4900000, guid: 20a045dd1f1d0264a957800a654a907d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: he-IL-Standard-A
   SpeakingRate: 1
   Pitch: 1.0262047
   Volume: 1

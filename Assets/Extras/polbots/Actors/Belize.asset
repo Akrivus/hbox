@@ -30,13 +30,11 @@ MonoBehaviour:
   - Patricia
   - Darell
   Neighbor: {fileID: 0}
-  MapName: Belize
   IsLegacy: 0
-  Voice: en-US-Standard-B
   ColorScheme: 2B
   Costume: ':flag_bz:'
-  Prompt: {fileID: 4900000, guid: 41ee253e41a814644b0f16ba99c04a92, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-B
   SpeakingRate: 1
   Pitch: 1.0940896
   Volume: 1

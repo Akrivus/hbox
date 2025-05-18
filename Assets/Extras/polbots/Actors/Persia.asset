@@ -33,13 +33,11 @@ MonoBehaviour:
   - Ali
   - Sattar
   Neighbor: {fileID: 11400000, guid: 28d70dbf60a422e4d960718166bb9fc5, type: 2}
-  MapName: 
   IsLegacy: 1
-  Voice: tr-TR-Standard-D
   ColorScheme: 4B
   Costume: <:flag_persia:1337103802058149919>
-  Prompt: {fileID: 4900000, guid: 373d062e44018b7479c0b0454e1443e6, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: tr-TR-Standard-D
   SpeakingRate: 1
   Pitch: 1.0549636
   Volume: 1

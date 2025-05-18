@@ -30,13 +30,11 @@ MonoBehaviour:
   - Luc
   - Romain
   Neighbor: {fileID: 0}
-  MapName: Luxembourg
   IsLegacy: 0
-  Voice: de-DE-Standard-C
   ColorScheme: 1A
   Costume: ':flag_lu:'
-  Prompt: {fileID: 4900000, guid: 3b2763972ecbe164fa6e6ada72c98a6f, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-C
   SpeakingRate: 1
   Pitch: 1.068283
   Volume: 1

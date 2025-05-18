@@ -30,13 +30,11 @@ MonoBehaviour:
   - Diana
   - Eran
   Neighbor: {fileID: 0}
-  MapName: Israel
   IsLegacy: 0
-  Voice: he-IL-Standard-B
   ColorScheme: 1A
   Costume: ':flag_il:'
-  Prompt: {fileID: 4900000, guid: 8b6fa97fadd537348b4ae24df99709cc, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: he-IL-Standard-B
   SpeakingRate: 1
   Pitch: 1.0696898
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Mokhothu
   - '''Manthabiseng'
   Neighbor: {fileID: 0}
-  MapName: Lesotho
   IsLegacy: 0
-  Voice: en-GB-Standard-D
   ColorScheme: 2B
   Costume: ':flag_ls:'
-  Prompt: {fileID: 4900000, guid: 6ab03508d564d2a47ab07888cbd8283d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-D
   SpeakingRate: 1
   Pitch: 1.0658711
   Volume: 1

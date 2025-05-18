@@ -30,13 +30,11 @@ MonoBehaviour:
   - Taika
   - Gareth
   Neighbor: {fileID: 0}
-  MapName: New Zealand
   IsLegacy: 0
-  Voice: en-AU-Standard-C
   ColorScheme: 2A
   Costume: ':flag_nz:'
-  Prompt: {fileID: 4900000, guid: 5bec7ea0d8ec7a948a22d4ff6e6fb861, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-AU-Standard-C
   SpeakingRate: 1
   Pitch: 1.092324
   Volume: 1

@@ -32,13 +32,11 @@ MonoBehaviour:
   - Hu
   - Liu
   Neighbor: {fileID: 0}
-  MapName: China
   IsLegacy: 0
-  Voice: cmn-CN-Standard-B
   ColorScheme: 1A
   Costume: ':flag_cn:'
-  Prompt: {fileID: 4900000, guid: e7647a67c3867d6448075d3ec3f043b0, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: cmn-CN-Standard-B
   SpeakingRate: 1
   Pitch: 1.1076733
   Volume: 1

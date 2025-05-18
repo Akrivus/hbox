@@ -30,13 +30,11 @@ MonoBehaviour:
   - Jari
   - Hanna
   Neighbor: {fileID: 0}
-  MapName: Finland
   IsLegacy: 0
-  Voice: fi-FI-Standard-A
   ColorScheme: 1A
   Costume: ':flag_fi:'
-  Prompt: {fileID: 4900000, guid: 90fbc0949720c704eb45e03c4f714dfa, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fi-FI-Standard-A
   SpeakingRate: 1
   Pitch: 1.0153834
   Volume: 1

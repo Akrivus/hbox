@@ -56,7 +56,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs) config));
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         StopAllCoroutines();
         File.WriteAllLines("replays.txt", replays);

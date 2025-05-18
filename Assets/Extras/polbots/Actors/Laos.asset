@@ -31,13 +31,11 @@ MonoBehaviour:
   - Sisavath
   - Khamphouy
   Neighbor: {fileID: 0}
-  MapName: Laos
   IsLegacy: 0
-  Voice: vi-VN-Standard-D
   ColorScheme: 2B
   Costume: ':flag_la:'
-  Prompt: {fileID: 4900000, guid: 9c08042ba0d1f234fadfc7f566fcaa5c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: vi-VN-Standard-D
   SpeakingRate: 1
   Pitch: 1.0180789
   Volume: 1

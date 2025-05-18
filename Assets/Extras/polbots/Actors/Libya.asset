@@ -30,13 +30,11 @@ MonoBehaviour:
   - Mohamed
   - Ibrahim
   Neighbor: {fileID: 0}
-  MapName: Libya
   IsLegacy: 0
-  Voice: it-IT-Standard-B
   ColorScheme: 4B
   Costume: ':flag_ly:'
-  Prompt: {fileID: 4900000, guid: c9bf7580cd4851e43b65ae750d8daefa, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: it-IT-Standard-B
   SpeakingRate: 1
   Pitch: 1.0668895
   Volume: 1

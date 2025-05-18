@@ -38,13 +38,11 @@ MonoBehaviour:
   - Muhammad
   - Abu
   Neighbor: {fileID: 11400000, guid: ed77990d59adcb04ca2f47f75101d3f3, type: 2}
-  MapName: Iraq
-  IsLegacy: 1
-  Voice: en-GB-Standard-D
+  IsLegacy: 0
   ColorScheme: 2B
   Costume: <:flag_isis:1337103196828467241>
-  Prompt: {fileID: 4900000, guid: a92d2020ebaca534f9d4480fa14cf902, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-D
   SpeakingRate: 1
   Pitch: 1.1084313
   Volume: 1

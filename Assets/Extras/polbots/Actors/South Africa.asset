@@ -30,13 +30,11 @@ MonoBehaviour:
   - Trevor
   - Angelique
   Neighbor: {fileID: 0}
-  MapName: South Africa
   IsLegacy: 0
-  Voice: af-ZA-Standard-A
   ColorScheme: 1B
   Costume: ':flag_za:'
-  Prompt: {fileID: 4900000, guid: 842b1f78fc339014586a593fa5ea24f2, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: af-ZA-Standard-A
   SpeakingRate: 1
   Pitch: 1.0894665
   Volume: 1

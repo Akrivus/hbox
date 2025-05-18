@@ -41,7 +41,7 @@ public class SpawnPointManager : MonoBehaviour
         actorToSpawnPoint.Clear();
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         StopAllCoroutines();
     }

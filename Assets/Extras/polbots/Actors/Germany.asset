@@ -34,13 +34,11 @@ MonoBehaviour:
   - "B\xE4rbel"
   - Hermann
   Neighbor: {fileID: 0}
-  MapName: Germany
   IsLegacy: 0
-  Voice: de-DE-Standard-A
   ColorScheme: 1A
   Costume: ':flag_de:'
-  Prompt: {fileID: 4900000, guid: 7e3b51aac87629946af6292719c75062, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-A
   SpeakingRate: 1
   Pitch: 1.0809162
   Volume: 1

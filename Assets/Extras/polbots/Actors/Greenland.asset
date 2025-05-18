@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ruth
   - "K\xE5re"
   Neighbor: {fileID: 0}
-  MapName: Greenland
   IsLegacy: 0
-  Voice: da-DK-Standard-D
   ColorScheme: 2B
   Costume: ':flag_gl:'
-  Prompt: {fileID: 4900000, guid: 872e6f51b5bc30746a65bb99d26c0605, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: da-DK-Standard-D
   SpeakingRate: 1
   Pitch: 1.0647316
   Volume: 1

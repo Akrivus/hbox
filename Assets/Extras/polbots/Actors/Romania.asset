@@ -30,13 +30,11 @@ MonoBehaviour:
   - Tudor
   - Emil
   Neighbor: {fileID: 0}
-  MapName: Romania
   IsLegacy: 0
-  Voice: ro-RO-Standard-A
   ColorScheme: 1B
   Costume: ':flag_ro:'
-  Prompt: {fileID: 4900000, guid: 8d250fd2322a3224fb766061243dc39c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ro-RO-Standard-A
   SpeakingRate: 1
   Pitch: 1.009706
   Volume: 1

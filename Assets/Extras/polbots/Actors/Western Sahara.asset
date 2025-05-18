@@ -34,13 +34,11 @@ MonoBehaviour:
   - Fatima
   - Mohamed
   Neighbor: {fileID: 0}
-  MapName: Western Sahara
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 4C
   Costume: ':flag_eh:'
-  Prompt: {fileID: 4900000, guid: ad7a000a24a572c4cba41a6a2e1dfeec, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.095932
   Volume: 1

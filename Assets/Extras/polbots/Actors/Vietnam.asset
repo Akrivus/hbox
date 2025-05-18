@@ -31,13 +31,11 @@ MonoBehaviour:
   - "Nguy\u1EC5n"
   - "Nguy\u1EC5n"
   Neighbor: {fileID: 0}
-  MapName: Vietnam
   IsLegacy: 0
-  Voice: vi-VN-Standard-C
   ColorScheme: 4B
   Costume: ':flag_vn:'
-  Prompt: {fileID: 4900000, guid: efef67bf0c4bdeb438d0681519ae9a24, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: vi-VN-Standard-C
   SpeakingRate: 1
   Pitch: 1.0006855
   Volume: 1

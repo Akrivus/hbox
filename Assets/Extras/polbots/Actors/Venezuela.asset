@@ -31,13 +31,11 @@ MonoBehaviour:
   - Antonio
   - Tamara
   Neighbor: {fileID: 0}
-  MapName: Venezuela
   IsLegacy: 0
-  Voice: es-US-Standard-C
   ColorScheme: 4B
   Costume: ':flag_ve:'
-  Prompt: {fileID: 4900000, guid: 0ff8bc50ed1c50d48b75ea5d7a4a150e, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-C
   SpeakingRate: 1
   Pitch: 1.0506612
   Volume: 1

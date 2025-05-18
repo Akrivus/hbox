@@ -24,6 +24,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     public async Task GenerateTextToSpeech(ChatNode node)
     {
+        if (node.AudioData != null) return;
         if (OpenAiVoices.Contains(node.Actor.Voice))
             await GenerateWithOpenAI(node);
         else
@@ -78,7 +79,6 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private static async Task<HttpResponseMessage> RequestFromGoogle(string text, string voice)
     {
-        Debug.Log("Requesting Google TTS: " + text);
         var url = $"https://texttospeech.googleapis.com/v1/text:synthesize?key={TTS.GoogleApiKey}";
         var json = JsonConvert.SerializeObject(new Request(text, voice));
 
@@ -90,6 +90,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     {
         if (string.IsNullOrEmpty(TTS.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
             return null;
+        Debug.Log("Requesting Google TTS: " + text);
         var response = await RequestFromGoogle(text, voice);
         if (!response.IsSuccessStatusCode)
             return null;
@@ -100,6 +101,9 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     public static async Task<AudioClip> GetClipFromOpenAI(string text, string voice)
     {
+        if (string.IsNullOrEmpty(TTS.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
+            return null;
+        Debug.Log("Requesting OpenAI TTS: " + text);
         return await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
             voice: new OpenAI.Voice(voice),
             model: new OpenAI.Models.Model("gpt-4o-mini-tts"),

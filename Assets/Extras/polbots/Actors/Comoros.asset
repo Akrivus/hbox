@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Sa\xEFd"
   - Youssouf
   Neighbor: {fileID: 0}
-  MapName: Comoros
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 2B
   Costume: ':flag_km:'
-  Prompt: {fileID: 4900000, guid: ff80e0d04cb429349a4bcb9aeeba6d70, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0635558
   Volume: 1

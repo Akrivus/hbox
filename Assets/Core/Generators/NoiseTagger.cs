@@ -8,7 +8,7 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
 {
     public static string[] SoundGroups;
 
-    private void Awake()
+    private void Start()
     {
         if (SoundGroups == null)
             SoundGroups = Resources.LoadAll<SoundGroup>($"{ChatManager.Instance.name}/SoundGroups")

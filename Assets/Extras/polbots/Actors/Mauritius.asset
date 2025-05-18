@@ -30,13 +30,11 @@ MonoBehaviour:
   - Sheela
   - Kumar
   Neighbor: {fileID: 0}
-  MapName: Mauritius
   IsLegacy: 0
-  Voice: en-GB-Standard-D
   ColorScheme: 2B
   Costume: ':flag_mu:'
-  Prompt: {fileID: 4900000, guid: 2d2943712c1c326499a50e9acd629efa, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-D
   SpeakingRate: 1
   Pitch: 1.0828348
   Volume: 1

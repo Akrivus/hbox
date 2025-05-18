@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Bj\xF8rn"
   - Henning
   Neighbor: {fileID: 0}
-  MapName: Norway
   IsLegacy: 0
-  Voice: nb-NO-Standard-B
   ColorScheme: 1A
   Costume: ':flag_no:'
-  Prompt: {fileID: 4900000, guid: fcf74c437f947854db008389924689e3, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: nb-NO-Standard-B
   SpeakingRate: 1
   Pitch: 1.0147086
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Motlalentwa
   - Botswana
   Neighbor: {fileID: 0}
-  MapName: Botswana
   IsLegacy: 0
-  Voice: en-GB-Standard-F
   ColorScheme: 2B
   Costume: ':flag_bw:'
-  Prompt: {fileID: 4900000, guid: ea1e4c462331fed40af69ff0a15e020b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-F
   SpeakingRate: 1
   Pitch: 1.0991297
   Volume: 1

@@ -9,7 +9,7 @@ public class PropTagger : MonoBehaviour, ISubGenerator
     [SerializeField]
     private string[] items;
 
-    private void Awake()
+    private void Start()
     {
         if (items.Length == 0)
             items = Resources.LoadAll($"{ChatManager.Instance.name}/Props", typeof(Texture2D))

@@ -25,7 +25,7 @@ public class ChatGenerator : MonoBehaviour
         StartCoroutine(UpdateQueue());
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         StopAllCoroutines();
     }
@@ -70,14 +70,14 @@ public class ChatGenerator : MonoBehaviour
         {
             var prompt = new PromptResolver(this);
             chat = await Generate(prompt, chat);
+            chat.Lock();
+            if (save)
+                chat.Save();
         }
         catch (Exception e)
         {
             Debug.LogError(e);
         }
-        chat.Lock();
-        if (save)
-            chat.Save();
         return chat;
     }
 

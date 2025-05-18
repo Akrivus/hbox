@@ -32,13 +32,11 @@ MonoBehaviour:
   - Jean-Paul
   - David
   Neighbor: {fileID: 0}
-  MapName: Central African Republic
   IsLegacy: 0
-  Voice: fr-FR-Standard-B
   ColorScheme: 1B
   Costume: ':flag_cf:'
-  Prompt: {fileID: 4900000, guid: 6ccbb3cc146b46743bb1bfb8f3003934, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-B
   SpeakingRate: 1
   Pitch: 1.0631117
   Volume: 1

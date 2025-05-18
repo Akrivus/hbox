@@ -30,13 +30,11 @@ MonoBehaviour:
   - Adam
   - Shane
   Neighbor: {fileID: 0}
-  MapName: Australia
   IsLegacy: 0
-  Voice: en-AU-Standard-D
   ColorScheme: 2A
   Costume: ':flag_au:'
-  Prompt: {fileID: 4900000, guid: d76b9ecd21e89e448b306f0adfcd5d8f, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-AU-Standard-D
   SpeakingRate: 1
   Pitch: 1.0978203
   Volume: 1

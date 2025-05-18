@@ -30,13 +30,11 @@ MonoBehaviour:
   - Benedict
   - Wilhelmina
   Neighbor: {fileID: 0}
-  MapName: Liberia
   IsLegacy: 0
-  Voice: en-GB-Standard-C
   ColorScheme: 1C
   Costume: ':flag_lr:'
-  Prompt: {fileID: 4900000, guid: 7f08d61a968b1484788b18fcff852ed5, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-C
   SpeakingRate: 1
   Pitch: 1.0103067
   Volume: 1

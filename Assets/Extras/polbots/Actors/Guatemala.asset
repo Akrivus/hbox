@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Mar\xEDa"
   - Pablo
   Neighbor: {fileID: 0}
-  MapName: Guatemala
   IsLegacy: 0
-  Voice: es-US-Standard-B
   ColorScheme: 2B
   Costume: ':flag_gt:'
-  Prompt: {fileID: 4900000, guid: 5c38b59590ac35c489d9ca0fdfad0547, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-B
   SpeakingRate: 1
   Pitch: 1.0080875
   Volume: 1

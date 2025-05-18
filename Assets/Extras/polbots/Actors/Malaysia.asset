@@ -30,13 +30,11 @@ MonoBehaviour:
   - Marina
   - Hadi
   Neighbor: {fileID: 0}
-  MapName: Malaysia
   IsLegacy: 0
-  Voice: ms-MY-Standard-A
   ColorScheme: 2B
   Costume: ':flag_my:'
-  Prompt: {fileID: 4900000, guid: 1850b57c4c5be4d4c83fa40014d4229b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ms-MY-Standard-A
   SpeakingRate: 1
   Pitch: 1.0348717
   Volume: 1

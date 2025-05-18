@@ -30,13 +30,11 @@ MonoBehaviour:
   - Tatiana
   - "Hern\xE1n"
   Neighbor: {fileID: 0}
-  MapName: Ecuador
   IsLegacy: 0
-  Voice: es-US-Standard-A
   ColorScheme: 4B
   Costume: ':flag_ec:'
-  Prompt: {fileID: 4900000, guid: 838bc9b47d73f7249990b423adc26cb4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-A
   SpeakingRate: 1
   Pitch: 1.0910207
   Volume: 1

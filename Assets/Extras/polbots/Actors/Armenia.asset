@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ara
   - Sophie
   Neighbor: {fileID: 0}
-  MapName: Armenia
   IsLegacy: 0
-  Voice: he-IL-Standard-A
   ColorScheme: 1A
   Costume: ':flag_am:'
-  Prompt: {fileID: 4900000, guid: 39c177d27fc4178418e165a2cb1b11d4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: he-IL-Standard-A
   SpeakingRate: 1
   Pitch: 1.076375
   Volume: 1

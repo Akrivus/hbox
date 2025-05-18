@@ -34,13 +34,11 @@ MonoBehaviour:
   - Scipio
   - Lucius
   Neighbor: {fileID: 11400000, guid: 169c185d0729ec14ebf6acf50fd72e7c, type: 2}
-  MapName: Italy
   IsLegacy: 1
-  Voice: it-IT-Standard-D
   ColorScheme: 1A
   Costume: <:flag_spqr:1337103926180188281>
-  Prompt: {fileID: 4900000, guid: 7a868c563191c824a93eacd1b9911761, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: it-IT-Standard-D
   SpeakingRate: 1
   Pitch: 1.0989498
   Volume: 1

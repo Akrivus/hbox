@@ -34,13 +34,11 @@ MonoBehaviour:
   - Malala
   - Greta
   Neighbor: {fileID: 0}
-  MapName: United States
   IsLegacy: 0
-  Voice: en-US-Standard-D
   ColorScheme: 1A
   Costume: <:flag_un:1364273984098537562>
-  Prompt: {fileID: 4900000, guid: 2cc7e27fcc13f1c4ea6437aefe17efcc, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-D
   SpeakingRate: 1
   Pitch: 1.0729136
   Volume: 1

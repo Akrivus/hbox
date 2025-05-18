@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Fabi\xE1n"
   - Jorge
   Neighbor: {fileID: 0}
-  MapName: Uruguay
   IsLegacy: 0
-  Voice: pt-BR-Standard-B
   ColorScheme: 1B
   Costume: ':flag_uy:'
-  Prompt: {fileID: 4900000, guid: e2c39df200dce5241a11c73f7a951fdb, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pt-BR-Standard-B
   SpeakingRate: 1
   Pitch: 1.031636
   Volume: 1

@@ -31,13 +31,11 @@ MonoBehaviour:
   - Noraina
   - Liyana
   Neighbor: {fileID: 0}
-  MapName: Brunei
   IsLegacy: 0
-  Voice: ms-MY-Standard-B
   ColorScheme: 4A
   Costume: ':flag_bn:'
-  Prompt: {fileID: 4900000, guid: 68ba8921bb3c8284b8c7c15df5421e4d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ms-MY-Standard-B
   SpeakingRate: 1
   Pitch: 1.0131633
   Volume: 1

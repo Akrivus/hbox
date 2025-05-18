@@ -30,13 +30,11 @@ MonoBehaviour:
   - Marc
   - "M\xE9lanie"
   Neighbor: {fileID: 11400000, guid: 265d09bebce1584429904dfa10720b4b, type: 2}
-  MapName: Canada
-  IsLegacy: 1
-  Voice: fr-CA-Standard-A
+  IsLegacy: 0
   ColorScheme: 1A
   Costume: <:flag_ca_qc:1337103643563786302>
-  Prompt: {fileID: 4900000, guid: b81400b7029a8914caf41374ffdbe24d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-CA-Standard-A
   SpeakingRate: 1
   Pitch: 1.0792018
   Volume: 1

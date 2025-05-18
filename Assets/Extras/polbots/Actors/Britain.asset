@@ -36,13 +36,11 @@ MonoBehaviour:
   - Benedict
   - David
   Neighbor: {fileID: 0}
-  MapName: United Kingdom
   IsLegacy: 0
-  Voice: en-GB-Standard-B
   ColorScheme: 1A
   Costume: ':flag_gb:'
-  Prompt: {fileID: 4900000, guid: af4566ca47b83f443b0911ddfbbbdb12, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-B
   SpeakingRate: 1
   Pitch: 1.0004542
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Olzhas
   - Zhanarbek
   Neighbor: {fileID: 0}
-  MapName: Kazakhstan
   IsLegacy: 0
-  Voice: ru-RU-Standard-B
   ColorScheme: 2B
   Costume: ':flag_kz:'
-  Prompt: {fileID: 4900000, guid: ee1f2a640cd1e104f8801029e89faf88, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ru-RU-Standard-B
   SpeakingRate: 1
   Pitch: 1.105753
   Volume: 1

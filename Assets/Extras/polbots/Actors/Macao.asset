@@ -30,13 +30,11 @@ MonoBehaviour:
   - Wong
   - Alfredo
   Neighbor: {fileID: 0}
-  MapName: Macao
   IsLegacy: 0
-  Voice: yue-HK-Standard-B
   ColorScheme: 2B
   Costume: ':flag_mo:'
-  Prompt: {fileID: 4900000, guid: da44063c59d9e47478b730ec1c9d8af4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: yue-HK-Standard-B
   SpeakingRate: 1
   Pitch: 1.0448934
   Volume: 1

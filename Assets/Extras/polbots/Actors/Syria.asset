@@ -31,13 +31,11 @@ MonoBehaviour:
   - Hassan
   - Adnan
   Neighbor: {fileID: 0}
-  MapName: 
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 4B
   Costume: <:flag_sy:1337103877413142769>
-  Prompt: {fileID: 4900000, guid: c6488c863e3f39d4494afc0adeb68493, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0585868
   Volume: 1

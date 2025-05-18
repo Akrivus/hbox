@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Eug\xE8ne"
   - "Val\xE9rie"
   Neighbor: {fileID: 0}
-  MapName: Gabon
   IsLegacy: 0
-  Voice: fr-FR-Standard-A
   ColorScheme: 2C
   Costume: ':flag_ga:'
-  Prompt: {fileID: 4900000, guid: b5eb4343645227c4ba6b36432a7873c9, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-A
   SpeakingRate: 1
   Pitch: 1.0615125
   Volume: 1

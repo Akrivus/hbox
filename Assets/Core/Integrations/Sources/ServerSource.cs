@@ -74,7 +74,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
         thread.Start();
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         if (listener != null)
             listener.Stop();

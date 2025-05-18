@@ -38,7 +38,6 @@ public class MonologueEngine : MonoBehaviour, ISubGenerator
             var nodes = chat.Nodes.ToList();
             var monologue = await LLM.CompleteAsync(
                 await prompt.Resolve(log, controller.Prompt, controller.Context, chat.Idea.Prompt), false);
-            await resolver.SaveOutput(monologue);
 
             var delivery = monologue.Find("Delivery");
             var lines = monologue.Find("Lines") ?? monologue;

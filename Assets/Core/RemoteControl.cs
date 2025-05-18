@@ -5,6 +5,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Utilities;
+using UnityEngine.SceneManagement;
 
 public class RemoteControl : MonoBehaviour
 {
@@ -40,12 +41,12 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void PageUp()
     {
-        Launch(pageUpPath);
+        SwitchScene(pageUpPath);
     }
 
     public virtual void PageDown()
     {
-        Launch(pageDownPath);
+        SwitchScene(pageDownPath);
     }
 
     public virtual void MenuButton()
@@ -75,9 +76,6 @@ public class RemoteControl : MonoBehaviour
 
         pageUpPath = c.PageUpPath;
         pageDownPath = c.PageDownPath;
-
-        if (Application.isEditor)
-            return;
         InputSystem.onAnyButtonPress.Call(OnPress);
     }
 
@@ -88,6 +86,8 @@ public class RemoteControl : MonoBehaviour
 
     private void OnPress(InputControl control)
     {
+        if (!Application.isFocused)
+            return;
         if (buttonActions.TryGetValue(control.name, out var actionToInvoke))
             actionToInvoke.Invoke();
     }
@@ -103,5 +103,11 @@ public class RemoteControl : MonoBehaviour
             UseShellExecute = true
         });
         Application.Quit();
+    }
+
+    private void SwitchScene(string scene)
+    {
+        SceneManager.LoadSceneAsync(scene);
+        SceneManager.UnloadSceneAsync(SceneManager.GetActiveScene());
     }
 }

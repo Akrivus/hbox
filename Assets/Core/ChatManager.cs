@@ -56,6 +56,9 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private string _forceEpisodeID;
 
+    [SerializeField]
+    private int minQueueSize = 1;
+
     private SpawnPointManager spawnPointManager;
 
     private void Awake()
@@ -74,14 +77,9 @@ public class ChatManager : MonoBehaviour
             AddToPlayList(await Chat.Load(_forceEpisodeID));
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         StopAllCoroutines();
-    }
-
-    public void ForceRemoveAllActors()
-    {
-        StartCoroutine(RemoveAllActors());
     }
 
     public void AddToPlayList(Chat chat)
@@ -98,7 +96,7 @@ public class ChatManager : MonoBehaviour
                 OnChatQueueEmpty?.Invoke();
 
             var chat = default(Chat);
-            yield return new WaitUntilTimer(() => playList.TryDequeue(out chat), 30);
+            yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 30);
 
             if (SubtitlesUIManager.Instance != null)
                 SubtitlesUIManager.Instance.ClearSubtitles();
@@ -214,8 +212,7 @@ public class ChatManager : MonoBehaviour
 
         var reaction = reactions
             .GroupBy(r => r.Sentiment)
-            .OrderByDescending(r => r.Count())
-            .FirstOrDefault(r => r.Count() > 1)
+            .FirstOrDefault(r => r.Count() > 2)
             ?.First()?.Sentiment;
         if (reaction == null)
             yield break;
@@ -258,9 +255,7 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator RemoveActors(Chat chat)
     {
-        var outgoing = actors.ToList();
-        if (!RemoveActorsOnCompletion)
-            outgoing = actors.Except(chat.Actors.Select(ac => actors.Get(ac.Reference))).ToList();
+        var outgoing = actors.Except(chat.Actors.Select(ac => actors.Get(ac.Reference))).ToList();
         foreach (var actor in outgoing)
             yield return RemoveActor(actor);
     }

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Nina
   - Alenka
   Neighbor: {fileID: 0}
-  MapName: Slovenia
   IsLegacy: 0
-  Voice: sk-SK-Standard-A
   ColorScheme: 1A
   Costume: ':flag_si:'
-  Prompt: {fileID: 4900000, guid: a35dd926e178af24aa072bca296804e1, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: sk-SK-Standard-A
   SpeakingRate: 1
   Pitch: 1.0883542
   Volume: 1

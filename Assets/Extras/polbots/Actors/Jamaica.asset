@@ -30,13 +30,11 @@ MonoBehaviour:
   - P.J.
   - Usain
   Neighbor: {fileID: 0}
-  MapName: Jamaica
   IsLegacy: 0
-  Voice: fr-CA-Wavenet-D
   ColorScheme: 4B
   Costume: ':flag_jm:'
-  Prompt: {fileID: 4900000, guid: e824d6bd9e010f64e83dc6a6399ed9f8, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-CA-Wavenet-D
   SpeakingRate: 1
   Pitch: 1.0718883
   Volume: 1

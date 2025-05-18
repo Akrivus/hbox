@@ -30,13 +30,11 @@ MonoBehaviour:
   - Sir
   - Margaret
   Neighbor: {fileID: 0}
-  MapName: United Kingdom
   IsLegacy: 1
-  Voice: en-GB-Standard-B
   ColorScheme: 1A
   Costume: <:flag_gb_en:1337103701252509768>
-  Prompt: {fileID: 4900000, guid: 1bf7028425a781a4794df9fe69422445, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-B
   SpeakingRate: 1
   Pitch: 1.022918
   Volume: 1

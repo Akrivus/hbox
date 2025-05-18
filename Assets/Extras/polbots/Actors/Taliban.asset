@@ -31,13 +31,11 @@ MonoBehaviour:
   - Mohammad
   - Bashir
   Neighbor: {fileID: 0}
-  MapName: Afghanistan
   IsLegacy: 0
-  Voice: pa-IN-Standard-B
   ColorScheme: 4B
   Costume: <:flag_af:1337103147570692206>
-  Prompt: {fileID: 4900000, guid: 91bb3d8b3360010408c85416ead4d3b4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pa-IN-Standard-B
   SpeakingRate: 1
   Pitch: 1.0068194
   Volume: 1

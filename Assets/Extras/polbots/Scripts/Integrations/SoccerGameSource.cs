@@ -31,6 +31,9 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private ShareScreenUIManager shareScreenUiManager;
 
     [SerializeField]
+    private DiscordManager discordManager;
+
+    [SerializeField]
     private TextAsset prompt1;
 
     [SerializeField]
@@ -297,6 +300,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         volume += 0.1f;
         if (push) Push();
         OnEmit?.Invoke(log);
+        DiscordManager.PutInQueue("#sports", log);
     }
 
     private void Push()

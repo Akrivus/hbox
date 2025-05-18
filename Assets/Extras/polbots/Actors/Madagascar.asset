@@ -30,13 +30,11 @@ MonoBehaviour:
   - Patrice
   - Sonia
   Neighbor: {fileID: 0}
-  MapName: Madagascar
   IsLegacy: 0
-  Voice: fr-FR-Standard-B
   ColorScheme: 2B
   Costume: ':flag_mg:'
-  Prompt: {fileID: 4900000, guid: d18db693c5a733347a92b3b7de9b8d9b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-B
   SpeakingRate: 1
   Pitch: 1.02286
   Volume: 1

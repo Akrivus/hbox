@@ -30,13 +30,11 @@ MonoBehaviour:
   - Katsunobu
   - Ryu
   Neighbor: {fileID: 0}
-  MapName: Japan
   IsLegacy: 0
-  Voice: ja-JP-Standard-D
   ColorScheme: 1A
   Costume: ':flag_jp:'
-  Prompt: {fileID: 4900000, guid: 23cd8051bc725b248ae40019e77a181e, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ja-JP-Standard-D
   SpeakingRate: 1
   Pitch: 1.041882
   Volume: 1

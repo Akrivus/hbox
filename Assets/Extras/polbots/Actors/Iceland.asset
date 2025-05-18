@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Sigr\xED\xF0ur"
   - "J\xF3hanna"
   Neighbor: {fileID: 0}
-  MapName: Iceland
   IsLegacy: 0
-  Voice: nb-NO-Standard-A
   ColorScheme: 1A
   Costume: ':flag_is:'
-  Prompt: {fileID: 4900000, guid: 379edf4abb6d4de46ac4b02c3da09790, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: nb-NO-Standard-A
   SpeakingRate: 1
   Pitch: 1.0792856
   Volume: 1

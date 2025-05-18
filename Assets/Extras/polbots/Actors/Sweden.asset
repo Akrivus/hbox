@@ -30,13 +30,11 @@ MonoBehaviour:
   - Avicii
   - Karin
   Neighbor: {fileID: 0}
-  MapName: Sweden
   IsLegacy: 0
-  Voice: sv-SE-Standard-E
   ColorScheme: 1A
   Costume: ':flag_se:'
-  Prompt: {fileID: 4900000, guid: 95cfe5e0aec878a48be6fef48caa3513, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: sv-SE-Standard-E
   SpeakingRate: 1
   Pitch: 1.0440938
   Volume: 1

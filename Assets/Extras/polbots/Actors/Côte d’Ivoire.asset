@@ -31,13 +31,11 @@ MonoBehaviour:
   - "D\xE9sir\xE9"
   - "H\xE9l\xE8ne"
   Neighbor: {fileID: 0}
-  MapName: "C\xF4te d\u2019Ivoire"
   IsLegacy: 0
-  Voice: fr-FR-Standard-B
   ColorScheme: 3B
   Costume: ':flag_ci:'
-  Prompt: {fileID: 4900000, guid: 8b9408ea2e4d9f34e9a8c768d883057d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-B
   SpeakingRate: 1
   Pitch: 1.0383325
   Volume: 1

@@ -31,13 +31,11 @@ MonoBehaviour:
   - Stephen
   - David
   Neighbor: {fileID: 0}
-  MapName: Tanzania
   IsLegacy: 0
-  Voice: pt-PT-Standard-C
   ColorScheme: 2B
   Costume: ':flag_tz:'
-  Prompt: {fileID: 4900000, guid: 965e267c38f0f004c85d63753a6c77db, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pt-PT-Standard-C
   SpeakingRate: 1
   Pitch: 1.0297245
   Volume: 1

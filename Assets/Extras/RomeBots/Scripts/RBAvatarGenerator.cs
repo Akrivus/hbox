@@ -12,32 +12,31 @@ public class RBAvatarGenerator : MonoBehaviour
     private Actor[] Actors;
     private Sentiment[] Sentiments;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        Actors = ChatManager.Instance.Actors.List.ToArray();
-        Sentiments = ChatManager.Instance.Sentiments.List.ToArray();
-        StartCoroutine(GenerateAvatars());
-    }
+    private bool initialUpdate = true;
 
     // Update is called once per frame
     void Update()
     {
-        
+        if (!initialUpdate) // unity wants to be a pain about two components using start at the same time, no LateStart, so this is the best way
+            return;
+        Actors = ChatManager.Instance.Actors.List.ToArray();
+        Sentiments = ChatManager.Instance.Sentiments.List.ToArray();
+        initialUpdate = false;
+        StartCoroutine(GenerateAvatars());
     }
 
     private IEnumerator GenerateAvatars()
     {
         foreach (var actor in Actors)
         {
-
             foreach (var sentiment in Sentiments)
             {
-                var path = $"Vault/{ChatManager.Instance.name}/WWW/Actors/{actor.Name}/{sentiment.Name}.png";
+                var path = $"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}/{sentiment.Name}.png";
+                Debug.Log($"Checking {path} for {sentiment.Name}-{actor.Name}");
                 if (File.Exists(path))
                     continue;
-                else if (!Directory.Exists($"Vault/{ChatManager.Instance.name}/WWW/Actors/{actor.Name}"))
-                    Directory.CreateDirectory($"Vault/{ChatManager.Instance.name}/WWW/Actors/{actor.Name}");
+                else if (!Directory.Exists($"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}"))
+                    Directory.CreateDirectory($"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}");
 
                 var gameObject = Instantiate(actor.Prefab);
                 var height = Vector3.up * gameObject.transform.localScale.y * 1.7f;
@@ -71,5 +70,4 @@ public class RBAvatarGenerator : MonoBehaviour
             }
         }
     }
-
 }

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Constantinos
   - Dimitris
   Neighbor: {fileID: 0}
-  MapName: Greece
   IsLegacy: 0
-  Voice: el-GR-Standard-A
   ColorScheme: 1A
   Costume: ':flag_gr:'
-  Prompt: {fileID: 4900000, guid: aef0dcf5e04f3df4d946e167dc590692, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: el-GR-Standard-A
   SpeakingRate: 1
   Pitch: 1.0962095
   Volume: 1

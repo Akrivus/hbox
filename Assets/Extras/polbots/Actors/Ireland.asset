@@ -30,13 +30,11 @@ MonoBehaviour:
   - Fintan
   - Ross
   Neighbor: {fileID: 0}
-  MapName: Ireland
   IsLegacy: 0
-  Voice: en-US-Standard-B
   ColorScheme: 1A
   Costume: ':flag_ie:'
-  Prompt: {fileID: 4900000, guid: 5d024b89ed57040408bd117665961413, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-B
   SpeakingRate: 1
   Pitch: 1.0586808
   Volume: 1

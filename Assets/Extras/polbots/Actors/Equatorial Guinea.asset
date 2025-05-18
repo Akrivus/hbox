@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Benjam\xEDn"
   - Julio
   Neighbor: {fileID: 0}
-  MapName: Equatorial Guinea
   IsLegacy: 0
-  Voice: es-ES-Standard-C
   ColorScheme: 4B
   Costume: ':flag_gq:'
-  Prompt: {fileID: 4900000, guid: 300f61e3577be3c4e89da7ba5942f14a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-ES-Standard-C
   SpeakingRate: 1
   Pitch: 1.0146335
   Volume: 1

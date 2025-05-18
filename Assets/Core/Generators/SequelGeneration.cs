@@ -1,10 +1,14 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using UnityEngine;
 
 public class SequelGeneration : MonoBehaviour, ISubGenerator
 {
     [SerializeField]
     private bool fastMode = false;
+
+    [SerializeField]
+    private bool scramble = false;
 
     [SerializeField]
     private ChatGenerator[] iterations;
@@ -20,6 +24,8 @@ public class SequelGeneration : MonoBehaviour, ISubGenerator
             var states = "";
             foreach (var actor in chat.Actors)
                 states += $"#### {actor.Name}\n\n" + actor.Memory + "\n\n";
+            if (scramble)
+                iterations = iterations.Shuffle().ToArray();
             var generator = iterations[iteration % iterations.Length];
             var context = await MemoryBucket.GetContext(slug);
             var text = await LLM.CompleteAsync(

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Zinaida
   - Kyrgyz
   Neighbor: {fileID: 0}
-  MapName: Kyrgyzstan
   IsLegacy: 0
-  Voice: ru-RU-Standard-B
   ColorScheme: 4B
   Costume: ':flag_kg:'
-  Prompt: {fileID: 4900000, guid: 2abaca31360330840a0180185c85ba20, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ru-RU-Standard-B
   SpeakingRate: 1
   Pitch: 1.0793586
   Volume: 1

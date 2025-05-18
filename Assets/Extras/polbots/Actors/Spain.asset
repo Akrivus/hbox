@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Rosal\xEDa"
   - Javier
   Neighbor: {fileID: 0}
-  MapName: Spain
   IsLegacy: 0
-  Voice: es-ES-Standard-B
   ColorScheme: 4B
   Costume: ':flag_es:'
-  Prompt: {fileID: 4900000, guid: a40ffb868079dc448a8ee550a82fff52, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-ES-Standard-B
   SpeakingRate: 1
   Pitch: 1.0725688
   Volume: 1

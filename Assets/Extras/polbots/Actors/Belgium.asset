@@ -30,13 +30,11 @@ MonoBehaviour:
   - Maxime
   - Fleur
   Neighbor: {fileID: 0}
-  MapName: Belgium
   IsLegacy: 0
-  Voice: nl-BE-Standard-B
   ColorScheme: 4B
   Costume: ':flag_be:'
-  Prompt: {fileID: 4900000, guid: ab8038ea36f2da247b3782ab76fe364c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: nl-BE-Standard-B
   SpeakingRate: 1
   Pitch: 1.0014077
   Volume: 1

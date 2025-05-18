@@ -6,7 +6,10 @@ public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
     [SerializeField]
     private bool fastMode = false;
 
-    private string slug => "#" + name.Replace(' ', '-').ToLower();
+    [SerializeField]
+    private bool global = false;
+
+    private string slug => "#" + (global ? ChatManager.Instance.name : name).Replace(' ', '-').ToLower();
 
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {

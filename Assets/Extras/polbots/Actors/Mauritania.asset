@@ -30,13 +30,11 @@ MonoBehaviour:
   - Khadijetou
   - Ghazouani
   Neighbor: {fileID: 0}
-  MapName: Mauritania
   IsLegacy: 0
-  Voice: ar-XA-Standard-B
   ColorScheme: 4B
   Costume: ':flag_mr:'
-  Prompt: {fileID: 4900000, guid: be8fdcaafdf1588418a8400f378fa529, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
   SpeakingRate: 1
   Pitch: 1.0216714
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Nuno
   - Fado
   Neighbor: {fileID: 0}
-  MapName: Portugal
   IsLegacy: 0
-  Voice: pt-PT-Standard-A
   ColorScheme: 4A
   Costume: ':flag_pt:'
-  Prompt: {fileID: 4900000, guid: 0d1c209a9851512459d7f1cadcacfbdf, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pt-PT-Standard-A
   SpeakingRate: 1
   Pitch: 1.0293323
   Volume: 1

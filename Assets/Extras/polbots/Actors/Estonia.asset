@@ -30,13 +30,11 @@ MonoBehaviour:
   - Hennadi
   - Rein
   Neighbor: {fileID: 0}
-  MapName: Estonia
   IsLegacy: 0
-  Voice: fi-FI-Standard-A
   ColorScheme: 2A
   Costume: ':flag_ee:'
-  Prompt: {fileID: 4900000, guid: 0f5f9a4868e8a894b96da3722a346e55, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fi-FI-Standard-A
   SpeakingRate: 1
   Pitch: 1.023272
   Volume: 1

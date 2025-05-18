@@ -30,13 +30,11 @@ MonoBehaviour:
   - Faisal
   - Sadiq
   Neighbor: {fileID: 0}
-  MapName: Somalia
-  IsLegacy: 1
-  Voice: ar-XA-Standard-B
+  IsLegacy: 0
   ColorScheme: 3B
   Costume: <:flag_somaliland:1337103834580783187>
-  Prompt: {fileID: 4900000, guid: f5acaee6dea45c64e8bc56e8894988e4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
   SpeakingRate: 1
   Pitch: 1.0580944
   Volume: 1

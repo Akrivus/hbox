@@ -30,13 +30,11 @@ MonoBehaviour:
   - Chan
   - Teo
   Neighbor: {fileID: 0}
-  MapName: Singapore
   IsLegacy: 0
-  Voice: ms-MY-Standard-B
   ColorScheme: 1A
   Costume: ':flag_sg:'
-  Prompt: {fileID: 4900000, guid: 0766a5890f2015945a81a9d1aa2dee6a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ms-MY-Standard-B
   SpeakingRate: 1
   Pitch: 1.0321373
   Volume: 1

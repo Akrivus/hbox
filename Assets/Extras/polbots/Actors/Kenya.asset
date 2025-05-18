@@ -30,13 +30,11 @@ MonoBehaviour:
   - Fatuma
   - Ababu
   Neighbor: {fileID: 0}
-  MapName: Kenya
   IsLegacy: 0
-  Voice: en-GB-Standard-C
   ColorScheme: 2B
   Costume: ':flag_ke:'
-  Prompt: {fileID: 4900000, guid: dae57bc1682241549b6290e2c37ba619, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-C
   SpeakingRate: 1
   Pitch: 1.094762
   Volume: 1

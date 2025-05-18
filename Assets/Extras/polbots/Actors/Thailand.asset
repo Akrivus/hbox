@@ -30,13 +30,11 @@ MonoBehaviour:
   - Chuan
   - Prawit
   Neighbor: {fileID: 0}
-  MapName: Thailand
   IsLegacy: 0
-  Voice: th-TH-Standard-A
   ColorScheme: 2B
   Costume: ':flag_th:'
-  Prompt: {fileID: 4900000, guid: 14c76b09628bf3e4badc39941af41188, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: th-TH-Standard-A
   SpeakingRate: 1
   Pitch: 1.0632602
   Volume: 1

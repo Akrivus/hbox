@@ -30,13 +30,11 @@ MonoBehaviour:
   - Nicolas
   - Nadia
   Neighbor: {fileID: 0}
-  MapName: Switzerland
   IsLegacy: 0
-  Voice: de-DE-Standard-D
   ColorScheme: 1A
   Costume: ':flag_ch:'
-  Prompt: {fileID: 4900000, guid: 49e3b16e2339e9840a91023800d2b33f, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-D
   SpeakingRate: 1
   Pitch: 1.079606
   Volume: 1

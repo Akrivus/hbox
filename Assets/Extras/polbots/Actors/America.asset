@@ -36,13 +36,11 @@ MonoBehaviour:
   - Lloyd
   - Mark
   Neighbor: {fileID: 0}
-  MapName: United States
   IsLegacy: 0
-  Voice: en-US-Standard-J
   ColorScheme: 1A
   Costume: ':flag_us:'
-  Prompt: {fileID: 4900000, guid: e5b562569e1024041af0752e0838f89d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-J
   SpeakingRate: 1
   Pitch: 1.0575446
   Volume: 1

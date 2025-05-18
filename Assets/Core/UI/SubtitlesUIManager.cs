@@ -8,9 +8,6 @@ public class SubtitlesUIManager : MonoBehaviour
     public static SubtitlesUIManager Instance { get; private set; }
 
     [SerializeField]
-    private TextMeshProUGUI premierLabel;
-
-    [SerializeField]
     private TextMeshProUGUI splashScreen;
 
     [SerializeField]

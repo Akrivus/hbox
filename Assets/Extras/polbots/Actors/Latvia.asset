@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ilze
   - "M\u0101rti\u0146\u0161"
   Neighbor: {fileID: 0}
-  MapName: Latvia
   IsLegacy: 0
-  Voice: pl-PL-Standard-E
   ColorScheme: 1A
   Costume: ':flag_lv:'
-  Prompt: {fileID: 4900000, guid: c3e6b3e308ec24b4b8cc59423425f81a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pl-PL-Standard-E
   SpeakingRate: 1
   Pitch: 1.0709779
   Volume: 1

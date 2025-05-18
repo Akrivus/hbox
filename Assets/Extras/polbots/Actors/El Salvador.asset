@@ -30,13 +30,11 @@ MonoBehaviour:
   - Carlos
   - Ana
   Neighbor: {fileID: 0}
-  MapName: El Salvador
   IsLegacy: 0
-  Voice: es-US-Standard-C
   ColorScheme: 2B
   Costume: ':flag_sv:'
-  Prompt: {fileID: 4900000, guid: 03f38003336344d4e873e311e8c7fc26, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-C
   SpeakingRate: 1
   Pitch: 1.1070203
   Volume: 1

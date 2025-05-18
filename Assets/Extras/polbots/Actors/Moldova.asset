@@ -31,13 +31,11 @@ MonoBehaviour:
   - Victor
   - Oleg
   Neighbor: {fileID: 0}
-  MapName: Moldova
   IsLegacy: 0
-  Voice: ro-RO-Standard-B
   ColorScheme: 4B
   Costume: ':flag_md:'
-  Prompt: {fileID: 4900000, guid: ed123fa2958807848830c77e84f45ace, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ro-RO-Standard-B
   SpeakingRate: 1
   Pitch: 1.0635209
   Volume: 1

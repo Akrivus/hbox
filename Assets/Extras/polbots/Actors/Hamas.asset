@@ -30,13 +30,11 @@ MonoBehaviour:
   - Raziq
   - Mounir
   Neighbor: {fileID: 11400000, guid: 943200c4e952b77419fcc4cf87607322, type: 2}
-  MapName: Palestine
   IsLegacy: 1
-  Voice: he-IL-Standard-D
   ColorScheme: 4C
   Costume: <:flag_ps_hm:1337103282442731614>
-  Prompt: {fileID: 4900000, guid: f123534ddf741ce4a9f518ef5ab66e77, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: he-IL-Standard-D
   SpeakingRate: 1
   Pitch: 1.0096335
   Volume: 1

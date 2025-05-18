@@ -30,13 +30,11 @@ MonoBehaviour:
   - "Andr\xE1s"
   - "Mikl\xF3s"
   Neighbor: {fileID: 0}
-  MapName: Hungary
   IsLegacy: 0
-  Voice: hu-HU-Standard-A
   ColorScheme: 1B
   Costume: ':flag_hu:'
-  Prompt: {fileID: 4900000, guid: 4de009e564f215d41ad5c7483adcd8b3, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: hu-HU-Standard-A
   SpeakingRate: 1
   Pitch: 1.0777396
   Volume: 1

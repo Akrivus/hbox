@@ -30,13 +30,11 @@ MonoBehaviour:
   - Dahlan
   - Nadiem
   Neighbor: {fileID: 0}
-  MapName: Indonesia
   IsLegacy: 0
-  Voice: id-ID-Standard-A
   ColorScheme: 4B
   Costume: ':flag_id:'
-  Prompt: {fileID: 4900000, guid: 108447e08c68bf84ebf47f5ffddfabbb, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: id-ID-Standard-A
   SpeakingRate: 1
   Pitch: 1.0528888
   Volume: 1

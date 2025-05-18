@@ -33,13 +33,11 @@ MonoBehaviour:
   - Krushchev
   - Gorbachev
   Neighbor: {fileID: 0}
-  MapName: Russia
   IsLegacy: 1
-  Voice: ru-RU-Standard-D
   ColorScheme: 1A
   Costume: <:flag_su:1279252988459876416
-  Prompt: {fileID: 4900000, guid: c76fd5d06c8124445bc0b328651968f3, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ru-RU-Standard-D
   SpeakingRate: 1
   Pitch: 1.0194963
   Volume: 1

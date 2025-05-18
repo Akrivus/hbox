@@ -30,13 +30,11 @@ MonoBehaviour:
   - Alia
   - Ali
   Neighbor: {fileID: 0}
-  MapName: Qatar
   IsLegacy: 0
-  Voice: ar-XA-Standard-B
   ColorScheme: 1B
   Costume: ':flag_qa:'
-  Prompt: {fileID: 4900000, guid: 42dc8553d88892e41b19e9b7b10e3768, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
   SpeakingRate: 1
   Pitch: 1.0735118
   Volume: 1

@@ -31,13 +31,11 @@ MonoBehaviour:
   - Barack
   - Jerry
   Neighbor: {fileID: 11400000, guid: 878c3e70ffb418a4d95899fe3872c1a4, type: 2}
-  MapName: United States
   IsLegacy: 1
-  Voice: en-US-Standard-H
   ColorScheme: 1A
   Costume: <:flag_us_ca:1337103661163352107>
-  Prompt: {fileID: 4900000, guid: ece0444ecef5b3a4ba30540d0f9a7a70, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-H
   SpeakingRate: 1
   Pitch: 1.0372574
   Volume: 1

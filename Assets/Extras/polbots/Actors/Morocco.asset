@@ -30,13 +30,11 @@ MonoBehaviour:
   - Hassan
   - Mohammed
   Neighbor: {fileID: 0}
-  MapName: Morocco
   IsLegacy: 0
-  Voice: ar-XA-Standard-D
   ColorScheme: 4B
   Costume: ':flag_ma:'
-  Prompt: {fileID: 4900000, guid: 23f0fc9916c4ddc44af7ce0bf136da4c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-D
   SpeakingRate: 1
   Pitch: 1.001329
   Volume: 1

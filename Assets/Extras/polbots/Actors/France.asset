@@ -30,13 +30,11 @@ MonoBehaviour:
   - "\xC9douard"
   - Juliette
   Neighbor: {fileID: 0}
-  MapName: France
   IsLegacy: 0
-  Voice: fr-FR-Standard-C
   ColorScheme: 1A
   Costume: ':flag_fr:'
-  Prompt: {fileID: 4900000, guid: 5270720dc1a3b654d8c6eaed6eccf1f9, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-C
   SpeakingRate: 1
   Pitch: 1.1024138
   Volume: 1

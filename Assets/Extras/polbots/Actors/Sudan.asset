@@ -30,13 +30,11 @@ MonoBehaviour:
   - Aminata
   - Osman
   Neighbor: {fileID: 0}
-  MapName: Sudan
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 2B
   Costume: ':flag_sd:'
-  Prompt: {fileID: 4900000, guid: e8ea7a9c44d85844fa4dd60071a215a2, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0878006
   Volume: 1

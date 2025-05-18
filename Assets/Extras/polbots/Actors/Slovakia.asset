@@ -30,13 +30,11 @@ MonoBehaviour:
   - Daniela
   - Martin
   Neighbor: {fileID: 0}
-  MapName: Slovakia
   IsLegacy: 0
-  Voice: sk-SK-Standard-A
   ColorScheme: 1A
   Costume: ':flag_sk:'
-  Prompt: {fileID: 4900000, guid: 9e2d2849ff6685940990ff015d6162fc, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: sk-SK-Standard-A
   SpeakingRate: 1
   Pitch: 1.0447727
   Volume: 1

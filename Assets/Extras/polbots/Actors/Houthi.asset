@@ -31,13 +31,11 @@ MonoBehaviour:
   - Ansar
   - Saada
   Neighbor: {fileID: 11400000, guid: a4682690d26d11549a361903681295c1, type: 2}
-  MapName: Yemen
   IsLegacy: 1
-  Voice: ar-XA-Standard-C
   ColorScheme: 1B
   Costume: <:flag_ye_ho:1337108953942986752>
-  Prompt: {fileID: 4900000, guid: 385912cce44257145b6803fdd28ed522, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0396136
   Volume: 1

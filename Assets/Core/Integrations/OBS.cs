@@ -1,6 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections;
+using System.IO;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -9,6 +11,8 @@ using UnityEngine;
 
 public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 {
+    [SerializeField]
+    private string VideosFolder = "C:/Users/akriv/Videos";
     [SerializeField]
     private string OBSWebSocketURI = "ws://localhost:4455";
     [SerializeField]
@@ -27,6 +31,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
     public void Configure(OBSConfigs c)
     {
+        VideosFolder = c.VideosFolder;
         OBSWebSocketURI = c.OBSWebSocketURI;
         IsStreaming = c.IsStreaming;
         IsRecording = c.IsRecording;
@@ -71,7 +76,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             return;
         isObsRecording = false;
         await SendRequestAsync("StopRecord");
-        await WaitForVideoFile();
+        StartCoroutine(WaitForVideoFile().AsCoroutine());
     }
 
     public void StopOrStartRecording(Chat chat)
@@ -107,7 +112,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         await SendRequestAsync("StopStreaming");
     }
 
-    public async Task SendRequestAsync(string requestType)
+    public async Task SendRequestAsync(string requestType, int attempts = 0)
     {
         using (var client = new ClientWebSocket())
         {
@@ -117,6 +122,13 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
                 if (client.State.HasFlag(WebSocketState.Open))
                     await SendAsync(client, new Message<Request<object>>(6, new Request<object>(requestType)));
+            }
+            catch (WebSocketException e)
+            {
+                Debug.LogError(e);
+                if (attempts > 10)
+                    return;
+                await SendRequestAsync(requestType, ++attempts);
             }
             catch (Exception e)
             {
@@ -151,22 +163,28 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             .ContinueWith(async (_) => await ReceiveAsync(client));
     }
 
-    private async Task WaitForVideoFile()
+    private async Task WaitForVideoFile(int attempts = 0)
     {
-    }
-
-    private async Task GetLatestVideoFile()
-    {
-        var latestFile = string.Empty;
-        var files = System.IO.Directory.GetFiles("C:/Users/adam/Videos/CharacterCore", "*.mkv");
-        foreach (var file in files)
+        if (attempts > 10)
+            return;
+        var files = Directory.GetFiles(VideosFolder, "*.mkv");
+        var latest = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
+        if (latest == null)
+            return;
+        var fileName = Path.GetFileNameWithoutExtension(latest);
+        if (fileName.Length == "1234-12-12-12-12-12".Length)
         {
-            var creationTime = System.IO.File.GetCreationTime(file);
-            if (creationTime > DateTime.Now.AddSeconds(-5))
-            {
-                latestFile = file;
-                break;
-            }
+            var inst = ChatManager.Instance;
+            var newName = $"{inst.name}-{inst.NowPlaying.Title.ToFileSafeString()}_{fileName}.mkv";
+            var newPath = Path.Combine(VideosFolder, newName);
+            if (File.Exists(newPath))
+                File.Delete(newPath);
+            File.Move(latest, newPath);
+        }
+        else
+        {
+            await Task.Delay(5000);
+            await WaitForVideoFile(++attempts);
         }
     }
 

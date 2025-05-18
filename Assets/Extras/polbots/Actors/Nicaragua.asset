@@ -30,13 +30,11 @@ MonoBehaviour:
   - Carlos
   - Walmaro
   Neighbor: {fileID: 0}
-  MapName: Nicaragua
   IsLegacy: 0
-  Voice: es-ES-Standard-A
   ColorScheme: 1A
   Costume: ':flag_ni:'
-  Prompt: {fileID: 4900000, guid: 64ca13fa4130a48469d904e782489c65, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-ES-Standard-A
   SpeakingRate: 1
   Pitch: 1.0262264
   Volume: 1

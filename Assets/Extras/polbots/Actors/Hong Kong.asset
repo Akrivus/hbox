@@ -30,13 +30,11 @@ MonoBehaviour:
   - David
   - Lai
   Neighbor: {fileID: 0}
-  MapName: Hong Kong
   IsLegacy: 0
-  Voice: yue-HK-Standard-A
   ColorScheme: 1B
   Costume: ':flag_hk:'
-  Prompt: {fileID: 4900000, guid: c1fa791234c93414ab3cc31b6f1c038b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: yue-HK-Standard-A
   SpeakingRate: 1
   Pitch: 1.0670269
   Volume: 1

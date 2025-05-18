@@ -30,13 +30,11 @@ MonoBehaviour:
   - Jonas
   - Dainius
   Neighbor: {fileID: 0}
-  MapName: Lithuania
   IsLegacy: 0
-  Voice: pl-PL-Standard-D
   ColorScheme: 1A
   Costume: ':flag_lt:'
-  Prompt: {fileID: 4900000, guid: 30c5d24f2fcc90649a3066fd301199a1, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pl-PL-Standard-D
   SpeakingRate: 1
   Pitch: 1.0466369
   Volume: 1

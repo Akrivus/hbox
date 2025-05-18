@@ -30,13 +30,11 @@ MonoBehaviour:
   - Agnieszka
   - Wanda
   Neighbor: {fileID: 0}
-  MapName: Poland
   IsLegacy: 0
-  Voice: pl-PL-Standard-B
   ColorScheme: 1A
   Costume: ':flag_pl:'
-  Prompt: {fileID: 4900000, guid: 9388b44e7df34eb4b8fc1b162c4623f4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pl-PL-Standard-B
   SpeakingRate: 1
   Pitch: 1.0184184
   Volume: 1

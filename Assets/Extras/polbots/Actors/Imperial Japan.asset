@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ishiwara
   - Matsuoka
   Neighbor: {fileID: 0}
-  MapName: Japan
   IsLegacy: 1
-  Voice: ja-JP-Standard-D
   ColorScheme: 1A
   Costume: <:flag_jp_imperial:1337103460776280147>
-  Prompt: {fileID: 4900000, guid: 1a86184c6cb472e439a0a929045e3784, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ja-JP-Standard-D
   SpeakingRate: 1
   Pitch: 1.0837451
   Volume: 1

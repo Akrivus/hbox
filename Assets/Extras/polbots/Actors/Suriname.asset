@@ -30,13 +30,11 @@ MonoBehaviour:
   - Marlon
   - Rogier
   Neighbor: {fileID: 0}
-  MapName: Suriname
   IsLegacy: 0
-  Voice: nl-NL-Standard-C
   ColorScheme: 4B
   Costume: ':flag_sr:'
-  Prompt: {fileID: 4900000, guid: 80ac9de604b21014da14da439ff6ccd9, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: nl-NL-Standard-C
   SpeakingRate: 1
   Pitch: 1.0824683
   Volume: 1

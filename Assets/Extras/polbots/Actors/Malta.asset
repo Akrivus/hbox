@@ -30,13 +30,11 @@ MonoBehaviour:
   - David
   - Jeffrey
   Neighbor: {fileID: 0}
-  MapName: Malta
   IsLegacy: 0
-  Voice: en-GB-Standard-C
   ColorScheme: 1B
   Costume: ':flag_mt:'
-  Prompt: {fileID: 4900000, guid: 264cc2f05722767448a9a9ab0eb819ec, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-C
   SpeakingRate: 1
   Pitch: 1.1011609
   Volume: 1

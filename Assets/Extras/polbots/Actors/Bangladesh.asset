@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ahsan
   - Jaya
   Neighbor: {fileID: 0}
-  MapName: Bangladesh
   IsLegacy: 0
-  Voice: bn-IN-Standard-B
   ColorScheme: 4B
   Costume: ':flag_bd:'
-  Prompt: {fileID: 4900000, guid: 55e9c5e9d9e2b764fa53a82f253bafc8, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: bn-IN-Standard-B
   SpeakingRate: 1
   Pitch: 1.0506914
   Volume: 1

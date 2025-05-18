@@ -30,13 +30,11 @@ MonoBehaviour:
   - Amanuel
   - Kjetil
   Neighbor: {fileID: 0}
-  MapName: Ethiopia
   IsLegacy: 0
-  Voice: en-IN-Standard-A
   ColorScheme: 4C
   Costume: ':flag_et:'
-  Prompt: {fileID: 4900000, guid: df4ca79146b908b428cff1b4c0b407b4, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-IN-Standard-A
   SpeakingRate: 1
   Pitch: 1.0267444
   Volume: 1

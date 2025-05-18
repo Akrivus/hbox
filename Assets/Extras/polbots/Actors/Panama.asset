@@ -30,13 +30,11 @@ MonoBehaviour:
   - Carlos
   - Pedro
   Neighbor: {fileID: 0}
-  MapName: Panama
   IsLegacy: 0
-  Voice: es-US-Standard-B
   ColorScheme: 1B
   Costume: ':flag_pa:'
-  Prompt: {fileID: 4900000, guid: 8901b604d7e8cd6429c75cc3085aa7f3, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-B
   SpeakingRate: 1
   Pitch: 1.0791745
   Volume: 1

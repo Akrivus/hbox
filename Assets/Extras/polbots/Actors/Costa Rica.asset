@@ -30,13 +30,11 @@ MonoBehaviour:
   - Rodrigo
   - Gerardo
   Neighbor: {fileID: 0}
-  MapName: Costa Rica
   IsLegacy: 0
-  Voice: es-US-Standard-B
   ColorScheme: 1B
   Costume: ':flag_cr:'
-  Prompt: {fileID: 4900000, guid: f57ba3e963d9ffa47912b6b23aca6e21, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-US-Standard-B
   SpeakingRate: 1
   Pitch: 1.1065391
   Volume: 1

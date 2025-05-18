@@ -30,13 +30,11 @@ MonoBehaviour:
   - Serhiy
   - Anastasia
   Neighbor: {fileID: 0}
-  MapName: Ukraine
   IsLegacy: 0
-  Voice: uk-UA-Standard-A
   ColorScheme: 1A
   Costume: ':flag_ua:'
-  Prompt: {fileID: 4900000, guid: 25561fe02a6229844a3a603cd8cd179f, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: uk-UA-Standard-A
   SpeakingRate: 1
   Pitch: 1.0411844
   Volume: 1

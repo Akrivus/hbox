@@ -30,13 +30,11 @@ MonoBehaviour:
   - Stephen
   - Margaret
   Neighbor: {fileID: 0}
-  MapName: Canada
   IsLegacy: 0
-  Voice: en-US-Standard-A
   ColorScheme: 1A
   Costume: ':flag_ca:'
-  Prompt: {fileID: 4900000, guid: c2cf8a512952a764faf5f52ea947cd9b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-A
   SpeakingRate: 1
   Pitch: 1.0510468
   Volume: 1

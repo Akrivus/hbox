@@ -25,7 +25,7 @@ MonoBehaviour:
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 1978615906242104, guid: d509d1d0122337b4493c90b7eb62172b, type: 3}
+  Prefab: {fileID: 61056662705754977, guid: 89657029c979f8d4db1ab9e079ca5188, type: 3}
   Voice: echo
   SpeakingRate: 1
   Pitch: 1

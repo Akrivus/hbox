@@ -30,13 +30,11 @@ MonoBehaviour:
   - Bah
   - Nafissatou
   Neighbor: {fileID: 0}
-  MapName: Guinea
   IsLegacy: 0
-  Voice: fr-FR-Standard-A
   ColorScheme: 4B
   Costume: ':flag_gn:'
-  Prompt: {fileID: 4900000, guid: 879d49c6bf7611741b3e8e81b004f31d, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-A
   SpeakingRate: 1
   Pitch: 1.0089519
   Volume: 1

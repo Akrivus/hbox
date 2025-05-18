@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ahmed
   - Nazim
   Neighbor: {fileID: 0}
-  MapName: Maldives
   IsLegacy: 0
-  Voice: en-IN-Standard-D
   ColorScheme: 2B
   Costume: ':flag_mv:'
-  Prompt: {fileID: 4900000, guid: c2736e8b16017154e909d31e2b80d6c6, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-IN-Standard-D
   SpeakingRate: 1
   Pitch: 1.0421736
   Volume: 1

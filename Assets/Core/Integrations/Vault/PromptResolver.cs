@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnityEngine;
 
 public class PromptResolver
 {
@@ -25,6 +26,7 @@ public class PromptResolver
     public PromptResolver(ChatGenerator generator)
     {
         Part = generator.name;
+        SetPromptPath();
         if (!File.Exists(Path))
             Part = "Defaults";
         SetPromptPath();
@@ -34,6 +36,7 @@ public class PromptResolver
     {
 
         Part = string.Join("/", generator.name, SplitTypeName(sub));
+        SetPromptPath();
         if (!File.Exists(Path))
             Part = string.Join("/", "Defaults", SplitTypeName(sub));
         SetPromptPath();
@@ -48,7 +51,12 @@ public class PromptResolver
     public async Task<PromptResolver> Resolve(params object[] args)
     {
         if (!File.Exists(Path))
-            return this;
+        {
+            Debug.LogError($"Prompt file not found: {Path}");
+            SetPromptPath();
+            if (!File.Exists(Path))
+                return this;
+        }
         Text = await File.ReadAllTextAsync(Path);
         for (var i = 0; i < args.Length; ++i)
             if (args[i] != null)
@@ -78,11 +86,6 @@ public class PromptResolver
             .ToDictionary(
                 line => line.Key,
                 line => line.Value);
-    }
-
-    public async Task SavePrompt(string text)
-    {
-        await Save(Path, text);
     }
 
     public async Task SaveOutput(string text)

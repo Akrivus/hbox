@@ -31,13 +31,11 @@ MonoBehaviour:
   - "Mar\xEDa"
   - Milagros
   Neighbor: {fileID: 0}
-  MapName: Dominican Republic
   IsLegacy: 0
-  Voice: es-ES-Standard-A
   ColorScheme: 1B
   Costume: ':flag_do:'
-  Prompt: {fileID: 4900000, guid: 18786c79e6bb2b0489578c4a6856912e, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-ES-Standard-A
   SpeakingRate: 1
   Pitch: 1.0052735
   Volume: 1

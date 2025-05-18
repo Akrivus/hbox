@@ -30,13 +30,11 @@ MonoBehaviour:
   - Siarhei
   - Svetlana
   Neighbor: {fileID: 0}
-  MapName: Belarus
   IsLegacy: 0
-  Voice: ru-RU-Standard-B
   ColorScheme: 1B
   Costume: ':blag_by:'
-  Prompt: {fileID: 4900000, guid: 97c3c93d640f3af46b9216ea727d1ef8, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ru-RU-Standard-B
   SpeakingRate: 1
   Pitch: 1.0255646
   Volume: 1

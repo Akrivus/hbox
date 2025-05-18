@@ -30,13 +30,11 @@ MonoBehaviour:
   - Zaid
   - Alaa
   Neighbor: {fileID: 0}
-  MapName: Jordan
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 4B
   Costume: ':flag_jo:'
-  Prompt: {fileID: 4900000, guid: a76cab6802925754c84a8d0ed8e3da9e, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0710038
   Volume: 1

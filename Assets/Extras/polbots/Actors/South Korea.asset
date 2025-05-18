@@ -33,13 +33,11 @@ MonoBehaviour:
   - Park
   - Jin
   Neighbor: {fileID: 0}
-  MapName: South Korea
   IsLegacy: 0
-  Voice: ko-KR-Standard-B
   ColorScheme: 1A
   Costume: ':flag_kr:'
-  Prompt: {fileID: 4900000, guid: b6694c9835f87f340aee7bf1c2da2eae, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ko-KR-Standard-B
   SpeakingRate: 1
   Pitch: 1.0090078
   Volume: 1

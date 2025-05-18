@@ -30,13 +30,11 @@ MonoBehaviour:
   - Shahnoza
   - Umida
   Neighbor: {fileID: 0}
-  MapName: Uzbekistan
   IsLegacy: 0
-  Voice: ru-RU-Standard-B
   ColorScheme: 1A
   Costume: ':flag_uz:'
-  Prompt: {fileID: 4900000, guid: 36670fdf36674924a8f7eca5f5c78530, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ru-RU-Standard-B
   SpeakingRate: 1
   Pitch: 1.0624636
   Volume: 1

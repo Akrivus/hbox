@@ -29,6 +29,7 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
     private Sentiment _sentiment;
 
     private Vector3 position;
+    private Vector3 lastPosition;
 
     private void Update()
     {
@@ -105,49 +106,24 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
         _sentiment = sentiment;
 
         if (ActorController.LookTarget != null)
+        {
+            lastPosition = position;
             position = ActorController.LookTarget.position;
+        }
+        if (lastPosition == null)
+        {
+            lastPosition = position;
+        }
     }
 
     private void OnAnimatorIK(int layerIndex)
     {
-        var energy = Math.Abs(ActorController.Energy);
-        var score = Math.Abs(_sentiment.Score);
-
-        if (ActorController.RightHandTarget != null)
-        {
-            _animator.SetIKPositionWeight(AvatarIKGoal.RightHand, energy);
-            _animator.SetIKRotationWeight(AvatarIKGoal.RightHand, energy);
-            _animator.SetIKPosition(AvatarIKGoal.RightHand, ActorController.RightHandTarget.position);
-            _animator.SetIKRotation(AvatarIKGoal.RightHand, ActorController.RightHandTarget.rotation);
-        }
-        else
-        {
-            _animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0.0f);
-            _animator.SetIKRotationWeight(AvatarIKGoal.RightHand, 0.0f);
-        }
-        if (ActorController.LeftHandTarget != null)
-        {
-            _animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, energy);
-            _animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, energy);
-            _animator.SetIKPosition(AvatarIKGoal.LeftHand, ActorController.LeftHandTarget.position);
-            _animator.SetIKRotation(AvatarIKGoal.LeftHand, ActorController.LeftHandTarget.rotation);
-        }
-        else
-        {
-            _animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 0.0f);
-            _animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 0.0f);
-        }
-        if (ActorController.LookTarget != null)
-        {
-            _animator.SetLookAtPosition(position);
-            _animator.SetLookAtWeight(1.0f,
-                ActorController.Energy,
-                score + 0.5f, score * 0.5f, 0.75f);
-        }
-        else
-        {
-            _animator.SetLookAtWeight(0.0f);
-        }
+        var energy = Mathf.Clamp01(Mathf.Abs(ActorController.Energy) + 0.5f);
+        var score = Mathf.Clamp01(Mathf.Abs(_sentiment.Score) + 0.5f);
+        var lookAtPosition = Vector3.Lerp(
+            lastPosition, position, Time.deltaTime * speed * energy);
+        _animator.SetLookAtPosition(lookAtPosition);
+        _animator.SetLookAtWeight(1f, energy, score, 0f, 1f);
     }
 
     [Serializable]

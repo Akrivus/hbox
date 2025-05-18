@@ -30,13 +30,11 @@ MonoBehaviour:
   - Mario
   - Enrico
   Neighbor: {fileID: 0}
-  MapName: Italy
   IsLegacy: 0
-  Voice: it-IT-Standard-D
   ColorScheme: 1A
   Costume: ':flag_it:'
-  Prompt: {fileID: 4900000, guid: 9d1a631026933814191a4087595b4957, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: it-IT-Standard-D
   SpeakingRate: 1
   Pitch: 1.0276681
   Volume: 1

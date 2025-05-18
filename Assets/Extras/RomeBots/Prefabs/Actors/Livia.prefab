@@ -1986,6 +1986,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SM_Chr_Face_Female
       objectReference: {fileID: 0}
+    - target: {fileID: 5102653597228550699, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+      propertyPath: minVolume
+      value: -3
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

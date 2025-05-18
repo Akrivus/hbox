@@ -30,13 +30,11 @@ MonoBehaviour:
   - Senga
   - Brighton
   Neighbor: {fileID: 0}
-  MapName: Malawi
   IsLegacy: 0
-  Voice: en-GB-Standard-D
   ColorScheme: 2B
   Costume: ':flag_mw:'
-  Prompt: {fileID: 4900000, guid: 6744a723129ea444d99470e012f795f9, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-D
   SpeakingRate: 1
   Pitch: 1.059821
   Volume: 1

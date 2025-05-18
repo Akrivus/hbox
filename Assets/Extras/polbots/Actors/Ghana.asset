@@ -30,13 +30,11 @@ MonoBehaviour:
   - Mohammed
   - Osei
   Neighbor: {fileID: 0}
-  MapName: Ghana
   IsLegacy: 0
-  Voice: en-GB-Standard-C
   ColorScheme: 4C
   Costume: ':flag_gh:'
-  Prompt: {fileID: 4900000, guid: 06aa9edb60f8adc4398ab65176ce3d8a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-C
   SpeakingRate: 1
   Pitch: 1.0850989
   Volume: 1

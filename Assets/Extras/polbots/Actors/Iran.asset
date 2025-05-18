@@ -32,13 +32,11 @@ MonoBehaviour:
   - Ali
   - Ali
   Neighbor: {fileID: 0}
-  MapName: Iran
   IsLegacy: 0
-  Voice: tr-TR-Standard-B
   ColorScheme: 1B
   Costume: ':flag_ir:'
-  Prompt: {fileID: 4900000, guid: e0a105c47d909884da7660008ac83178, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: tr-TR-Standard-B
   SpeakingRate: 1
   Pitch: 1.0869344
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Fernando
   - Gerardo
   Neighbor: {fileID: 0}
-  MapName: Argentina
   IsLegacy: 0
-  Voice: es-ES-Standard-D
   ColorScheme: 1B
   Costume: ':flag_ar:'
-  Prompt: {fileID: 4900000, guid: 99e729bf456172a44b75452a4da8462c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: es-ES-Standard-D
   SpeakingRate: 1
   Pitch: 1.0236936
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Irene
   - Demetris
   Neighbor: {fileID: 0}
-  MapName: Cyprus
   IsLegacy: 0
-  Voice: he-IL-Standard-A
   ColorScheme: 2B
   Costume: ':flag_cy:'
-  Prompt: {fileID: 4900000, guid: 09a71c034336a6f44af8c04412f7a1cd, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: he-IL-Standard-A
   SpeakingRate: 1
   Pitch: 1.0414048
   Volume: 1

@@ -30,13 +30,11 @@ MonoBehaviour:
   - Miriam
   - James
   Neighbor: {fileID: 0}
-  MapName: South Sudan
   IsLegacy: 0
-  Voice: ar-XA-Standard-C
   ColorScheme: 4C
   Costume: ':flag_ss:'
-  Prompt: {fileID: 4900000, guid: b5a2ccbdee9ae1244b81f92734ef120c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-C
   SpeakingRate: 1
   Pitch: 1.0829308
   Volume: 1

@@ -8,7 +8,7 @@ public class MemoryManager : MonoBehaviour
         ChatManager.Instance.OnChatQueueEmpty += SaveMemories;
     }
 
-    public void OnApplicationQuit()
+    public void OnDestroy()
     {
         SaveMemories();
     }

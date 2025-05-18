@@ -30,13 +30,11 @@ MonoBehaviour:
   - Bishop
   - Grace
   Neighbor: {fileID: 0}
-  MapName: Zambia
   IsLegacy: 0
-  Voice: de-DE-Standard-H
   ColorScheme: 3C
   Costume: ':flag_zm:'
-  Prompt: {fileID: 4900000, guid: eb7d1b665a5a1464587e8a133b9e3d0b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-H
   SpeakingRate: 1
   Pitch: 1.0617338
   Volume: 1

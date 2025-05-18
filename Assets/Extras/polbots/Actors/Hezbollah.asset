@@ -30,13 +30,11 @@ MonoBehaviour:
   - Fadya
   - Ziad
   Neighbor: {fileID: 11400000, guid: 83330a7c1b4473c4fbbe25d8761fb45f, type: 2}
-  MapName: Lebanon
   IsLegacy: 1
-  Voice: ar-XA-Standard-B
   ColorScheme: 4B
   Costume: <:flag_lb_ha:1337103313455550484>
-  Prompt: {fileID: 4900000, guid: 8bb944b41fdd2c44c9bd840d24cf9bf7, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
   SpeakingRate: 1
   Pitch: 1.0441132
   Volume: 1

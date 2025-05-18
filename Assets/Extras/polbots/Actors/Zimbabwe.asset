@@ -30,13 +30,11 @@ MonoBehaviour:
   - Sibongile
   - Obert
   Neighbor: {fileID: 0}
-  MapName: Zimbabwe
   IsLegacy: 0
-  Voice: en-GB-Standard-D
   ColorScheme: 4C
   Costume: ':flag_zw:'
-  Prompt: {fileID: 4900000, guid: b1137f1bb3ebb314f82beffebed14211, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-D
   SpeakingRate: 1
   Pitch: 1.0108237
   Volume: 1

@@ -44,7 +44,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         ConfigManager.Instance.RegisterConfig(typeof(DiscordConfigs), "discord", (config) => Configure((DiscordConfigs) config));
     }
 
-    private void OnApplicationQuit()
+    private void OnDestroy()
     {
         StopAllCoroutines();
     }
@@ -95,8 +95,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public static string GetAvatarURL(Actor actor, Sentiment sentiment)
     {
-        var slug = actor.Name.ToFileSafeString();
-        return $"{url}{sentiment.Name}-{slug}.png";
+        return $"{url}{actor.Name}/{sentiment.Name}.png";
     }
 
     public static void PutInQueue(string webhook, string content, string username = null, string avatarUrl = null)

@@ -33,13 +33,11 @@ MonoBehaviour:
   - Francois
   - Jean-Claude
   Neighbor: {fileID: 11400000, guid: 7baa82fcec46a1241b1676f1eedd1dcf, type: 2}
-  MapName: European Union
   IsLegacy: 0
-  Voice: nl-NL-Standard-C
   ColorScheme: 1A
   Costume: ':flag_eu:'
-  Prompt: {fileID: 4900000, guid: 515bc1cf7aebd9e41a9b9830813b968a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: nl-NL-Standard-C
   SpeakingRate: 1
   Pitch: 1.1044395
   Volume: 1

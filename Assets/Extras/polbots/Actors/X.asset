@@ -36,13 +36,11 @@ MonoBehaviour:
   - Elon
   - Elon
   Neighbor: {fileID: 0}
-  MapName: United States
-  IsLegacy: 1
-  Voice: en-US-Standard-H
+  IsLegacy: 0
   ColorScheme: 1A
-  Costume: <:flag_x:1341591454606168094>
-  Prompt: {fileID: 4900000, guid: 18c2a088757a2e84ea71b4655b01ec2a, type: 3}
+  Costume: <:flag_x:1373697902974734387>
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-H
   SpeakingRate: 1
   Pitch: 1.0078051
   Volume: 2

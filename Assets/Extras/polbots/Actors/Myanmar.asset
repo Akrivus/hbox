@@ -30,13 +30,11 @@ MonoBehaviour:
   - Aung
   - Mya
   Neighbor: {fileID: 0}
-  MapName: Myanmar
   IsLegacy: 0
-  Voice: bn-IN-Standard-D
   ColorScheme: 4B
   Costume: ':flag_mm:'
-  Prompt: {fileID: 4900000, guid: 19a7eca2a2687d946bf542d3711f0154, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: bn-IN-Standard-D
   SpeakingRate: 1
   Pitch: 1.101641
   Volume: 1

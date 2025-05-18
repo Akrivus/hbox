@@ -30,13 +30,11 @@ MonoBehaviour:
   - Anastase
   - Aimable
   Neighbor: {fileID: 0}
-  MapName: Burundi
   IsLegacy: 0
-  Voice: fr-FR-Standard-A
   ColorScheme: 4B
   Costume: ':flag_bi:'
-  Prompt: {fileID: 4900000, guid: c7f7ae098227e1f4db12d9f6f4e67117, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: fr-FR-Standard-A
   SpeakingRate: 1
   Pitch: 1.096786
   Volume: 1

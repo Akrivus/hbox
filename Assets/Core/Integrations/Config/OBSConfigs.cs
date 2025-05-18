@@ -3,6 +3,7 @@
 public class OBSConfigs : IConfig
 {
     public string Type => "obs";
+    public string VideosFolder { get; set; }
     public string OBSWebSocketURI { get; set; }
     public bool IsStreaming { get; set; }
     public bool IsRecording { get; set; }

@@ -33,13 +33,11 @@ MonoBehaviour:
   - O
   - Yang
   Neighbor: {fileID: 0}
-  MapName: North Korea
   IsLegacy: 0
-  Voice: ko-KR-Standard-C
   ColorScheme: 1A
   Costume: ':flag_kp:'
-  Prompt: {fileID: 4900000, guid: e50f4c2fad89a2a4aaf70f9acf19261c, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ko-KR-Standard-C
   SpeakingRate: 1
   Pitch: 1.0075167
   Volume: 1

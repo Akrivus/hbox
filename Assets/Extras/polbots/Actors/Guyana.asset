@@ -30,13 +30,11 @@ MonoBehaviour:
   - Janette
   - Khemraj
   Neighbor: {fileID: 0}
-  MapName: Guyana
   IsLegacy: 0
-  Voice: en-US-Standard-C
   ColorScheme: 2B
   Costume: ':flag_gy:'
-  Prompt: {fileID: 4900000, guid: b7d709882ced9e94098eb96d2487d417, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-C
   SpeakingRate: 1
   Pitch: 1.0807257
   Volume: 1

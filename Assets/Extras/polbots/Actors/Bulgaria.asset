@@ -30,13 +30,11 @@ MonoBehaviour:
   - Ivo
   - Boyko
   Neighbor: {fileID: 0}
-  MapName: Bulgaria
   IsLegacy: 0
-  Voice: bg-BG-Standard-A
   ColorScheme: 4A
   Costume: ':flag_bg:'
-  Prompt: {fileID: 4900000, guid: 4954dd431ba7ef245ad7f0703c625722, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: bg-BG-Standard-A
   SpeakingRate: 1
   Pitch: 1.0006237
   Volume: 1

@@ -34,13 +34,11 @@ MonoBehaviour:
   - Tim
   - Justin
   Neighbor: {fileID: 0}
-  MapName: United States
-  IsLegacy: 1
-  Voice: en-US-Standard-I
+  IsLegacy: 0
   ColorScheme: 2B
-  Costume: <:flag_amazon:1337172858756927548>
-  Prompt: {fileID: 4900000, guid: 156f953c061c1de458306e8702e8a718, type: 3}
+  Costume: <:flag_amzn:1373697870808612934>
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-US-Standard-I
   SpeakingRate: 1
   Pitch: 1.0852088
   Volume: 1

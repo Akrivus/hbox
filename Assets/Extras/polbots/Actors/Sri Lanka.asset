@@ -30,13 +30,11 @@ MonoBehaviour:
   - Mahatma
   - Dilrukshi
   Neighbor: {fileID: 0}
-  MapName: Sri Lanka
   IsLegacy: 0
-  Voice: ta-IN-Standard-B
   ColorScheme: 4B
   Costume: ':flag_lk:'
-  Prompt: {fileID: 4900000, guid: fcaca571ebf5be041837ea294848cbd5, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ta-IN-Standard-B
   SpeakingRate: 1
   Pitch: 1.0269657
   Volume: 1

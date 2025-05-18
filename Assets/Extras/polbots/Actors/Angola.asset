@@ -30,13 +30,11 @@ MonoBehaviour:
   - Filomeno
   - "M\xE1rio"
   Neighbor: {fileID: 0}
-  MapName: Angola
   IsLegacy: 0
-  Voice: pt-PT-Standard-C
   ColorScheme: 4B
   Costume: ':flag_ao:'
-  Prompt: {fileID: 4900000, guid: 512a09e4f493e50438bf6c58400ed491, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: pt-PT-Standard-C
   SpeakingRate: 1
   Pitch: 1.0837047
   Volume: 1

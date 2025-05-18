@@ -30,13 +30,11 @@ MonoBehaviour:
   - Leymah
   - Dr.
   Neighbor: {fileID: 0}
-  MapName: Sierra Leone
   IsLegacy: 0
-  Voice: en-GB-Standard-C
   ColorScheme: 1C
   Costume: ':flag_sl:'
-  Prompt: {fileID: 4900000, guid: 43bcbbaba3b71934c890d8143701163b, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: en-GB-Standard-C
   SpeakingRate: 1
   Pitch: 1.0562624
   Volume: 1

@@ -20,7 +20,7 @@ MonoBehaviour:
   - Holy See
   - The Holy See
   Players:
-  - Francis
+  - Leo
   - Pietro
   - Luis
   - Robert
@@ -32,13 +32,11 @@ MonoBehaviour:
   - Giovanni
   - Vincent
   Neighbor: {fileID: 0}
-  MapName: Vatican City
   IsLegacy: 0
-  Voice: it-IT-Standard-D
   ColorScheme: 4A
   Costume: ':flag_va:'
-  Prompt: {fileID: 4900000, guid: a99be22af63ad884c81b1561bc761435, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: it-IT-Standard-D
   SpeakingRate: 1
   Pitch: 1.1025264
   Volume: 1

@@ -33,13 +33,11 @@ MonoBehaviour:
   - Uwe
   - Ulrike
   Neighbor: {fileID: 11400000, guid: bcde4ee57c191c648b5526c13104166f, type: 2}
-  MapName: Germany
   IsLegacy: 1
-  Voice: de-DE-Standard-E
   ColorScheme: 1B
   Costume: <:flag_dd:1279252383951491134>
-  Prompt: {fileID: 4900000, guid: c324413ad2d76154abe0cdca7fd3b167, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-E
   SpeakingRate: 1
   Pitch: 1.0820796
   Volume: 1

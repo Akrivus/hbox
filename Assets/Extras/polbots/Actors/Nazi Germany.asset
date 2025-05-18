@@ -30,13 +30,11 @@ MonoBehaviour:
   - Karl
   - Hans
   Neighbor: {fileID: 11400000, guid: bcde4ee57c191c648b5526c13104166f, type: 2}
-  MapName: Germany
   IsLegacy: 1
-  Voice: de-DE-Standard-E
   ColorScheme: 1A
   Costume: <:flag_nd:1337103736526344257>
-  Prompt: {fileID: 4900000, guid: 0c3622258bb0bce4483a3c5d56ef2d7a, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-E
   SpeakingRate: 1
   Pitch: 1.0772091
   Volume: 1

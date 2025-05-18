@@ -30,13 +30,11 @@ MonoBehaviour:
   - Roksandra
   - "Nata\u0161a"
   Neighbor: {fileID: 0}
-  MapName: Serbia
   IsLegacy: 0
-  Voice: sr-RS-Standard-A
   ColorScheme: 1B
   Costume: ':flag_rs:'
-  Prompt: {fileID: 4900000, guid: 6027b6ef91ee390429155c6c140c2627, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: sr-RS-Standard-A
   SpeakingRate: 1
   Pitch: 1.1015798
   Volume: 1

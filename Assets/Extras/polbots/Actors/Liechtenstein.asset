@@ -30,13 +30,11 @@ MonoBehaviour:
   - Marco
   - Julia
   Neighbor: {fileID: 0}
-  MapName: Liechtenstein
   IsLegacy: 0
-  Voice: de-DE-Standard-B
   ColorScheme: 1A
   Costume: ':flag_li:'
-  Prompt: {fileID: 4900000, guid: 092389ec050dcfb47a503b773bc92665, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: de-DE-Standard-B
   SpeakingRate: 1
   Pitch: 1.0939351
   Volume: 1

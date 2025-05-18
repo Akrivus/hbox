@@ -30,13 +30,11 @@ MonoBehaviour:
   - Fozia
   - Semhal
   Neighbor: {fileID: 0}
-  MapName: Eritrea
   IsLegacy: 0
-  Voice: it-IT-Standard-C
   ColorScheme: 2B
   Costume: ':flag_er:'
-  Prompt: {fileID: 4900000, guid: 003fcf8892b7a164d882a840e5e7aaa7, type: 3}
   Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: it-IT-Standard-C
   SpeakingRate: 1
   Pitch: 1.0256959
   Volume: 1
