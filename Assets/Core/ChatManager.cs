@@ -30,10 +30,11 @@ public class ChatManager : MonoBehaviour
     public event Action<ChatNode> OnChatNodeActivated;
 
     public SpawnPointManager[] SpawnPoints => spawnPoints;
-    public bool RemoveActorsOnCompletion { get; set; } = true;
     public Chat NowPlaying { get; private set; }
     public Actor.SearchableList Actors { get; private set; }
     public Sentiment.SearchableList Sentiments { get; private set; }
+
+    public List<ActorController> ActorsInScene => actors;
 
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
@@ -58,6 +59,9 @@ public class ChatManager : MonoBehaviour
 
     [SerializeField]
     private int minQueueSize = 1;
+
+    [SerializeField]
+    private bool removeActorsOnCompletion = true;
 
     private SpawnPointManager spawnPointManager;
 
@@ -96,11 +100,11 @@ public class ChatManager : MonoBehaviour
                 OnChatQueueEmpty?.Invoke();
 
             var chat = default(Chat);
-            yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 30);
+            yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 1);
 
             if (SubtitlesUIManager.Instance != null)
                 SubtitlesUIManager.Instance.ClearSubtitles();
-            if (playList.IsEmpty && RemoveActorsOnCompletion)
+            if (playList.IsEmpty && removeActorsOnCompletion)
                 yield return RemoveAllActors();
 
             if (chat != null)
@@ -146,7 +150,10 @@ public class ChatManager : MonoBehaviour
     {
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
-        yield return RemoveActors(chat);
+        if (removeActorsOnCompletion)
+            yield return RemoveAllActors();
+        else
+            yield return RemoveActors(chat);
 
         NowPlaying = chat;
 

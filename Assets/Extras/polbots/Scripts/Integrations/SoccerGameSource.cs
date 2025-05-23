@@ -170,7 +170,6 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
 
-        ChatManager.Instance.RemoveActorsOnCompletion = false;
         MatchManager.MatchShouldContinue = true;
 
         if (addedScenes.Count > 0)

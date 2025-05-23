@@ -9,6 +9,8 @@ using UnityEngine;
 
 public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 {
+    public static bool IsEnabled = true;
+
     public string ReplayDirectory;
     public int ReplayRate = 80;
     public int ReplaysPerBatch = 20;
@@ -42,8 +44,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerator ReplayEpisodes()
     {
-        if (!ChatManager.Instance.RemoveActorsOnCompletion)
-            yield break;
+        if (!IsEnabled) yield break;
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
         
         var chat = default(Chat);

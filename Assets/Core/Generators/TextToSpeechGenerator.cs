@@ -70,7 +70,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
             node.New = true;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             if (attempts < 5)
                 await GenerateWithOpenAI(node, attempts + 1);

@@ -2,6 +2,7 @@
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SubtitlesUIManager : MonoBehaviour
 {
@@ -11,10 +12,16 @@ public class SubtitlesUIManager : MonoBehaviour
     private TextMeshProUGUI splashScreen;
 
     [SerializeField]
+    private TextMeshProUGUI title;
+
+    [SerializeField]
     private TextMeshProUGUI subtitle;
 
     [SerializeField]
     private TextMeshProUGUI subtitleShadow;
+
+    [SerializeField]
+    private Image pauseButton;
 
     [SerializeField]
     private bool fadeOut = true;
@@ -37,6 +44,11 @@ public class SubtitlesUIManager : MonoBehaviour
     {
         Instance = this;
         ConfigManager.Instance.RegisterConfig(typeof(SplashScreenConfigs), "splash", (config) => Configure((SplashScreenConfigs)config));
+    }
+
+    private void Update()
+    {
+        pauseButton.gameObject.SetActive(ChatManager.IsPaused);
     }
 
     private void OnNodeActivated(ChatNode node)
@@ -67,20 +79,29 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private IEnumerator StartSplashScreen(Chat chat)
     {
-        yield return FadeOut();
-        splashScreen.text = string.Empty;
+        yield return FadeOut(title);
+        title.text = string.Empty;
 
-        if (splashes.Length > 0)
+        if (ChatManager.Instance.ActorsInScene.Count == 0)
         {
-            splashScreen.text = splashes[Random.Range(0, splashes.Length)];
-            yield return FadeIn();
+            if (splashes.Length > 0)
+            {
+                splashScreen.text = splashes[Random.Range(0, splashes.Length)];
+                yield return FadeIn(splashScreen);
 
-            yield return new WaitForSeconds(splashDuration);
-            yield return FadeOut();
+                yield return new WaitForSeconds(splashDuration);
+                yield return FadeOut(splashScreen);
+            }
+
+            splashScreen.text = ChatManager.Instance.name;
+            yield return FadeIn(splashScreen);
+
+            yield return new WaitForSeconds(titleDuration);
+            yield return FadeOut(splashScreen);
         }
 
-        splashScreen.text = chat.Title;
-        yield return FadeIn();
+        title.text = chat.Title;
+        yield return FadeIn(title);
 
         if (chat.Idea.Source.StartsWith("r/"))
             SetSubtitle(chat.Idea.Source, chat.Idea.Text);
@@ -88,30 +109,30 @@ public class SubtitlesUIManager : MonoBehaviour
         if (fadeOut)
         {
             yield return new WaitForSeconds(titleDuration);
-            yield return FadeOut();
+            yield return FadeOut(title);
         }
     }
 
-    private IEnumerator FadeIn()
+    private IEnumerator FadeIn(TextMeshProUGUI text)
     {
-        var c = splashScreen.color = new Color(splashScreen.color.r, splashScreen.color.g, splashScreen.color.b, 0);
+        var c = text.color = new Color(text.color.r, text.color.g, text.color.b, 0);
         var t = 0.0f;
 
         while (t < 1.0f)
         {
-            splashScreen.color = new Color(c.r, c.g, c.b, t += Time.deltaTime);
+            text.color = new Color(c.r, c.g, c.b, t += Time.deltaTime);
             yield return new WaitForEndOfFrame();
         }
     }
 
-    private IEnumerator FadeOut()
+    private IEnumerator FadeOut(TextMeshProUGUI text)
     {
-        var c = splashScreen.color = new Color(splashScreen.color.r, splashScreen.color.g, splashScreen.color.b, 1);
+        var c = text.color = new Color(text.color.r, text.color.g, text.color.b, 1);
         var t = 1.0f;
 
         while (t > 0.0f)
         {
-            splashScreen.color = new Color(c.r, c.g, c.b, t -= Time.deltaTime);
+            text.color = new Color(c.r, c.g, c.b, t -= Time.deltaTime);
             yield return new WaitForEndOfFrame();
         }
     }

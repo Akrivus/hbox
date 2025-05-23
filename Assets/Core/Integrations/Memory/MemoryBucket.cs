@@ -18,10 +18,10 @@ public class MemoryBucket
         Memories = new List<Memory>();
     }
 
-    public async Task Add(string text)
+    public async Task Add(PromptResolver prompt)
     {
-        Memories.Add(new Memory(text, Embed(text)));
-        await Task.CompletedTask;
+        await prompt.Resolve();
+        Memories.Add(new Memory(prompt, await Embed(prompt.Text)));
     }
 
     public async Task Save()
@@ -82,9 +82,9 @@ public class MemoryBucket
         }
     }
 
-    private double[] Embed(string text)
+    private async Task<double[]> Embed(string text)
     {
-        return new double[0]; // LLM.EmbedAsync(text).Result;
+        return await LLM.EmbedAsync(text);
     }
 
     public static async Task<MemoryBucket> Get(string name)
@@ -116,13 +116,16 @@ public class MemoryBucket
 
 public class Memory
 {
-    public string Text { get; private set; }
+    [JsonConverter(typeof(PromptResolverConverter))]
+    public PromptResolver Prompt { get; private set; }
     public double[] Embeddings { get; private set; }
     public DateTime Created { get; private set; }
 
-    public Memory(string text, double[] embeddings)
+    public string Text => Prompt == null ? string.Empty : Prompt.Text;
+
+    public Memory(PromptResolver prompt, double[] embeddings)
     {
-        Text = text;
+        Prompt = prompt;
         Embeddings = embeddings;
         Created = DateTime.Now;
     }

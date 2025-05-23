@@ -23,7 +23,7 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOn()
     {
-        ChatManager.Instance.RemoveActorsOnCompletion = false;
+        FolderSource.IsEnabled = false;
         SetShareScreen(
             GridLayoutGroup.Corner.UpperLeft,
             GridLayoutGroup.Axis.Horizontal,
@@ -33,7 +33,7 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOff()
     {
-        ChatManager.Instance.RemoveActorsOnCompletion = true;
+        FolderSource.IsEnabled = true;
         SetShareScreen(
             GridLayoutGroup.Corner.UpperLeft,
             GridLayoutGroup.Axis.Horizontal,

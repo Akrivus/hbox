@@ -15,6 +15,8 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
     public static string SLOW_MODEL = "gpt-4o";
     public static string FAST_MODEL = "gpt-4o-mini";
 
+    public static bool USE_EMBEDDINGS = true;
+
     public static OpenAIClient API => _api ??= new OpenAIClient(new OpenAIAuthentication(OPENAI_API_KEY), new OpenAISettings(OPENAI_API_URI));
     private static OpenAIClient _api;
 
@@ -25,6 +27,8 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
         SLOW_MODEL = c.SlowModel;
         FAST_MODEL = c.FastModel;
+
+        USE_EMBEDDINGS = c.UseEmbeddings;
     }
 
     private void Awake()
@@ -86,7 +90,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
     public static async Task<double[]> EmbedAsync(string text, int dimensions = 1532)
     {
-        if (string.IsNullOrEmpty(text))
+        if (!USE_EMBEDDINGS || string.IsNullOrEmpty(text))
             return new double[0];
         try
         {

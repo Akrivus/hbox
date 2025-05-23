@@ -16,7 +16,7 @@ public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
         var bucket = await MemoryBucket.Get(slug);
         var memory = await LLM.CompleteAsync(
             await prompt.Resolve(chat.Log, bucket.Get(), chat.Idea.Prompt), fastMode);
-        await bucket.Add(memory);
+        await bucket.Add(prompt.Output);
 
         return chat;
     }

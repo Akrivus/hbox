@@ -16,6 +16,7 @@ public class PromptResolver
     public string Part { get; private set; } = string.Empty;
     public string Path { get; private set; }
     public string Text { get; private set; } = string.Empty;
+    public PromptResolver Output { get; private set; } = null;
 
     public PromptResolver(Actor actor)
     {
@@ -45,7 +46,13 @@ public class PromptResolver
     public PromptResolver(params string[] path)
     {
         Part = string.Join("/", path);
-        SetPromptPath();
+        SetPromptPath(false);
+    }
+
+    public PromptResolver(bool direct, params string[] path)
+    {
+        Part = string.Join("/", path);
+        SetPromptPath(direct);
     }
 
     public async Task<PromptResolver> Resolve(params object[] args)
@@ -94,6 +101,7 @@ public class PromptResolver
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
+        Output = new PromptResolver(true, path);
         await Save(path, text);
     }
 
@@ -105,9 +113,13 @@ public class PromptResolver
         await File.WriteAllTextAsync(path, text);
     }
 
-    private void SetPromptPath()
+    private void SetPromptPath(bool direct = false)
     {
-        Path = System.IO.Path.Combine(BasePath, ChatManager.Instance.name, BasePromptPath, Part + ".md");
+        if (direct)
+            Path = Part;
+        else
+            Path = System.IO.Path.Combine(BasePath, ChatManager.Instance.name, BasePromptPath, Part);
+        if (!Path.EndsWith(".md")) Path += ".md";
     }
 
     private static string SplitTypeName(object type)

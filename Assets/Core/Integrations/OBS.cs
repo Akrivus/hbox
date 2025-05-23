@@ -12,7 +12,7 @@ using UnityEngine;
 public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 {
     [SerializeField]
-    private string VideosFolder = "C:/Users/akriv/Videos";
+    private string VideosFolder;
     [SerializeField]
     private string OBSWebSocketURI = "ws://localhost:4455";
     [SerializeField]
@@ -76,7 +76,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             return;
         isObsRecording = false;
         await SendRequestAsync("StopRecord");
-        StartCoroutine(WaitForVideoFile().AsCoroutine());
+        await WaitForVideoFile();
     }
 
     public void StopOrStartRecording(Chat chat)
@@ -94,6 +94,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         if (!isObsRecording)
             return;
         await SendRequestAsync("SplitRecordFile");
+        await WaitForVideoFile();
     }
 
     public async void StartStreaming()
@@ -165,25 +166,29 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
     private async Task WaitForVideoFile(int attempts = 0)
     {
-        if (attempts > 10)
+        if (attempts > 60)
             return;
-        var files = Directory.GetFiles(VideosFolder, "*.mkv");
-        var latest = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
-        if (latest == null)
-            return;
-        var fileName = Path.GetFileNameWithoutExtension(latest);
-        if (fileName.Length == "1234-12-12-12-12-12".Length)
+        try
         {
-            var inst = ChatManager.Instance;
-            var newName = $"{inst.name}-{inst.NowPlaying.Title.ToFileSafeString()}_{fileName}.mkv";
-            var newPath = Path.Combine(VideosFolder, newName);
-            if (File.Exists(newPath))
-                File.Delete(newPath);
-            File.Move(latest, newPath);
+            var files = Directory.GetFiles(VideosFolder, "*.mkv");
+            var latest = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
+            if (latest == null)
+                throw new Exception();
+            var fileName = Path.GetFileNameWithoutExtension(latest);
+            if (fileName.Length == "1234-12-12-12-12-12".Length)
+            {
+                var inst = ChatManager.Instance;
+                var newName = $"{fileName}-{inst.NowPlaying.FileName}.mkv";
+                var newPath = Path.Combine(VideosFolder, newName);
+
+                if (File.Exists(newPath))
+                    return;
+                File.Move(latest, newPath);
+            }
         }
-        else
+        catch
         {
-            await Task.Delay(5000);
+            await Task.Delay(1000);
             await WaitForVideoFile(++attempts);
         }
     }
