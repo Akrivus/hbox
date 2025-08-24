@@ -13,6 +13,9 @@ public class SpawnPointManager : MonoBehaviour
     public float speakerWeight = 5.0f;
     public float defaultRadius = 3.0f;
     public float defaultWeight = 1.0f;
+    public Transform anchor;
+    public Transform target;
+    public CinemachineVirtualCamera[] virtualCameras;
 
     [Header("Movement Settings")]
     public float moveSpeed = 2f;
@@ -27,16 +30,20 @@ public class SpawnPointManager : MonoBehaviour
 
     private int nodeIndex = 0;
 
+    private ActorController lastActorController;
+
     public void Register()
     {
         ChatManager.Instance.OnActorAdded += OnActorAdded;
         ChatManager.Instance.OnChatNodeActivated += OnChatNodeActivated;
+        ChatManager.Instance.OnChatLoaded += OnChatLoaded;
     }
 
     public void UnRegister()
     {
         ChatManager.Instance.OnActorAdded -= OnActorAdded;
         ChatManager.Instance.OnChatNodeActivated -= OnChatNodeActivated;
+        ChatManager.Instance.OnChatLoaded -= OnChatLoaded;
         actorToController.Clear();
         actorToSpawnPoint.Clear();
     }
@@ -86,14 +93,32 @@ public class SpawnPointManager : MonoBehaviour
         SetSpawnPoints(InCircle(transform.position, CalculateSpacing()));
     }
 
+    private void OnChatLoaded(Chat chat)
+    {
+        anchor.position = transform.position;
+        anchor.rotation = transform.rotation;
+        target.position = transform.position;
+        target.rotation = transform.rotation;
+    }
+
     private void OnChatNodeActivated(ChatNode node)
     {
-        if (!actorToSpawnPoint.ContainsKey(node.Actor))
-            return;
-        var target = actorToSpawnPoint[node.Actor];
-
         foreach (var actor in actorToSpawnPoint.Keys)
             ArrangeSpawnPoints(InCircle(transform.position, CalculateSpacing()));
+
+        if (lastActorController != null)
+        {
+            anchor.position = lastActorController.LookObject.position;
+            anchor.rotation = lastActorController.LookObject.rotation;
+        }
+
+        lastActorController = actorToController[node.Actor];
+        target.position = lastActorController.LookObject.position;
+        target.rotation = lastActorController.LookObject.rotation;
+
+        foreach (var camera in virtualCameras)
+            camera.Priority = 0;
+        virtualCameras.Sample().Priority = 10;
 
         targetGroup.m_Targets = actorToController.Values
             .Select(t =>
@@ -223,7 +248,7 @@ public class SpawnPointManager : MonoBehaviour
         var spacing = new float[count];
 
         for (int i = 0; i < count; i++)
-            spacing[i] = chat.Actors[i]?.Sentiment?.Score ?? 0f;
+            spacing[i] = Mathf.Abs(chat.Actors[i]?.Sentiment?.Score ?? 0.0f) + energyOffset;
         return spacing;
     }
 

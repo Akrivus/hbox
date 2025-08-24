@@ -24,7 +24,7 @@ public static class ArrayExtensions
         return enumerable.OrderBy(_ => Guid.NewGuid());
     }
 
-    public static T Random<T>(this IEnumerable<T> enumerable)
+    public static T Sample<T>(this IEnumerable<T> enumerable)
     {
         return enumerable.ElementAt(UnityEngine.Random.Range(0, enumerable.Count()));
     }

@@ -14,6 +14,7 @@ public class Chat
 
     public string Title { get; set; }
     public string Synopsis { get; set; }
+    public string Generator { get; set; }
 
     public string Context { get; set; }
     public string Topic { get; set; } = "";
@@ -60,17 +61,18 @@ public class Chat
     [JsonIgnore]
     public List<Message> Messages { get; set; }
 
-    public Chat(Idea idea)
+    public Chat(Idea idea, string generator = null)
     {
         _new = true;
         FileName = idea.Slug;
         Idea = idea;
+        Generator = generator;
         Actors = new ActorContext[0];
         Nodes = new List<ChatNode>();
         _locked = false;
     }
 
-    public Chat(string prompt) : this(new Idea(prompt))
+    public Chat(string prompt, string generator = null) : this(new Idea(prompt), generator)
     {
 
     }

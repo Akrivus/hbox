@@ -12,7 +12,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     private void PlaySoundGroup()
     {
-        if (soundGroup == null) return;
+        if (ChatManager.Instance.DisableBGSFX || soundGroup == null) return;
         if (soundGroup.Sounds.Length == 0)
             source.clip = null;
         else

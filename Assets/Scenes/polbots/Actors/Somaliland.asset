@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Somaliland
+  m_EditorClassIdentifier: 
+  Title: Somaliland
+  Pronouns: he/him
+  Name: Somaliland
+  Aliases:
+  - Somaliland
+  Players:
+  - Muse
+  - Abdirahman
+  - Amina
+  - Yusuf
+  - Sahra
+  - Fatimah
+  - Mohamed
+  - Isma'il
+  - Khadra
+  - Faisal
+  - Sadiq
+  Neighbor: {fileID: 11400000, guid: 8b1f5881b7a3c74499e9528a56baa1f3, type: 2}
+  IsLegacy: 0
+  ColorScheme: 3B
+  Costume: <:flag_somaliland:1337103834580783187>
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ar-XA-Standard-B
+  SpeakingRate: 1
+  Pitch: 1.0580944
+  Volume: 1
+  Color: {r: 0.58488756, g: 0.42013803, b: 0.3398949, a: 1}
+  Color1: {r: 0.87058824, g: 0, b: 0, a: 1}
+  Color2: {r: 1, g: 1, b: 1, a: 1}
+  Color3: {r: 0, g: 0.42745098, b: 0.12941177, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

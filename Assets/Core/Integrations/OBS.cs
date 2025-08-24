@@ -175,7 +175,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             if (latest == null)
                 throw new Exception();
             var fileName = Path.GetFileNameWithoutExtension(latest);
-            if (fileName.Length == "1234-12-12-12-12-12".Length)
+            if (fileName.Length == "1234-12-12 12-12-12".Length)
             {
                 var inst = ChatManager.Instance;
                 var newName = $"{fileName}-{inst.NowPlaying.FileName}.mkv";

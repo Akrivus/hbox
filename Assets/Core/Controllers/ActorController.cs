@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class ActorController : MonoBehaviour
 {
     public static float GlobalSpeakingRate = 1.0f;
 
+    public event Func<IEnumerator> BeforeDestroy;
+    public event Func<IEnumerator> AfterCreate;
     public event Func<ChatNode, IEnumerator> OnActivation;
     public event Action<ActorController> OnActorUpdate;
     public event Action<Sentiment> OnSentimentUpdate;
@@ -33,9 +34,6 @@ public class ActorController : MonoBehaviour
 
     [SerializeField]
     private AudioSource sound;
-
-    [SerializeField]
-    private float delay = 1.2f;
 
     private float talkTime = 0.0f;
     private float averageVolume = 1.0f;
@@ -126,22 +124,27 @@ public class ActorController : MonoBehaviour
         talkTime = 0.0f;
 
         if (!node.Async)
+        {
             yield return new WaitUntilTimer(IsNoLongerTalking);
+            yield return new WaitForSeconds(Mathf.Abs(Sentiment.Score * Energy));
+        }
     }
 
     public IEnumerator Initialize(Chat chat)
     {
         foreach (var sub in sub_Chats)
             sub.Initialize(chat);
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));
+        if (AfterCreate != null)
+            yield return AfterCreate();
     }
 
     public IEnumerator Deactivate()
     {
         foreach (var sub in sub_Exits)
             sub.Deactivate();
+        if (BeforeDestroy != null)
+            yield return BeforeDestroy();
         Destroy(gameObject);
-        yield return new WaitForSeconds(UnityEngine.Random.Range(0f, delay));
     }
 
     private bool IsNoLongerTalking()

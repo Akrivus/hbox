@@ -10,9 +10,6 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
     private Animator _animator;
 
     [SerializeField]
-    private AnimationControllerEntry[] _genderSpecificControllers;
-
-    [SerializeField]
     private uLipSyncTexture _lipSync;
 
     [SerializeField]
@@ -26,10 +23,22 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
 
     [SerializeField]
     private float speed = 2f;
+
+    [SerializeField]
+    private float energyOffset = 0.5f;
+
+    [SerializeField]
+    private float scoreOffset = 0.5f;
+
     private Sentiment _sentiment;
 
     private Vector3 position;
     private Vector3 lastPosition;
+
+    private void Start()
+    {
+
+    }
 
     private void Update()
     {
@@ -80,18 +89,7 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
 
     public void UpdateActor(ActorContext context)
     {
-        if (_genderSpecificControllers.Length == 0)
-            return;
 
-        var gender = _genderSpecificControllers
-            .FirstOrDefault(c => c.Pronouns == context.Reference.Pronouns);
-        if (gender == null)
-            gender = _genderSpecificControllers.First();
-
-        _animator.runtimeAnimatorController = gender.Controller;
-
-        if (_animator.HasState(2, Animator.StringToHash(context.Reference.Name)))
-            _animator.Play(context.Reference.Name, 2);
     }
 
     public void UpdateSentiment(Sentiment sentiment)
@@ -118,12 +116,23 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
 
     private void OnAnimatorIK(int layerIndex)
     {
-        var energy = Mathf.Clamp01(Mathf.Abs(ActorController.Energy) + 0.5f);
-        var score = Mathf.Clamp01(Mathf.Abs(_sentiment.Score) + 0.5f);
+        var energy = Mathf.Clamp01(Mathf.Abs(ActorController.Energy) + energyOffset);
+        var score = Mathf.Clamp01(Mathf.Abs(_sentiment.Score) + scoreOffset);
         var lookAtPosition = Vector3.Lerp(
             lastPosition, position, Time.deltaTime * speed * energy);
         _animator.SetLookAtPosition(lookAtPosition);
         _animator.SetLookAtWeight(1f, energy, score, 0f, 1f);
+
+        if (ActorController.RightHandTarget != null)
+        {
+            _animator.SetIKPosition(AvatarIKGoal.RightHand, ActorController.RightHandTarget.position);
+            _animator.SetIKPositionWeight(AvatarIKGoal.RightHand, energy);
+        }
+        if (ActorController.LeftHandTarget != null)
+        {
+            _animator.SetIKPosition(AvatarIKGoal.LeftHand, ActorController.LeftHandTarget.position);
+            _animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, energy);
+        }
     }
 
     [Serializable]

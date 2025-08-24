@@ -36,8 +36,6 @@ public class Actor : ScriptableObject
 
     public Sentiment DefaultSentiment;
 
-    public PromptResolver PromptResolver => new PromptResolver(this);
-
     public class SearchableList
     {
         public Actor this[string name] => List.Find(actor => actor.Aliases.Contains(name));

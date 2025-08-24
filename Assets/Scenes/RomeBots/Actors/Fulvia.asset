@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: Fulvia
+  m_EditorClassIdentifier: 
+  Title: Fulvia
+  Pronouns: she/her
+  Name: Fulvia
+  Aliases:
+  - Fulvia
+  Players: []
+  Neighbor: {fileID: 0}
+  IsLegacy: 0
+  ColorScheme: 
+  Costume: 
+  Prefab: {fileID: 4159922245014948833, guid: feb4763f364953546ab5801577721d1f, type: 3}
+  Voice: coral
+  SpeakingRate: 1
+  Pitch: 1
+  Volume: 1
+  Color: {r: 1, g: 1, b: 1, a: 0}
+  Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
+  Color2: {r: 0, g: 0, b: 0, a: 0}
+  Color3: {r: 0, g: 0, b: 0, a: 0}
+  DefaultSentiment: {fileID: 11400000, guid: ddc24ba678e34084b8bc9f9d601b9196, type: 2}

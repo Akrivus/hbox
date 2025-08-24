@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
+  m_Name: X
+  m_EditorClassIdentifier: 
+  Title: X (formerly known as Twitter)
+  Pronouns: it/it
+  Name: X
+  Aliases:
+  - X
+  - Tesla
+  - SpaceX
+  - Elon
+  - Elon Musk
+  - Musk
+  - DOGE
+  Players:
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  - Elon
+  Neighbor: {fileID: 11400000, guid: 878c3e70ffb418a4d95899fe3872c1a4, type: 2}
+  IsLegacy: 0
+  ColorScheme: 1A
+  Costume: <:flag_x:1373697902974734387>
+  Prefab: {fileID: 7815675331163640730, guid: e0fb36442ae3ba4449eb377e6f39017d, type: 3}
+  Voice: ash
+  SpeakingRate: 1
+  Pitch: 1.0078051
+  Volume: 2
+  Color: {r: 0.08174798, g: 0.08059311, b: 0.08064137, a: 1}
+  Color1: {r: 0, g: 0, b: 0, a: 1}
+  Color2: {r: 1, g: 1, b: 1, a: 1}
+  Color3: {r: 0.96862745, g: 0.96862745, b: 0.96862745, a: 1}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}

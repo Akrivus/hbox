@@ -64,7 +64,7 @@ public class ChatGenerator : MonoBehaviour
 
     private async Task<Chat> GenerateAndSave(Idea idea)
     {
-        var chat = new Chat(idea);
+        var chat = new Chat(idea, name);
 
         try
         {
@@ -88,7 +88,9 @@ public class ChatGenerator : MonoBehaviour
         var locations = "- " + string.Join("\n - ", GetLocationNames());
         var idea = chat.Idea.Prompt;
         var context = await MemoryBucket.GetContext(slug);
-        var topic = await LLM.CompleteAsync(await prompt.Resolve(context, options, idea, secrets, locations), false);
+
+        prompt = await prompt.Resolve(context, options, idea, secrets, locations);
+        var topic = await LLM.CompleteAsync(prompt, false);
 
         var characters = topic.Find("Characters");
         if (characters != null)

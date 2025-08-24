@@ -59,7 +59,6 @@ public class PromptResolver
     {
         if (!File.Exists(Path))
         {
-            Debug.LogError($"Prompt file not found: {Path}");
             SetPromptPath();
             if (!File.Exists(Path))
                 return this;

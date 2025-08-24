@@ -30,7 +30,7 @@ public class CostumeController : AutoActor, ISubChats
         _colorSchemeController = GetComponent<ColorSchemeController>();
 
         if (costume == null)
-            costume = costumes.Random().name;
+            costume = costumes.Sample().name;
         if (costume != null)
             SetCostume(costume);
     }

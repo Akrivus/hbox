@@ -10,6 +10,9 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
     {
         foreach (var actor in chat.Actors)
         {
+            if (actor.HasPrompt)
+                continue;
+
             await actor.SetPrompt(chat.Actors);
 
             var bucket = await MemoryBucket.Get(actor.Name);

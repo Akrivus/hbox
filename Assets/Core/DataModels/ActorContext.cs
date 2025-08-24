@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,6 +24,9 @@ public class ActorContext
     [JsonIgnore]
     public string Name => Reference.Name;
 
+    [JsonIgnore]
+    public bool HasPrompt => File.Exists($"./Vault/Prompts/Actors/{Name}.md");
+
 
     public ActorContext(Actor actor)
     {
@@ -39,6 +43,12 @@ public class ActorContext
     {
         var resolver = new PromptResolver(Reference);
         await resolver.Resolve();
+
+        if (!resolver.Resolved)
+        {
+            resolver = new PromptResolver("Defaults", "Actors");
+            await resolver.Resolve(Reference.Name, Reference.Pronouns);
+        }
 
         Prompt = resolver.Text;
 

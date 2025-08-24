@@ -84,7 +84,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
     public static async Task<string> CompleteAsync(PromptResolver prompt, bool fast = false)
     {
         if (!prompt.Resolved)
-            throw new Exception("Prompt not resolved. Call Resolve() first.");
+            Debug.LogWarning("Prompt not resolved. Call Resolve() first.");
         return await ChatAsync(new List<Message> { new Message(Role.User, prompt.Text) }, fast, prompt);
     }
 

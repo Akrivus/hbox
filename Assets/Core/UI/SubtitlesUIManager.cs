@@ -79,6 +79,7 @@ public class SubtitlesUIManager : MonoBehaviour
 
     private IEnumerator StartSplashScreen(Chat chat)
     {
+        if (splashScreen == null) yield break;
         yield return FadeOut(title);
         title.text = string.Empty;
 

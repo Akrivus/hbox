@@ -11,6 +11,9 @@ public class CodexGeneration : MonoBehaviour, ISubGenerator
     {
         foreach (var actor in chat.Actors)
         {
+            if (actor.HasPrompt)
+                continue;
+
             await actor.SetPrompt();
 
             foreach (var other in chat.Actors)

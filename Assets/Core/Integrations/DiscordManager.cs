@@ -1,7 +1,4 @@
-﻿#if SOCCER
-using FStudio.MatchEngine;
-#endif
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -27,14 +24,6 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         webhooks = WebhookURLs.ToDictionary(k => k.Key, v => new DiscordWebhook(v.Value));
         url = c.AvatarURL;
         ChatManager.Instance.OnChatNodeActivated += SendDialogue;
-
-#if SOCCER
-        var narrator = FindFirstObjectByType<Narrator>();
-        if (narrator != null)
-            narrator.OnNarration += SendNarration;
-
-        SoccerGameSource.Instance.OnEmit += SendSportsUpdates;
-#endif
 
         StartCoroutine(UpdateWebhooks());
     }

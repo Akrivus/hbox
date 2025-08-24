@@ -33,8 +33,12 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
             var parts = line.Replace("**", string.Empty).Split(':');
             if (parts.Length <= 1)
                 continue;
+
             var names = GetNames(parts[0], refs);
             var text = string.Join(":", parts.Skip(1));
+
+            if (names.Length == 0)
+                continue;
 
             nodes.AddRange(AddNodes(names[0], text, refs, false));
             foreach (var n in names.Skip(1))

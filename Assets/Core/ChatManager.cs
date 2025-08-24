@@ -16,6 +16,7 @@ public class ChatManager : MonoBehaviour
 
     public event Action OnChatQueueEmpty;
     public event Action<Chat> OnChatQueueAdded;
+    public event Action<Chat> OnChatLoaded;
 
     public event Func<Chat, IEnumerator> OnChatQueueTaken;
 
@@ -35,6 +36,8 @@ public class ChatManager : MonoBehaviour
     public Sentiment.SearchableList Sentiments { get; private set; }
 
     public List<ActorController> ActorsInScene => actors;
+
+    public bool DisableBGSFX = false;
 
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
@@ -96,9 +99,6 @@ public class ChatManager : MonoBehaviour
     {
         while (Application.isPlaying)
         {
-            if (playList.IsEmpty)
-                OnChatQueueEmpty?.Invoke();
-
             var chat = default(Chat);
             yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 1);
 
@@ -106,6 +106,8 @@ public class ChatManager : MonoBehaviour
                 SubtitlesUIManager.Instance.ClearSubtitles();
             if (playList.IsEmpty && removeActorsOnCompletion)
                 yield return RemoveAllActors();
+            if (playList.IsEmpty)
+                OnChatQueueEmpty?.Invoke();
 
             if (chat != null)
                 yield return Play(chat);
@@ -166,6 +168,8 @@ public class ChatManager : MonoBehaviour
 
         BeforeIntermission?.Invoke();
         yield return OnIntermission?.Invoke(chat);
+
+        OnChatLoaded?.Invoke(chat);
 
         var incoming = chat.Actors
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));

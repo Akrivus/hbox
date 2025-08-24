@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class ChatNode
@@ -33,6 +34,9 @@ public class ChatNode
 
     [JsonIgnore]
     public bool New { get; set; }
+
+    [JsonIgnore]
+    public float Energy => Reactions.Sum((reaction) => reaction.Sentiment.Score) / Reactions.Length;
 
     public ChatNode()
     {
