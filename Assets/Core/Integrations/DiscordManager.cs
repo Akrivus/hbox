@@ -84,7 +84,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public static string GetAvatarURL(Actor actor, Sentiment sentiment)
     {
-        return $"{url}{actor.Name}/{sentiment.Name}.png";
+        return $"{url}{actor.Name.Replace(" ", "%20")}/{sentiment.Name}.png";
     }
 
     public static void PutInQueue(string webhook, string content, string username = null, string avatarUrl = null)

@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Main.unity
+    guid: 45d1fd215efeb7d42a9a9c08fe95116c
+  - enabled: 1
+    path: Assets/Scenes/SpaceDrivel.unity
+    guid: f970060ba814cb649b697961aeb22ccc
+  - enabled: 1
     path: Assets/Scenes/RomeBots.unity
     guid: 3c0c0f65b86080541964757943a4a1f5
   - enabled: 1

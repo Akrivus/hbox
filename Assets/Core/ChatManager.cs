@@ -12,6 +12,7 @@ public class ChatManager : MonoBehaviour
     private static ChatManager _instance;
 
     public static bool IsPaused { get; set; }
+    public static bool RepeatLastNode { get; set; }
     public static bool SkipToEnd { get; set; }
 
     public event Action OnChatQueueEmpty;
@@ -67,6 +68,7 @@ public class ChatManager : MonoBehaviour
     private bool removeActorsOnCompletion = true;
 
     private SpawnPointManager spawnPointManager;
+    private ChatNode lastNode;
 
     private void Awake()
     {
@@ -102,8 +104,8 @@ public class ChatManager : MonoBehaviour
             var chat = default(Chat);
             yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 1);
 
-            if (SubtitlesUIManager.Instance != null)
-                SubtitlesUIManager.Instance.ClearSubtitles();
+            if (SubtitleManager.Instance != null)
+                SubtitleManager.Instance.ClearSubtitles();
             if (playList.IsEmpty && removeActorsOnCompletion)
                 yield return RemoveAllActors();
             if (playList.IsEmpty)
@@ -138,10 +140,17 @@ public class ChatManager : MonoBehaviour
 
         if (chat.NextNode == null && !chat.IsLocked)
             yield return new WaitUntilTimer(() => chat.NextNode != null);
-        
+
+        if (RepeatLastNode)
+        {
+            lastNode.New = true;
+            RepeatLastNode = false;
+        }
+
         var node = chat.NextNode;
         if (node == null)
             yield break;
+        lastNode = node;
         yield return Activate(node);
 
         node.New = false;
@@ -152,6 +161,7 @@ public class ChatManager : MonoBehaviour
     {
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
+        lastNode = null;
         if (removeActorsOnCompletion)
             yield return RemoveAllActors();
         else
