@@ -14,7 +14,7 @@ public class ChatGenerator : MonoBehaviour
 
     private string slug => name.Replace(' ', '-').ToLower();
 
-    private ISubGenerator[] generators => _generators ?? (_generators = GetComponentsInChildren<ISubGenerator>());
+    private ISubGenerator[] generators => _generators ?? (_generators = GetComponents<ISubGenerator>());
     private ISubGenerator[] _generators;
 
     private ConcurrentQueue<Idea> ideaQueue = new ConcurrentQueue<Idea>();

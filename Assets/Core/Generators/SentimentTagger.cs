@@ -7,6 +7,8 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     [SerializeField]
     private bool doForNodes = true;
 
+    public virtual void AfterTagging(string output, ChatNode node) { }
+
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
         var names = chat.Names;
@@ -37,13 +39,8 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         await actor.SetPrompt();
 
         var sentiment = await GetSentiment(prompt, names, chat.Log, node.Line, actor.Context, actor.Prompt);
-
-        var edit = sentiment.Find("Edit");
-        if (!string.IsNullOrEmpty(edit))
-            node.SetText(edit);
-
-        node.Thoughts = sentiment.Find("Delivery");
         node.Reactions = ParseReactions(sentiment, names);
+        AfterTagging(sentiment, node);
     }
 
     private async Task<string> GetSentiment(PromptResolver prompt, string[] names, string transcript, string line, string context, string text)

@@ -101,18 +101,18 @@ public class ChatManager : MonoBehaviour
     {
         while (Application.isPlaying)
         {
-            var chat = default(Chat);
-            yield return new WaitUntilTimer(() => playList.Count > minQueueSize && playList.TryDequeue(out chat), 1);
+            yield return new WaitUntilTimer(() => playList.Count >= minQueueSize);
 
-            if (SubtitleManager.Instance != null)
-                SubtitleManager.Instance.ClearSubtitles();
-            if (playList.IsEmpty && removeActorsOnCompletion)
+            while (playList.Count > 0)
+                if (playList.TryDequeue(out var chat))
+                    if (chat != null)
+                        yield return Play(chat);
+
+            if (removeActorsOnCompletion)
                 yield return RemoveAllActors();
-            if (playList.IsEmpty)
-                OnChatQueueEmpty?.Invoke();
 
-            if (chat != null)
-                yield return Play(chat);
+            SubtitleManager.Instance?.ClearSubtitles();
+            OnChatQueueEmpty?.Invoke();
         }
     }
 
