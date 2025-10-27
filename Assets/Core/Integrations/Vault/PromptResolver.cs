@@ -8,6 +8,7 @@ using UnityEngine;
 
 public class PromptResolver
 {
+    public static string EngineName = null;
     public static string BasePromptPath = "Prompts";
     public static string BaseOutputPath = "Outputs";
     public static string BasePath = "Vault";
@@ -96,7 +97,7 @@ public class PromptResolver
 
     public async Task SaveOutput(string text)
     {
-        var folder = System.IO.Path.Combine(BasePath, ChatManager.Instance.name, BaseOutputPath, Part);
+        var folder = System.IO.Path.Combine(BasePath, EngineName ?? ChatManager.Instance.name, BaseOutputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
@@ -117,7 +118,7 @@ public class PromptResolver
         if (direct)
             Path = Part;
         else
-            Path = System.IO.Path.Combine(BasePath, ChatManager.Instance.name, BasePromptPath, Part);
+            Path = System.IO.Path.Combine(BasePath, EngineName ?? ChatManager.Instance.name, BasePromptPath, Part);
         if (!Path.EndsWith(".md")) Path += ".md";
     }
 

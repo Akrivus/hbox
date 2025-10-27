@@ -75,6 +75,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
         catch (Exception e)
         {
             Debug.LogError(e.Message);
+            Debug.LogError(e.StackTrace);
             await Task.Delay(1000);
             return await ChatAsync(messages, fast, prompt, ++attempts);
         }
