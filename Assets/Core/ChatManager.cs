@@ -38,6 +38,12 @@ public class ChatManager : MonoBehaviour
 
     public List<ActorController> ActorsInScene => actors;
 
+    public bool RemoveActorsOnCompletion
+    {
+        get => removeActorsOnCompletion;
+        set => removeActorsOnCompletion = value;
+    }
+
     public bool DisableBGSFX = false;
 
     private List<ActorController> actors = new List<ActorController>();
@@ -281,7 +287,7 @@ public class ChatManager : MonoBehaviour
             yield return RemoveActor(actor);
     }
 
-    private IEnumerator RemoveAllActors()
+    public IEnumerator RemoveAllActors()
     {
         var outgoing = actors.ToArray();
         foreach (var actor in outgoing)

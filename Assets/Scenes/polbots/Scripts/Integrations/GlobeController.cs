@@ -39,9 +39,10 @@ public class GlobeController : MonoBehaviour
     public void Disable()
     {
         Camera.main.cullingMask &= ~(1 << LayerMask.NameToLayer("Globe"));
-        Camera.main.cullingMask &= ~(1 << LayerMask.NameToLayer("polbot"));
+        Camera.main.cullingMask |= ~(1 << LayerMask.NameToLayer("polbot_BG"));
         Globe.ZoomTo(85.0f);
         _zoomTo = false;
+        ChatManager.Instance.RemoveActorsOnCompletion = false;
         ChatManager.Instance.DisableBGSFX = false;
         VideoCallUIManager.Instance.Enabled = true;
     }
@@ -49,15 +50,17 @@ public class GlobeController : MonoBehaviour
     public void Enable()
     {
         Camera.main.cullingMask |= ~(1 << LayerMask.NameToLayer("Globe"));
-        Camera.main.cullingMask |= ~(1 << LayerMask.NameToLayer("polbot"));
+        Camera.main.cullingMask &= ~(1 << LayerMask.NameToLayer("polbot_BG"));
         Globe.ZoomTo(MaxZoomLevel);
         _zoomTo = true;
+        ChatManager.Instance.RemoveActorsOnCompletion = true;
         ChatManager.Instance.DisableBGSFX = true;
         VideoCallUIManager.Instance.Enabled = false;
     }
 
     private void Start()
     {
+        ChatManager.OnChatQueueTaken += OnChatDequeued;
         ChatManager.OnChatLoaded += OnChatLoaded;
         ChatManager.OnActorAdded += OnActorAdded;
         ChatManager.OnActorRemoved += OnActorRemoved;
@@ -104,12 +107,17 @@ public class GlobeController : MonoBehaviour
         Globe.ZoomTo(MinZoomLevel + zoom); 
     }
 
-    private void OnChatLoaded(Chat chat)
+    private IEnumerator OnChatDequeued(Chat chat)
     {
         if (chat.Topic.Contains("Mode: Globe"))
             Enable();
         else
             Disable();
+        yield return ChatManager.Instance.RemoveAllActors();
+    }
+
+    private void OnChatLoaded(Chat chat)
+    {
         if (!_zoomTo)
             return;
         foreach (var actor in chat.Actors)

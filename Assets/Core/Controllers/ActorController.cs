@@ -15,6 +15,7 @@ public class ActorController : MonoBehaviour
     public float TotalVolume => voice.GetAmplitude() + sound.GetAmplitude();
     public float VoiceVolume => voice.GetAmplitude();
     public bool IsTalking => voice.isPlaying && VoiceVolume > 0.0f;
+    public bool IsNoLongerTalking => !voice.isPlaying || talkTime > 2.0f && averageVolume < 0.002f;
 
     public float Speed { get; private set; }
     public float Energy { get; private set; }
@@ -124,10 +125,7 @@ public class ActorController : MonoBehaviour
         talkTime = 0.0f;
 
         if (!node.Async)
-        {
-            yield return new WaitUntilTimer(IsNoLongerTalking);
-            yield return new WaitForSeconds(Mathf.Abs(Sentiment.Score * Energy));
-        }
+            yield return new WaitForSeconds(0.1f - Mathf.Abs(Sentiment.Score * Energy) * 0.1f + 0.9f * clip.length);
     }
 
     public IEnumerator Initialize(Chat chat)
@@ -145,10 +143,5 @@ public class ActorController : MonoBehaviour
         if (BeforeDestroy != null)
             yield return BeforeDestroy();
         Destroy(gameObject);
-    }
-
-    private bool IsNoLongerTalking()
-    {
-        return !voice.isPlaying || talkTime > 2.0f && averageVolume < 0.002f;
     }
 }
