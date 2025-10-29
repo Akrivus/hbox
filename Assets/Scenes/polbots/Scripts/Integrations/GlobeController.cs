@@ -12,7 +12,6 @@ public class GlobeController : MonoBehaviour
     public static int MaxPopulation = 1_000_000_000;
 
     public WorldMapGlobe Globe => WorldMapGlobe.instance;
-    public GameObject AntiGlobe;
 
     public ChatManager ChatManager;
     public float Scale;

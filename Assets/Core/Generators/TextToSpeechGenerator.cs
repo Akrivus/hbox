@@ -7,6 +7,7 @@ using System;
 using OpenAI.Audio;
 using OpenAI;
 using System.Linq;
+using System.Collections.Generic;
 
 public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 {
@@ -17,8 +18,10 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
+        var tasks = new List<Task>();
         foreach (var node in chat.Nodes)
-            await GenerateTextToSpeech(node);
+            tasks.Add(GenerateTextToSpeech(node));
+        await Task.WhenAll(tasks);
         return chat;
     }
 

@@ -21,6 +21,7 @@ public class Sentiment : ScriptableObject
 
     [Header("Audio")]
     public AudioClip Sound;
+    public int MinReactions = 3;
 
     public class SearchableList
     {

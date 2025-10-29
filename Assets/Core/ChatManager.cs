@@ -239,7 +239,7 @@ public class ChatManager : MonoBehaviour
 
         var reaction = reactions
             .GroupBy(r => r.Sentiment)
-            .FirstOrDefault(r => r.Count() > 2)
+            .FirstOrDefault(r => r.Count() >= r.Key.MinReactions)
             ?.First()?.Sentiment;
         if (reaction == null)
             yield break;

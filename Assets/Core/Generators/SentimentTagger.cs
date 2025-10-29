@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Generic;
 
 public class SentimentTagger : MonoBehaviour, ISubGenerator
 {
@@ -12,16 +13,17 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
         var names = chat.Names;
+        var tasks = new List<Task>();
 
         if (doForNodes)
             foreach (var node in chat.Nodes)
                 if (node.Reactions == null || node.Reactions.Length == 0)
-                    await GenerateForNode(prompt, chat, node, names);
+                    tasks.Add(GenerateForNode(prompt, chat, node, names));
         if (string.IsNullOrEmpty(chat.Context))
-            await GenerateForChat(prompt, chat, names, chat.Topic);
+            tasks.Add(GenerateForChat(prompt, chat, names, chat.Topic));
         else
-            await GenerateForChat(prompt, chat, names, chat.Context);
-        
+            tasks.Add(GenerateForChat(prompt, chat, names, chat.Context));
+        await Task.WhenAll(tasks);
         return chat;
     }
 
