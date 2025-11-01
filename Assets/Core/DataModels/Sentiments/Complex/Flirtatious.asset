@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Flirtatious
   Score: 0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.25200418, g: 0.5771218, b: 0.5896568, a: 1}
   Eyes: {fileID: 2800000, guid: 9c1e0453861b3ee4992ebfec5e4785db, type: 3}
   Lips: {fileID: 2800000, guid: 1f01dbf69e00406429bd9d7e9e3bcda7, type: 3}
   Sound: {fileID: 8300000, guid: 8ed5e015dbae2c542b443511ba446831, type: 3}
+  MinReactions: 2

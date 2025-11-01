@@ -64,8 +64,17 @@ public class GlobeController : MonoBehaviour
         ChatManager.OnActorAdded += OnActorAdded;
         ChatManager.OnActorRemoved += OnActorRemoved;
         ChatManager.OnChatNodeActivated += OnChatNodeActivated;
-
         Globe.OnFlyEnd += OnFlyEnd;
+    }
+
+    private void OnDestroy()
+    {
+        ChatManager.OnChatQueueTaken -= OnChatDequeued;
+        ChatManager.OnChatLoaded -= OnChatLoaded;
+        ChatManager.OnActorAdded -= OnActorAdded;
+        ChatManager.OnActorRemoved -= OnActorRemoved;
+        ChatManager.OnChatNodeActivated -= OnChatNodeActivated;
+        Globe.OnFlyEnd -= OnFlyEnd;
     }
 
     private void Update()

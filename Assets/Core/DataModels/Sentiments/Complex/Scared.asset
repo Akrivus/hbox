@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Scared
   Score: -0.75
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.08573521, g: 0.88298404, b: 0.5855468, a: 1}
   Eyes: {fileID: 2800000, guid: 2e791333c6b38d84f8f40efcd49d4927, type: 3}
   Lips: {fileID: 2800000, guid: 11958dd2ef4173247aa002b4081fbd16, type: 3}
   Sound: {fileID: 8300000, guid: 1da4e36d6483c4145a8aa449913063ac, type: 3}
+  MinReactions: 2

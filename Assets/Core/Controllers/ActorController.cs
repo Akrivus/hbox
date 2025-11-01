@@ -125,7 +125,11 @@ public class ActorController : MonoBehaviour
         talkTime = 0.0f;
 
         if (!node.Async)
-            yield return new WaitForSeconds(0.1f - Mathf.Abs(Sentiment.Score * Energy) * 0.1f + 0.9f * clip.length);
+        {
+            var s = Mathf.Abs(1.0f - node.Actor.Confidence);
+            var ratio = s - Mathf.Abs(Sentiment.Score * Energy) * s;
+            yield return new WaitForSeconds(ratio + node.Actor.Confidence * clip.length);
+        }
     }
 
     public IEnumerator Initialize(Chat chat)

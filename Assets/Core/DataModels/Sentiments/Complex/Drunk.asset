@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Drunk
   Score: 0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.20988074, g: 0.7896079, b: 0.35413757, a: 1}
   Eyes: {fileID: 2800000, guid: e7c6f053a4a148748b744b1e234feaf5, type: 3}
   Lips: {fileID: 2800000, guid: 3ab548c6f09410a449d4e891b4ee19a8, type: 3}
   Sound: {fileID: 8300000, guid: db045a02dca74d64e851202c20af754e, type: 3}
+  MinReactions: 1

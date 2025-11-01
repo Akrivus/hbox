@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Cry
   Score: -0.75
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.02306545, g: 0.6951843, b: 0.6054606, a: 1}
   Eyes: {fileID: 2800000, guid: 94211d5bf487101409e513df02a2ced4, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
   Sound: {fileID: 8300000, guid: d9dc3d6dee0a50c44abe23888772fa53, type: 3}
+  MinReactions: 1

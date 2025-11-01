@@ -38,6 +38,7 @@ MonoBehaviour:
   SpeakingRate: 1
   Pitch: 1.0219154
   Volume: 1
+  Confidence: 0.9
   Color: {r: 0.7781286, g: 0.22887406, b: 0.3372939, a: 1}
   Color1: {r: 0.7764706, g: 0.047058824, b: 0.19215687, a: 1}
   Color2: {r: 0.93333334, g: 0.9372549, b: 0.93333334, a: 1}

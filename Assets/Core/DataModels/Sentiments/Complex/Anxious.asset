@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Anxious
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.7769122, g: 0.05079318, b: 0.75921655, a: 1}
   Eyes: {fileID: 2800000, guid: fa581741e855ee74b863c25c854a3190, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
   Sound: {fileID: 8300000, guid: 42c0da7221d4f9f4aa2dbd1f8f36e276, type: 3}
+  MinReactions: 2

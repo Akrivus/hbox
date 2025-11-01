@@ -28,6 +28,7 @@ public class Actor : ScriptableObject
     public float SpeakingRate;
     public float Pitch;
     public float Volume;
+    public float Confidence;
     public Color Color;
 
     public Color Color1;

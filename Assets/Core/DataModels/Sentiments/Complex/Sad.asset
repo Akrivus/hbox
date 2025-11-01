@@ -14,7 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Sad
   Score: -0.75
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.4145977, g: 0.40300363, b: 0.4054069, a: 1}
   Eyes: {fileID: 2800000, guid: 9b52c008498ade3448b8a9d02c043508, type: 3}
   Lips: {fileID: 2800000, guid: 11958dd2ef4173247aa002b4081fbd16, type: 3}
   Sound: {fileID: 8300000, guid: 17a442d73c7751f4babd5a9ad15ecb74, type: 3}
+  MinReactions: 2
