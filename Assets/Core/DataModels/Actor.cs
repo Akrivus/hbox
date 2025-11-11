@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "New Country", menuName = "UN/Country")]
@@ -37,6 +38,17 @@ public class Actor : ScriptableObject
 
     public Sentiment DefaultSentiment;
 
+    public WordReplacement[] WordReplacementDictionary;
+
+    public string ApplyWordReplacements(string text)
+    {
+        if (WordReplacementDictionary == null || WordReplacementDictionary.Length == 0)
+            return text;
+        foreach (var replacement in WordReplacementDictionary)
+            text = replacement.Apply(text);
+        return text;
+    }
+
     public class SearchableList
     {
         public Actor this[string name] => List.Find(actor => actor.Aliases.Contains(name));
@@ -60,6 +72,23 @@ public class Actor : ScriptableObject
         {
             var index = UnityEngine.Random.Range(0, List.Count);
             return List[index];
+        }
+    }
+
+    [Serializable]
+    public class WordReplacement
+    {
+        public string Word;
+        public string Replacement;
+
+        public string Apply(string text)
+        {
+            if (Word.StartsWith("/") && Word.EndsWith("/"))
+            {
+                var pattern = Word.Substring(1, Word.Length - 2);
+                return Regex.Replace(text, pattern, Replacement);
+            }
+            return text.Replace(Word, Replacement);
         }
     }
 }

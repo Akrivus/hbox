@@ -71,6 +71,8 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         if (actor == null)
             return nodes;
 
+        text = actor.ApplyWordReplacements(text);
+
         var sentences = new string[] { text };
         if (splitSentences)
             sentences = text.ToSentences();

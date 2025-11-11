@@ -75,6 +75,7 @@ public class ChatManager : MonoBehaviour
 
     private SpawnPointManager spawnPointManager;
     private ChatNode lastNode;
+    private float maxChance = 1f;
 
     private void Awake()
     {
@@ -168,6 +169,7 @@ public class ChatManager : MonoBehaviour
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
         lastNode = null;
+        maxChance = 1f;
         if (removeActorsOnCompletion)
             yield return RemoveAllActors();
         else
@@ -237,15 +239,17 @@ public class ChatManager : MonoBehaviour
         if (audioSource == null)
             yield break;
 
+        var chance = UnityEngine.Random.Range(0f, maxChance);
         var reaction = reactions
             .GroupBy(r => r.Sentiment)
-            .FirstOrDefault(r => r.Count() >= r.Key.MinReactions)
+            .FirstOrDefault(r => r.Count() >= r.Key.MinReactions && chance <= r.Key.ReactionChance)
             ?.First()?.Sentiment;
         if (reaction == null)
             yield break;
         var clip = reaction.Sound;
         if (clip == null)
             yield break;
+        maxChance *= reaction.ReactionDecay;
         audioSource.clip = clip;
         audioSource.Play();
         yield return new WaitForSeconds(clip.length);

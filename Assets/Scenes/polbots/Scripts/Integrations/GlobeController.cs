@@ -65,6 +65,8 @@ public class GlobeController : MonoBehaviour
         ChatManager.OnActorRemoved += OnActorRemoved;
         ChatManager.OnChatNodeActivated += OnChatNodeActivated;
         Globe.OnFlyEnd += OnFlyEnd;
+
+        Enable();
     }
 
     private void OnDestroy()
@@ -75,6 +77,8 @@ public class GlobeController : MonoBehaviour
         ChatManager.OnActorRemoved -= OnActorRemoved;
         ChatManager.OnChatNodeActivated -= OnChatNodeActivated;
         Globe.OnFlyEnd -= OnFlyEnd;
+
+        Disable();
     }
 
     private void Update()

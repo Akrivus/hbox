@@ -20,8 +20,16 @@ public class Sentiment : ScriptableObject
     public Texture2D Lips;
 
     [Header("Audio")]
-    public AudioClip Sound;
+    public AudioClip[] Sounds;
     public int MinReactions = 3;
+
+    [Range(0, 1)]
+    public float ReactionChance = 0.5f;
+
+    [Range(0, 1)]
+    public float ReactionDecay = 0.5f;
+
+    public AudioClip Sound => Sounds.Length > 0 ? Sounds[UnityEngine.Random.Range(0, Sounds.Length)] : null;
 
     public class SearchableList
     {
