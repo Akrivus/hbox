@@ -14,7 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Startled
   Score: 1
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 0}
   Lips: {fileID: 2800000, guid: 44fac48732124fc4f907fb1e8a34983c, type: 3}
-  Sound: {fileID: 0}
+  Sounds:
+  - {fileID: 8300000, guid: 7e199b0bd41c83342a7655ee30b4fa1b, type: 3}
+  - {fileID: 8300000, guid: 97e2c1198e24a084bb78aad2d46da538, type: 3}
+  - {fileID: 8300000, guid: 5ccc7bdb2cfacda42b9f169b20a85638, type: 3}
+  - {fileID: 8300000, guid: b8286db1995c5054ca9e2dd828022937, type: 3}
+  - {fileID: 8300000, guid: e27fb8f0bf62d3e418daea0c271acef7, type: 3}
+  - {fileID: 8300000, guid: b727cc6f4b472994e9aacaf909b76315, type: 3}
+  MinReactions: 2
+  ReactionChance: 0.5
+  ReactionDecay: 0.5

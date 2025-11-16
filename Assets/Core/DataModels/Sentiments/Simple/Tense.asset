@@ -14,7 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Tense
   Score: 1
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 0}
   Lips: {fileID: 2800000, guid: 09b41f18f10f90e4081550d7a8d80ba9, type: 3}
-  Sound: {fileID: 0}
+  Sounds:
+  - {fileID: 8300000, guid: 7e199b0bd41c83342a7655ee30b4fa1b, type: 3}
+  MinReactions: 3
+  ReactionChance: 0.5
+  ReactionDecay: 0.5

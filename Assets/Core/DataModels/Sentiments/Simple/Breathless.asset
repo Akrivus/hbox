@@ -14,7 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Breathless
   Score: 1
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 0}
   Lips: {fileID: 2800000, guid: bc3c05575c95fd44db877f9fbc5d9727, type: 3}
-  Sound: {fileID: 0}
+  Sounds:
+  - {fileID: 8300000, guid: 614561d5acff2064390ecda806c49950, type: 3}
+  MinReactions: 3
+  ReactionChance: 0.5
+  ReactionDecay: 0.5

@@ -14,7 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Coy
   Score: 1
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 0}
   Lips: {fileID: 2800000, guid: 480f7f18a6c776c43bb465ca1786f29c, type: 3}
-  Sound: {fileID: 0}
+  Sounds:
+  - {fileID: 8300000, guid: 8ed5e015dbae2c542b443511ba446831, type: 3}
+  - {fileID: 8300000, guid: 8690b7fd655889c45b9bf1c5f4b01596, type: 3}
+  - {fileID: 8300000, guid: e280bf269ab68164d9d3c2c87b091ff8, type: 3}
+  MinReactions: 1
+  ReactionChance: 0.5
+  ReactionDecay: 0.5
