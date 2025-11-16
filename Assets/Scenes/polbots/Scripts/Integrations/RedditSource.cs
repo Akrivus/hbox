@@ -1,4 +1,3 @@
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
@@ -30,6 +30,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     private Queue<Task<Idea>> ideas = new Queue<Task<Idea>>();
 
     private int i = 0;
+    private RedditThreadMiner miner;
 
     public void Configure(RedditConfigs c)
     {
@@ -38,6 +39,17 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         MaxPostAgeInHours = c.MaxPostAgeInHours;
         BatchMax = c.BatchMax;
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
+
+        miner = new RedditThreadMiner
+        {
+            MaxDepth = c.MaxDepth,
+            TopRoots = c.TopRoots,
+            TopLevelLimit = c.TopLevelLimit,
+            PerLevelChildLimit = c.PerLevelChildLimit,
+            MaxDialogueLines = c.MaxDialogueLines,
+            MaxCharsPerLine = c.MaxCharsPerLine,
+            Sort = c.Sort
+        };
 
         history = LoadHistory();
         StartCoroutine(Drops());
@@ -66,7 +78,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
         while (ideas.TryDequeue(out var task))
         {
-            yield return task;
+            yield return task.AsCoroutine();
             yield return generator.GenerateAndPlay(task.Result).AsCoroutine();
         }
         OnBatchEnd?.Invoke();
@@ -82,17 +94,12 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             var range = await FetchAsync(subreddit.Key);
             ideas = new Queue<Task<Idea>>(range
                 .Take(BatchMax)
-                .Select(post => {
+                .Select(post =>
+                {
                     history.Add(post.Value<string>("id"));
                     return post;
                 })
-                .Select(post => new Idea(
-                        post.Value<string>("title"),
-                        post.Value<string>("selftext"),
-                        post.Value<string>("author"),
-                        post.Value<string>("subreddit_name_prefixed"),
-                        post.Value<string>("id")
-                    ).RePrompt(prompt, subreddit.Value)
+                .Select(post => PostToIdea(post).RePrompt(prompt, subreddit.Value)
                 ).ToList());
             if (ideas.Count >= BatchMax || !Application.isPlaying)
                 break;
@@ -102,10 +109,25 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             i = 0;
     }
 
+    private Idea PostToIdea(JToken post)
+    {
+        var permalink = post.Value<string>("permalink");
+        var top = miner.Mine(permalink);
+        var topic = post.Value<string>("selftext") + "\n\n" + string.Join("\n\n", top.Select(t => t.DialogueSeed));
+
+        return new Idea(
+            post.Value<string>("title"),
+            topic,
+            post.Value<string>("author"),
+            post.Value<string>("subreddit_name_prefixed"),
+            post.Value<string>("id")
+        );
+    }
+
     private void Awake()
     {
         Instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(RedditConfigs), "reddit", (config) => Configure((RedditConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(RedditConfigs), "reddit", (config) => Configure((RedditConfigs)config));
     }
 
     private void OnDestroy()

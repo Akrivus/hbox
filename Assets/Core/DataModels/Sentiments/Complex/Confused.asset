@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Confused
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.5914007, g: 0.38550407, b: 0.48268563, a: 1}
   Eyes: {fileID: 2800000, guid: 71c755364da8ead4a9ae6c416da3cbe9, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

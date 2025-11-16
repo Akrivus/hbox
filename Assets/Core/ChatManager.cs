@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public class ChatManager : MonoBehaviour
@@ -72,6 +71,9 @@ public class ChatManager : MonoBehaviour
 
     [SerializeField]
     private bool removeActorsOnCompletion = true;
+
+    [SerializeField]
+    private bool disableSoundEffects = false;
 
     private SpawnPointManager spawnPointManager;
     private ChatNode lastNode;
@@ -231,6 +233,8 @@ public class ChatManager : MonoBehaviour
             reaction.Key.Sentiment = reaction.Value;
             reaction.Key.LookTarget = actor.LookObject.transform;
         }
+        if (disableSoundEffects || audioSource == null)
+            yield break;
         yield return PlayReactionClip(node.Reactions);
     }
 

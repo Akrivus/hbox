@@ -1,10 +1,10 @@
-﻿using OpenAI;
-using OpenAI.Chat;
-using OpenAI.Embeddings;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OpenAI;
+using OpenAI.Chat;
+using OpenAI.Embeddings;
 using UnityEngine;
 
 public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
@@ -33,7 +33,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(OpenAIConfigs), "openai", (config) => Configure((OpenAIConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(OpenAIConfigs), "openai", (config) => Configure((OpenAIConfigs)config));
     }
 
     private static int? RemainingRequests;
@@ -52,7 +52,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             {
                 var reset = ResetRequestsTimespan.TotalSeconds;
                 Debug.LogWarning($"OpenAI rate limit reached. Waiting {reset} seconds.");
-                await Task.Delay((int) reset * 1000);
+                await Task.Delay((int)reset * 1000);
             }
 
             var model = fast ? FAST_MODEL : SLOW_MODEL;

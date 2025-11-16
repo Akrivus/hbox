@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 public class MemoryBucket
 {
@@ -26,22 +26,51 @@ public class MemoryBucket
 
     public async Task Save()
     {
-        if (!Directory.Exists("./Memories"))
-            Directory.CreateDirectory("./Memories");
+        try
+        {
+            if (!Directory.Exists("./Memories"))
+                Directory.CreateDirectory("./Memories");
 
-        var json = JsonConvert.SerializeObject(Memories);
-        await File.WriteAllTextAsync($"./Memories/{Name}.json", json);
-        Buckets.Remove(Name);
+            var json = JsonConvert.SerializeObject(Memories);
+
+            try
+            {
+                await File.WriteAllTextAsync($"./Memories/{Name}.json", json);
+                Buckets.Remove(Name);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to save memory bucket {Name}: {e.Message}");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to serialize memory bucket {Name}: {e.Message}");
+        }
     }
 
     public async Task Load()
     {
-        if (!Directory.Exists("./Memories"))
-            Directory.CreateDirectory("./Memories");
-        if (!File.Exists($"./Memories/{Name}.json"))
-            return;
-        var json = await File.ReadAllTextAsync($"./Memories/{Name}.json");
-        Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
+        try
+        {
+            if (!Directory.Exists("./Memories"))
+                Directory.CreateDirectory("./Memories");
+            if (!File.Exists($"./Memories/{Name}.json"))
+                return;
+            try
+            {
+                var json = await File.ReadAllTextAsync($"./Memories/{Name}.json");
+                Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Failed to read memory bucket {Name}: {e.Message}");
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to load memory bucket {Name}: {e.Message}");
+        }
     }
 
     public async Task<string> Recall(string text)

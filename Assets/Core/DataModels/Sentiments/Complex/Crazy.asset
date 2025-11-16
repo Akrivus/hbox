@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Crazy
   Score: 0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.09469749, g: 0.42841464, b: 0.374337, a: 1}
   Eyes: {fileID: 2800000, guid: 276a4aa0ce635b94cb0fc4e65f374889, type: 3}
   Lips: {fileID: 2800000, guid: 04d583833ab9f0e4d8a433d5eee1746a, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

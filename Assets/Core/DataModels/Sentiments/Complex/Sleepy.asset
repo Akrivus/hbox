@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Sleepy
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.6456042, g: 0.97802794, b: 0.3721439, a: 1}
   Eyes: {fileID: 2800000, guid: f3e9182e71b90ab42b9f2a31e1d902ec, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

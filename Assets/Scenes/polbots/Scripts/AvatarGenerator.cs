@@ -1,7 +1,5 @@
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class AvatarGenerator : MonoBehaviour
@@ -20,7 +18,7 @@ public class AvatarGenerator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+
     }
 
     private IEnumerator GenerateAvatars()

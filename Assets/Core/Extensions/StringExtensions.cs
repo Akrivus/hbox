@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using UnityEngine;
 
 public static class StringExtensions
 {
@@ -63,7 +60,7 @@ public static class StringExtensions
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .ToArray();
         if (sentences.Length == 0)
-            sentences = new string[] { str };   
+            sentences = new string[] { str };
         return sentences;
     }
 

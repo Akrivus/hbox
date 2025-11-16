@@ -60,7 +60,7 @@ public class ActorController : MonoBehaviour
             OnUpdateSentimentCallbacks(value);
         }
     }
-    
+
     private Sentiment _sentiment;
     private ActorContext _context;
     private Vector3 position;
@@ -117,7 +117,7 @@ public class ActorController : MonoBehaviour
         var clip = node.AudioClip;
         if (clip == null)
             yield break;
-        
+
         voice.clip = clip;
         voice.Play();
 

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using UnityEditor.Analytics;
 using UnityEngine;
 
 public class CodexGeneration : MonoBehaviour, ISubGenerator

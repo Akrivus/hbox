@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Lonely
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.83615017, g: 0.2352691, b: 0.065220244, a: 1}
   Eyes: {fileID: 2800000, guid: dbacc2807b32d3e49893c55aea7e98e2, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

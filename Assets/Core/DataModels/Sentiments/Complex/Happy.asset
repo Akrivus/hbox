@@ -14,7 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Happy
   Score: 0.75
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.43295938, g: 0.9514656, b: 0.4965579, a: 1}
   Eyes: {fileID: 2800000, guid: 364a04d7ee07c57418a9a4fc97a52693, type: 3}
   Lips: {fileID: 2800000, guid: 6228a03beaa9e30488966646ab63450b, type: 3}
-  Sound: {fileID: 8300000, guid: f50591a0e753b3943b01dece69e86a79, type: 3}
+  Sounds:
+  - {fileID: 8300000, guid: f50591a0e753b3943b01dece69e86a79, type: 3}
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

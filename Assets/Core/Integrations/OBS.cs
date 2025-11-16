@@ -1,12 +1,11 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
@@ -51,7 +50,7 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(OBSConfigs), "obs", (config) => Configure((OBSConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(OBSConfigs), "obs", (config) => Configure((OBSConfigs)config));
     }
 
     private void OnDestroy()

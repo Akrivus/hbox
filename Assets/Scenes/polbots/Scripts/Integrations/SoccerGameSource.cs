@@ -1,13 +1,13 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using FStudio.Database;
 using FStudio.Events;
 using FStudio.MatchEngine;
 using FStudio.MatchEngine.Events;
 using FStudio.UI.MatchThemes.MatchEvents;
 using Shared.Responses;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -114,7 +114,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void Awake()
     {
         Instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(SoccerConfigs), "soccer", config => Configure((SoccerConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(SoccerConfigs), "soccer", config => Configure((SoccerConfigs)config));
         RegisterEmissionEvents();
     }
 
@@ -209,7 +209,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (!isGameLoaded || MatchEngineLoader.Current == null)
             return;
         await MatchEngineLoader.Current.UnloadMatch();
-        
+
         if (config.ClearSceneOnGameEnd)
             await UnloadGameScenes();
         isGameLoaded = false;
@@ -274,7 +274,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         volume *= Mathf.Clamp01(volume) * maxVolume;
     }
 
-    private void Emit(IBaseEvent e, string name = null, bool push = false) {
+    private void Emit(IBaseEvent e, string name = null, bool push = false)
+    {
         var key = e.GetType().Name;
         if (!lines.ContainsKey(key))
             return;

@@ -1,10 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
@@ -30,7 +30,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(DiscordConfigs), "discord", (config) => Configure((DiscordConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(DiscordConfigs), "discord", (config) => Configure((DiscordConfigs)config));
     }
 
     private void OnDestroy()
@@ -43,7 +43,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         while (Application.isPlaying)
         {
             yield return new WaitUntilTimer(() => Q.Count > 0, 30);
-            
+
             if (Q.TryDequeue(out var m) && Webhooks.TryGetValue(m.Key, out var web))
                 yield return web.SendAsync(m.Value);
         }
@@ -68,7 +68,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private int ToHex(Color color)
     {
-        return (int) (color.r * 255) << 16 | (int) (color.g * 255) << 8 | (int) (color.b * 255);
+        return (int)(color.r * 255) << 16 | (int)(color.g * 255) << 8 | (int)(color.b * 255);
     }
 
     private string GetAvatarURL(ChatNode node)

@@ -1,7 +1,3 @@
-using UnityEngine;
-using System.Threading.Tasks;
-using System.Linq;
-
 public class SentimentAnalyzer : SentimentTagger
 {
     public override void AfterTagging(string output, ChatNode node)

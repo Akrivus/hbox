@@ -1,6 +1,4 @@
-﻿using System;
-
-public class OpenAIConfigs : IConfig
+﻿public class OpenAIConfigs : IConfig
 {
     public string Type => "openai";
     public bool UseEmbeddings { get; set; } = false;

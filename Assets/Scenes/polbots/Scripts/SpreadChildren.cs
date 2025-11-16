@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class SpreadChildren : MonoBehaviour
@@ -13,7 +11,7 @@ public class SpreadChildren : MonoBehaviour
         for (int i = 0; i < transform.childCount; i++)
             transform.GetChild(i).localPosition = new Vector3(
                 xSpread * i,
-                ySpread * i, 
+                ySpread * i,
                 zSpread * i);
     }
 }

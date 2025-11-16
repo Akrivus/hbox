@@ -46,7 +46,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     {
         if (!IsEnabled) yield break;
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
-        
+
         var chat = default(Chat);
         yield return new WaitUntilTimer(() => queue.TryDequeue(out chat), 30);
         ChatManager.Instance.AddToPlayList(chat);
@@ -54,7 +54,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs)config));
     }
 
     private void OnDestroy()

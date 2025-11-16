@@ -14,6 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Flirty
   Score: 0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 2800000, guid: 12ac3deb1b70a8f48b8678c2f39599a7, type: 3}
   Lips: {fileID: 2800000, guid: 1f01dbf69e00406429bd9d7e9e3bcda7, type: 3}
+  Sounds:
+  - {fileID: 8300000, guid: 8ed5e015dbae2c542b443511ba446831, type: 3}
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

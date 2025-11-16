@@ -14,7 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Frustrated
   Score: -0.75
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.9527707, g: 0.25038353, b: 0.10563828, a: 1}
   Eyes: {fileID: 2800000, guid: 6f9f1a28f6734c24093e8a528f76f2c9, type: 3}
   Lips: {fileID: 2800000, guid: 00c8f781cd88c2e40a2fa487efcd17aa, type: 3}
-  Sound: {fileID: 8300000, guid: 1480f4ba3dc994e458429c86820d5d94, type: 3}
+  Sounds:
+  - {fileID: 8300000, guid: 1480f4ba3dc994e458429c86820d5d94, type: 3}
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

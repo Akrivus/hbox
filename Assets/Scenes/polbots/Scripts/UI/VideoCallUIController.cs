@@ -58,7 +58,7 @@ public class VideoCallUIController : MonoBehaviour
     {
         ReleaseRenderTexture();
         var size = _videoScreen.rectTransform.sizeDelta;
-        _renderTexture = new RenderTexture((int) size.x, (int) size.y, 24);
+        _renderTexture = new RenderTexture((int)size.x, (int)size.y, 24);
         _videoScreen.texture = _renderTexture;
         _camera.targetTexture = _renderTexture;
     }

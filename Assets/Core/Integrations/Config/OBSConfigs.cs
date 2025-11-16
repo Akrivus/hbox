@@ -1,6 +1,4 @@
-﻿using System;
-
-public class OBSConfigs : IConfig
+﻿public class OBSConfigs : IConfig
 {
     public string Type => "obs";
     public string VideosFolder { get; set; }

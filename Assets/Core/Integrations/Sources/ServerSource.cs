@@ -1,8 +1,6 @@
 ﻿
-using Newtonsoft.Json;
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,6 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
@@ -58,7 +57,7 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         Instance = this;
 
-        ConfigManager.Instance.RegisterConfig(typeof(ServerConfigs), "human", (config) => Configure((ServerConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(ServerConfigs), "human", (config) => Configure((ServerConfigs)config));
 
         AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));

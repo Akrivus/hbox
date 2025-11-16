@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using UnityEngine;
 
 public class VoiceController : AutoActor, ISubNode
 {

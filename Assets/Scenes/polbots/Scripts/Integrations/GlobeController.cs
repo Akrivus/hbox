@@ -37,8 +37,7 @@ public class GlobeController : MonoBehaviour
 
     public void Disable()
     {
-        Camera.main.cullingMask &= ~(1 << LayerMask.NameToLayer("Globe"));
-        Camera.main.cullingMask |= ~(1 << LayerMask.NameToLayer("polbot_BG"));
+        Camera.main.cullingMask = 122879;
         Globe.ZoomTo(85.0f);
         _zoomTo = false;
         ChatManager.Instance.RemoveActorsOnCompletion = false;
@@ -48,8 +47,7 @@ public class GlobeController : MonoBehaviour
 
     public void Enable()
     {
-        Camera.main.cullingMask |= ~(1 << LayerMask.NameToLayer("Globe"));
-        Camera.main.cullingMask &= ~(1 << LayerMask.NameToLayer("polbot_BG"));
+        Camera.main.cullingMask = 65535;
         Globe.ZoomTo(MaxZoomLevel);
         _zoomTo = true;
         ChatManager.Instance.RemoveActorsOnCompletion = true;
@@ -116,7 +114,7 @@ public class GlobeController : MonoBehaviour
             return;
         var zoomScaleFactor = Mathf.Clamp01(_lastEntry.Scale / Scale);
         var zoom = (1f - Mathf.Abs(_energy)) * zoomScaleFactor * MaxZoomLevel;
-        Globe.ZoomTo(MinZoomLevel + zoom); 
+        Globe.ZoomTo(MinZoomLevel + zoom);
     }
 
     private IEnumerator OnChatDequeued(Chat chat)
@@ -255,7 +253,7 @@ public class GlobeController : MonoBehaviour
             var axis = Vector3.Cross(b.Location, direction).normalized;
 
             a.Scale *= 1f - DownScaleIncrement * strength * a.Scale;
-            a.Location = Quaternion.AngleAxis(PushAngle *  strength, axis) * a.Location;
+            a.Location = Quaternion.AngleAxis(PushAngle * strength, axis) * a.Location;
             b.Scale *= 1f - DownScaleIncrement * strength * b.Scale;
             b.Location = Quaternion.AngleAxis(PushAngle * -strength, axis) * b.Location;
         }

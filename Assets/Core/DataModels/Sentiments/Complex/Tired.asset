@@ -19,5 +19,8 @@ MonoBehaviour:
   Color: {r: 0.74417454, g: 0.48822194, b: 0.8002968, a: 1}
   Eyes: {fileID: 2800000, guid: 13b1894ceb279284fb33b2574d8151c4, type: 3}
   Lips: {fileID: 2800000, guid: 58d78f96f4ba5b249b6253d5a36afca2, type: 3}
-  Sound: {fileID: 8300000, guid: be5a80b07b33e9e47b844867d79c39e9, type: 3}
+  Sounds:
+  - {fileID: 8300000, guid: be5a80b07b33e9e47b844867d79c39e9, type: 3}
   MinReactions: 2
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

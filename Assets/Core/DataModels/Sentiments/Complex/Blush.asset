@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Blush
   Score: 0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.16759314, g: 0.16821803, b: 0.8731283, a: 1}
   Eyes: {fileID: 2800000, guid: 164387f7af496274db9fa7ef833a6a90, type: 3}
   Lips: {fileID: 2800000, guid: f578dfdd3e844f44da2dfae8a8a3d5dc, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Hesitant
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.61955947, g: 0.46791238, b: 0.9179598, a: 1}
   Eyes: {fileID: 2800000, guid: 0a6e6385919aacb46b351be4230a11cc, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

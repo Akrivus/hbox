@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Stupid
   Score: 0
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.71127695, g: 0.8195535, b: 0.62855047, a: 1}
   Eyes: {fileID: 2800000, guid: 56ef100eaa5d1ba48b6585d1c48ef991, type: 3}
   Lips: {fileID: 2800000, guid: f578dfdd3e844f44da2dfae8a8a3d5dc, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

@@ -1,6 +1,4 @@
-﻿using System;
-
-public class YouTubeConfigs : IConfig
+﻿public class YouTubeConfigs : IConfig
 {
     public string Type => "youtube";
     public string AccessToken { get; set; }

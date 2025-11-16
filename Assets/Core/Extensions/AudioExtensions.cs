@@ -43,7 +43,7 @@ public static class AudioExtensions
         for (int i = 0; i < samples.Length; i++)
         {
             var value = (short)(samples[i] * 32768f);
-            bytes[i * 2 * c] = (byte) value;
+            bytes[i * 2 * c] = (byte)value;
             bytes[i * 2 * c + 1] = (byte)(value >> 8);
         }
 

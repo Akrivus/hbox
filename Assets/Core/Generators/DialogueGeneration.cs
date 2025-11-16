@@ -76,7 +76,7 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         var sentences = new string[] { text };
         if (splitSentences)
             sentences = text.ToSentences();
-        
+
         nodes.Add(new ChatNode(actor, sentences[0]));
         foreach (var sentence in sentences.Skip(1))
         {

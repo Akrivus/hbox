@@ -1,10 +1,9 @@
+using System;
+using System.IO;
 using System.Net;
 using System.Text;
-using System;
-using UnityEngine;
 using Newtonsoft.Json;
-using OpenAI;
-using System.IO;
+using UnityEngine;
 
 public class YouTubeIntegration : MonoBehaviour, IConfigurable<YouTubeConfigs>
 {

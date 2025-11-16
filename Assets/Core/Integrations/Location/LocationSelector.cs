@@ -39,7 +39,7 @@ public class LocationSelector : MonoBehaviour, ISubGenerator
             .ToArray();
         for (var i = 0; i < empty.Length; i++)
             empty[i].SpawnPoint = unused[i].name;
-        
+
         return chat;
     }
 

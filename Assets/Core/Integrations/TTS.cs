@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
 {
-    public static string GoogleApiKey;   
+    public static string GoogleApiKey;
     public static string OpenAiApiKey;
 
     public AudioSource source;
@@ -15,6 +15,6 @@ public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
 
     private void Awake()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(TTSConfigs), "tts", (config) => Configure((TTSConfigs) config));
+        ConfigManager.Instance.RegisterConfig(typeof(TTSConfigs), "tts", (config) => Configure((TTSConfigs)config));
     }
 }

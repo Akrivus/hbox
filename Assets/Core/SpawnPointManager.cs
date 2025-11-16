@@ -1,8 +1,8 @@
-﻿using Cinemachine;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cinemachine;
 using UnityEngine;
 
 public class SpawnPointManager : MonoBehaviour
@@ -122,7 +122,7 @@ public class SpawnPointManager : MonoBehaviour
 
         targetGroup.m_Targets = actorToController.Values
             .Select(t =>
-            { 
+            {
                 var speaker = t.Actor == node.Actor;
                 var energy = Math.Abs(t.Energy) + energyOffset;
 

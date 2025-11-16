@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using UnityEngine;
 
 [Serializable]
 public class Idea
@@ -44,7 +43,7 @@ public class Idea
 
     public async Task<Idea> RePrompt(PromptResolver prompt, string preamble = "")
     {
-        await prompt.Resolve(preamble + "\n\n" + Prompt);
+        await prompt.Resolve(preamble + "\n\n" + Prompt, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
         Prompt = prompt.Text;
         return this;
     }

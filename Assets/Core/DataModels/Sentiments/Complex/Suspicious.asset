@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Suspicious
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 0.16372825, g: 0.56574017, b: 0.08712412, a: 1}
   Eyes: {fileID: 2800000, guid: d287ef6d9172c5841bc5acf1f679d410, type: 3}
   Lips: {fileID: 2800000, guid: 323ff309620ce2740a6aa5d810ad9e36, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3

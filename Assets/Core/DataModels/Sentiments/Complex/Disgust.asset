@@ -14,6 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Disgust
   Score: -0.5
+  GrabTarget: 0
+  GazeTarget: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
   Eyes: {fileID: 2800000, guid: 117681d179d1e7c429422dab3ee54f85, type: 3}
   Lips: {fileID: 2800000, guid: 58d78f96f4ba5b249b6253d5a36afca2, type: 3}
+  Sounds: []
+  MinReactions: 3
+  ReactionChance: 0.8
+  ReactionDecay: 0.3
