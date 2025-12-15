@@ -2,6 +2,8 @@
 
 public interface ISubGenerator
 {
+    bool IsBlocking => true;
+
     Task<Chat> Generate(PromptResolver prompt, Chat chat);
 
     public interface Sync : ISubGenerator

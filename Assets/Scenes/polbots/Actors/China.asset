@@ -46,3 +46,4 @@ MonoBehaviour:
   Color2: {r: 0.87058824, g: 0.15686275, b: 0.0627451, a: 1}
   Color3: {r: 1, g: 0.8745098, b: 0.007843138, a: 1}
   DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}
+  WordReplacementDictionary: []

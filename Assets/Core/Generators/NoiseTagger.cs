@@ -8,6 +8,8 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
 {
     public static string[] SoundGroups;
 
+    public bool IsBlocking => false;
+
     private void Start()
     {
         if (SoundGroups == null)

@@ -10,25 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Gaius Octavian
+  m_Name: Lepidus
   m_EditorClassIdentifier: 
-  Title: Gaius Octavian
+  Title: Marcus Lepidus
   Pronouns: he/him
-  Name: Gaius Octavian
+  Name: Lepidus
   Aliases:
-  - Octavian
-  - Gaius Octavian
-  - Gaius
-  - Octavius
-  - Gaius Octavius
-  - Augustus
+  - Lepidus
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 3429329842081118208, guid: 627eda632855a144283e727f1654749e, type: 3}
-  Voice: ballad
+  Prefab: {fileID: 4546196537496687338, guid: 2e5066961852ba24e8188d50f0dd4d60, type: 3}
+  Voice: en-US-Chirp3-HD-Puck
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -37,4 +32,5 @@ MonoBehaviour:
   Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 78e7c8d8c5e64fd4e9612a725a06a926, type: 2}
+  DefaultSentiment: {fileID: 11400000, guid: 03285f295fc5723439f98c984beea738, type: 2}
+  WordReplacementDictionary: []

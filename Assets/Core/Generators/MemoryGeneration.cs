@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class MemoryGeneration : MonoBehaviour, ISubGenerator
 {
+    public bool IsBlocking => false;
+
     [SerializeField]
     private bool fastMode = false;
 

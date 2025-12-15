@@ -10,27 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Octavia Minor
-  m_EditorClassIdentifier: 
-  Title: Octavia Minor
-  Pronouns: she/her
-  Name: Octavia Minor
-  Aliases:
-  - Octavia
-  - Octavia Minor
+  m_Name: Clara
+  m_EditorClassIdentifier: Assembly-CSharp::Actor
+  Title: 
+  Pronouns: 
+  Name: 
+  Aliases: []
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 2941833402787199551, guid: a2281c8c33d809f4b8ba08dbe7dbd1c4, type: 3}
-  Voice: sage
-  SpeakingRate: 1
-  Pitch: 1
-  Volume: 1
-  Confidence: 1
-  Color: {r: 1, g: 1, b: 1, a: 0}
-  Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
+  Prefab: {fileID: 0}
+  Voice: 
+  SpeakingRate: 0
+  Pitch: 0
+  Volume: 0
+  Confidence: 0
+  Color: {r: 0, g: 0, b: 0, a: 0}
+  Color1: {r: 0, g: 0, b: 0, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 78e7c8d8c5e64fd4e9612a725a06a926, type: 2}
+  DefaultSentiment: {fileID: 0}
+  WordReplacementDictionary: []

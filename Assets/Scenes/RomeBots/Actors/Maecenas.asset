@@ -10,23 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Livia Drusilla
+  m_Name: Maecenas
   m_EditorClassIdentifier: 
-  Title: Livia Drusilla
-  Pronouns: she/her
-  Name: Livia Drusilla
+  Title: Gaius Maecenas
+  Pronouns: he/him
+  Name: Gaius Maecenas
   Aliases:
-  - Livia
-  - Livia Drusa
-  - Livia Drusilla
-  - Augusta
+  - Maecenas
+  - Gaius Maecenas
+  - Gaius
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
-  Voice: nova
+  Prefab: {fileID: 4546196537496687338, guid: 719bf06acb0e5d448ab758bc6f20119c, type: 3}
+  Voice: fable
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -35,4 +34,4 @@ MonoBehaviour:
   Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 508e395c4fc0f2b4396aa1c5e7c9a865, type: 2}
+  DefaultSentiment: {fileID: 11400000, guid: b11cdf9634eed36409eacdd662cf8c12, type: 2}

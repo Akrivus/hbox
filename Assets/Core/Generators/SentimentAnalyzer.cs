@@ -1,5 +1,7 @@
 public class SentimentAnalyzer : SentimentTagger
 {
+    public override bool IsBlocking => true;
+
     public override void AfterTagging(string output, ChatNode node)
     {
         var edit = output.Find("Edit");

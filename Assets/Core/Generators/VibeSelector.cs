@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class VibeSelector : MonoBehaviour, ISubGenerator
 {
+    public bool IsBlocking => false;
+
     [SerializeField]
     private AudioClip[] vibes;
 

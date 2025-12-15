@@ -50,6 +50,7 @@ public class SpawnPointManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        UnRegister();
         StopAllCoroutines();
     }
 

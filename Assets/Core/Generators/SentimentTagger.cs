@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class SentimentTagger : MonoBehaviour, ISubGenerator
 {
+    public virtual bool IsBlocking => false;
+
     [SerializeField]
     private bool doForNodes = true;
 

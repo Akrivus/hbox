@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -114,11 +115,19 @@ public class ChatGenerator : MonoBehaviour
         chat.Topic = topic;
         chat.Context = context;
 
+        var tasks = new List<Task>();
+
         foreach (var g in generators)
         {
             var p = new PromptResolver(this, g);
-            await g.Generate(p, chat);
+            var task = g.Generate(p, chat);
+            if (g.IsBlocking)
+                await task;
+            else
+                tasks.Add(task);
         }
+
+        await Task.WhenAll(tasks);
 
         return chat;
     }

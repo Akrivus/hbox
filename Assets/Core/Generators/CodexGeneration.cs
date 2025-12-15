@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class CodexGeneration : MonoBehaviour, ISubGenerator
 {
+    public bool IsBlocking => false;
+
     [SerializeField]
     private bool fastMode = false;
 

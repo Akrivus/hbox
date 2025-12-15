@@ -16,6 +16,8 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     private static OpenAIClient api => _api ??= new OpenAIClient(new OpenAIAuthentication(TTS.OpenAiApiKey));
     private static OpenAIClient _api;
 
+    public bool IsBlocking => false;
+
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
         var tasks = new List<Task>();

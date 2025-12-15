@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
 {
+    public bool IsBlocking => false;
+
     [SerializeField]
     private bool fastMode = false;
 
