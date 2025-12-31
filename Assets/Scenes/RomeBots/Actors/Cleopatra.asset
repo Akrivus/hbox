@@ -12,18 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Cleopatra
   m_EditorClassIdentifier: 
-  Title: Drusus Caesar
+  Title: Cleopatra
   Pronouns: she/her
   Name: Drusus
   Aliases:
-  - Drusus
-  - Drusus the Elder
+  - Cleopatra
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
+  Prefab: {fileID: 892893500738987583, guid: 5bcbe0cef057a0a489a11c81e86d507b, type: 3}
   Voice: nova
   SpeakingRate: 1
   Pitch: 1

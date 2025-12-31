@@ -17,7 +17,6 @@ MonoBehaviour:
   Name: Livia Drusilla
   Aliases:
   - Livia
-  - Livia Drusa
   - Livia Drusilla
   - Augusta
   Players: []
@@ -35,4 +34,5 @@ MonoBehaviour:
   Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 508e395c4fc0f2b4396aa1c5e7c9a865, type: 2}
+  DefaultSentiment: {fileID: 11400000, guid: f13d85f9b8255c54d9016e7e7827d3a3, type: 2}
+  WordReplacementDictionary: []

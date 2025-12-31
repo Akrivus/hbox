@@ -17,14 +17,12 @@ MonoBehaviour:
   Name: Julia
   Aliases:
   - Julia
-  - Julia Caesaris
-  - Julia the Elder
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
+  Prefab: {fileID: 478736051326050004, guid: 75566b95863e76f469c4f4eda87b1674, type: 3}
   Voice: nova
   SpeakingRate: 1
   Pitch: 1

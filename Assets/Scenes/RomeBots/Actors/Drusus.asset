@@ -12,18 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Drusus
   m_EditorClassIdentifier: 
-  Title: Drusus Caesar
-  Pronouns: she/her
+  Title: Drusus
+  Pronouns: he/him
   Name: Drusus
   Aliases:
   - Drusus
-  - Drusus the Elder
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
+  Prefab: {fileID: 4546196537496687338, guid: f97dd1c68c126d247925031956b0fa96, type: 3}
   Voice: nova
   SpeakingRate: 1
   Pitch: 1
@@ -33,5 +32,5 @@ MonoBehaviour:
   Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 508e395c4fc0f2b4396aa1c5e7c9a865, type: 2}
+  DefaultSentiment: {fileID: 11400000, guid: a2cb8de5c72a55042914e16012637c5e, type: 2}
   WordReplacementDictionary: []

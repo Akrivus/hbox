@@ -12,13 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Balbus
   m_EditorClassIdentifier: 
-  Title: Lucius Cornelius Balbus
+  Title: Lucius Balbus
   Pronouns: he/him
   Name: Balbus
   Aliases:
   - Balbus
-  - Lucius Balbus
-  - Lucius
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0

@@ -19,6 +19,7 @@ MonoBehaviour:
   - Alfidia
   - Livia's Mother
   - Livia's Mom
+  - Livia's Mum
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
@@ -35,3 +36,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 8a85bbb8319e6144c9466a1a8fd2528b, type: 2}
+  WordReplacementDictionary: []

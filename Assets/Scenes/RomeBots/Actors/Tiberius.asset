@@ -22,7 +22,7 @@ MonoBehaviour:
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
+  Prefab: {fileID: 4546196537496687338, guid: d4787c243a549914099bb0fb78de8a82, type: 3}
   Voice: nova
   SpeakingRate: 1
   Pitch: 1
@@ -32,5 +32,5 @@ MonoBehaviour:
   Color1: {r: 0.54710233, g: 0.45219687, b: 0.709, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 11400000, guid: 508e395c4fc0f2b4396aa1c5e7c9a865, type: 2}
+  DefaultSentiment: {fileID: 11400000, guid: f13d85f9b8255c54d9016e7e7827d3a3, type: 2}
   WordReplacementDictionary: []

@@ -12,12 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Octavia
   m_EditorClassIdentifier: 
-  Title: Octavia Minor
+  Title: Octavia
   Pronouns: she/her
   Name: Octavia
   Aliases:
   - Octavia
-  - Octavia Minor
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0

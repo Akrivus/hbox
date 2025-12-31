@@ -12,18 +12,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Antonius
   m_EditorClassIdentifier: 
-  Title: Drusus Caesar
-  Pronouns: she/her
-  Name: Drusus
+  Title: Marcus Antonius
+  Pronouns: he/him
+  Name: Antonius
   Aliases:
-  - Drusus
-  - Drusus the Elder
+  - Antonius
+  - Antony
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
+  Prefab: {fileID: 8038185235994856138, guid: de591f08603811b4daad8b7875176136, type: 3}
   Voice: nova
   SpeakingRate: 1
   Pitch: 1

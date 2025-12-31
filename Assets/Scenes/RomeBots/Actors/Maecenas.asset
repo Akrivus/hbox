@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Title: Gaius Maecenas
   Pronouns: he/him
-  Name: Gaius Maecenas
+  Name: Maecenas
   Aliases:
   - Maecenas
-  - Gaius Maecenas
-  - Gaius
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
@@ -35,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: b11cdf9634eed36409eacdd662cf8c12, type: 2}
+  WordReplacementDictionary: []
