@@ -126,4 +126,28 @@ public class PromptResolver
     {
         return Regex.Replace(type.GetType().Name, "(\\B[A-Z])", " $1");
     }
+
+    public static PromptResolver Find(string part)
+    {
+        var resolver = new PromptResolver(part);
+        if (File.Exists(resolver.Path))
+            return resolver;
+        return null;
+    }
+
+    public static bool TryFind(string part, out PromptResolver resolver)
+    {
+        resolver = Find(part);
+        return resolver != null;
+    }
+
+    public static async Task<string> Read(string path)
+    {
+        if (TryFind(path, out var resolver))
+        {
+            await resolver.Resolve();
+            return resolver.Text;
+        }
+        return null;
+    }
 }

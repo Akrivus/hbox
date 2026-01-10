@@ -87,19 +87,21 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public async Task FetchIdeas()
     {
         var prompt = new PromptResolver("Reddit Source");
+        var metaprompt = FindMetaPrompt();
 
         for (var _ = i; _ < SubReddits.Count; _++)
         {
             var subreddit = SubReddits.ElementAt(_);
             var range = await FetchAsync(subreddit.Key);
+            var subprompt = await BuildSubPrompt(metaprompt, subreddit.Value);
             ideas = new Queue<Task<Idea>>(range
-                .Take(BatchMax)
-                .Select(post =>
-                {
-                    history.Add(post.Value<string>("id"));
-                    return post;
-                })
-                .Select(post => PostToIdea(post).RePrompt(prompt, subreddit.Value)
+                    .Take(BatchMax)
+                    .Select(post =>
+                    {
+                        history.Add(post.Value<string>("id"));
+                        return post;
+                    })
+                    .Select(post => PostToIdea(post).RePrompt(prompt, subprompt)
                 ).ToList());
             if (ideas.Count >= BatchMax || !Application.isPlaying)
                 break;
@@ -170,5 +172,31 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             .Where(post => !history.Contains(post.Value<string>("id")))
             .OrderByDescending(post => post.Value<long>("created_utc"))
             .Take(batchMax);
+    }
+
+    private PromptResolver FindMetaPrompt()
+    {
+        var names = new string[]
+        {
+            DateTime.Now.ToString("M-d"),
+            DateTime.Now.ToString("MMMM"),
+            DateTime.Now.ToString("dddd"),
+            DateTime.Now.ToString("HH"),
+            "Default"
+        };
+        foreach (var name in names)
+        {
+            if (PromptResolver.TryFind("Reddit Source/" + name, out var prompt))
+                return prompt;
+        }
+        return null;
+    }
+
+    private async Task<string> BuildSubPrompt(PromptResolver prompt, string text)
+    {
+        if (text.StartsWith("./"))
+            text = await PromptResolver.Read(text);
+        await prompt.Resolve(text);
+        return prompt.Text;
     }
 }
