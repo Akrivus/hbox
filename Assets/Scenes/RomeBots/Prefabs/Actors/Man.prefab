@@ -110,7 +110,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2630391693475605358
 Transform:
   m_ObjectHideFlags: 0
@@ -1463,7 +1463,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: b2e298129ad352b4697288c1db1bc681, type: 2}
+  - {fileID: 2100000, guid: 08bdbafb3bec5504681fe22ff5869eee, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2223,7 +2223,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &5377550570479111274
 Transform:
   m_ObjectHideFlags: 0
@@ -2262,7 +2262,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8955bb4931b53c74f8c18ba2ce027465, type: 2}
+  - {fileID: 2100000, guid: 1dd5c7db1006c7240906835a78e56a55, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3126,7 +3126,7 @@ GameObject:
   - component: {fileID: -7829148407930649109}
   - component: {fileID: 2687273871617360854}
   m_Layer: 0
-  m_Name: Scribe
+  m_Name: Man
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3419,7 +3419,7 @@ PrefabInstance:
     - target: {fileID: 5636904043112716219, guid: aed2d1d27801b2344b20d8b93d2fe325, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: c25a0ddf33592c74e99adb00c4ddbbc7, type: 2}
+      objectReference: {fileID: 2100000, guid: 09a84924202a7c14dbbdcc7846bd818a, type: 2}
     - target: {fileID: 6141416946674824814, guid: aed2d1d27801b2344b20d8b93d2fe325, type: 3}
       propertyPath: m_Name
       value: SM_Chr_Hair_Male_06

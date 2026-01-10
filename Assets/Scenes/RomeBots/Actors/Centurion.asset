@@ -10,20 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Herald
+  m_Name: Centurion
   m_EditorClassIdentifier: 
-  Title: Herald
+  Title: Centurion
   Pronouns: he/him
-  Name: Herald
+  Name: Centurion
   Aliases:
-  - Herald
+  - Centurion
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 1
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 8710209211926872854, guid: c8af297f6e969a04ea7d6ebe7af18366, type: 3}
-  Voice: en-GB-Chirp3-HD-Umbriel
+  Prefab: {fileID: 8710209211926872854, guid: 4e0476b9797041846a552bcf08adb6a6, type: 3}
+  Voice: en-GB-Standard-B
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 8a85bbb8319e6144c9466a1a8fd2528b, type: 2}
+  WordReplacementDictionary: []

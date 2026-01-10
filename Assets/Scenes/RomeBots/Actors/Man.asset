@@ -10,22 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Freedwoman
+  m_Name: Man
   m_EditorClassIdentifier: 
-  Title: Woman
-  Pronouns: she/her
-  Name: Woman 1
+  Title: Man
+  Pronouns: he/him
+  Name: Man
   Aliases:
-  - Woman 1
-  - Woman
-  - Girl
+  - Man
+  - Boy
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 1
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 6005658532464280047, guid: f6c90473fa1f47f438794c33677a7fca, type: 3}
-  Voice: en-GB-Standard-B
+  Prefab: {fileID: 8710209211926872854, guid: 339f967c9baba6d4695b5bbf2baf0cc2, type: 3}
+  Voice: en-US-Standard-A
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -35,3 +34,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 8a85bbb8319e6144c9466a1a8fd2528b, type: 2}
+  WordReplacementDictionary: []
