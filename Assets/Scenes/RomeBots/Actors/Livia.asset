@@ -25,7 +25,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
-  Voice: nova
+  Voice: sage
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 2941833402787199551, guid: a2281c8c33d809f4b8ba08dbe7dbd1c4, type: 3}
-  Voice: sage
+  Voice: shimmer
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

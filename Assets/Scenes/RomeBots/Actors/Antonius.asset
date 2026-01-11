@@ -24,7 +24,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 8038185235994856138, guid: de591f08603811b4daad8b7875176136, type: 3}
-  Voice: nova
+  Voice: ash
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

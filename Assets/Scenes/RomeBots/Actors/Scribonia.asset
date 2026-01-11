@@ -25,7 +25,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 478736051326050004, guid: 67d02ceb41868e64fa3f2dcd661b24f0, type: 3}
-  Voice: nova
+  Voice: coral
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

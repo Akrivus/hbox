@@ -22,8 +22,8 @@ MonoBehaviour:
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 4546196537496687338, guid: 2e5066961852ba24e8188d50f0dd4d60, type: 3}
-  Voice: en-US-Chirp3-HD-Puck
+  Prefab: {fileID: 4546196537496687338, guid: df506a3a943030a479893db5cbfa123a, type: 3}
+  Voice: en-US-Chirp3-HD-Iapetus
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

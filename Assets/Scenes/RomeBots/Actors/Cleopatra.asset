@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 892893500738987583, guid: 5bcbe0cef057a0a489a11c81e86d507b, type: 3}
-  Voice: nova
+  Voice: el-GR-Chirp3-HD-Achernar
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

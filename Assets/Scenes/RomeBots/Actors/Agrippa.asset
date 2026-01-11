@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 4546196537496687338, guid: ab75c45357112a64182c65a27900468f, type: 3}
-  Voice: en-US-Studio-Q
+  Voice: verse
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

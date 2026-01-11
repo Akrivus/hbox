@@ -24,7 +24,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 8710209211926872854, guid: 339f967c9baba6d4695b5bbf2baf0cc2, type: 3}
-  Voice: en-US-Standard-A
+  Voice: en-US-Chirp3-HD-Zubenelgenubi
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

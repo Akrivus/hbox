@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 4546196537496687338, guid: 2d3269b28ebae884eab3c600e17ccb1e, type: 3}
-  Voice: nova
+  Voice: echo
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
