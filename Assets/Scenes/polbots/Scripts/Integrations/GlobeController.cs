@@ -13,7 +13,6 @@ public class GlobeController : MonoBehaviour
 
     public WorldMapGlobe Globe => WorldMapGlobe.instance;
 
-    public ChatManager ChatManager;
     public float Scale;
     public float PushAngle;
 
@@ -40,8 +39,8 @@ public class GlobeController : MonoBehaviour
         Camera.main.cullingMask = 122879;
         Globe.ZoomTo(85.0f);
         _zoomTo = false;
-        ChatManager.Instance.RemoveActorsOnCompletion = false;
-        ChatManager.Instance.DisableBGSFX = false;
+        ChatManagerContext.Current.RemoveActorsOnCompletion = false;
+        ChatManagerContext.Current.DisableSoundEffects = false;
         VideoCallUIManager.Instance.Enabled = true;
     }
 
@@ -50,30 +49,28 @@ public class GlobeController : MonoBehaviour
         Camera.main.cullingMask = 65535;
         Globe.ZoomTo(MaxZoomLevel);
         _zoomTo = true;
-        ChatManager.Instance.RemoveActorsOnCompletion = true;
-        ChatManager.Instance.DisableBGSFX = true;
+        ChatManagerContext.Current.RemoveActorsOnCompletion = true;
+        ChatManagerContext.Current.DisableSoundEffects = true;
         VideoCallUIManager.Instance.Enabled = false;
     }
 
     private void Start()
     {
-        ChatManager.OnChatQueueTaken += OnChatDequeued;
-        ChatManager.OnChatLoaded += OnChatLoaded;
-        ChatManager.OnActorAdded += OnActorAdded;
-        ChatManager.OnActorRemoved += OnActorRemoved;
-        ChatManager.OnChatNodeActivated += OnChatNodeActivated;
+        ChatManager.Instance.OnChatQueueTaken += OnChatDequeued;
+        ChatManager.Instance.OnChatLoaded += OnChatLoaded;
+        ChatManager.Instance.OnActorAdded += OnActorAdded;
+        ChatManager.Instance.OnActorRemoved += OnActorRemoved;
+        ChatManager.Instance.OnChatNodeActivated += OnChatNodeActivated;
         Globe.OnFlyEnd += OnFlyEnd;
-
-        Enable();
     }
 
     private void OnDestroy()
     {
-        ChatManager.OnChatQueueTaken -= OnChatDequeued;
-        ChatManager.OnChatLoaded -= OnChatLoaded;
-        ChatManager.OnActorAdded -= OnActorAdded;
-        ChatManager.OnActorRemoved -= OnActorRemoved;
-        ChatManager.OnChatNodeActivated -= OnChatNodeActivated;
+        ChatManager.Instance.OnChatQueueTaken -= OnChatDequeued;
+        ChatManager.Instance.OnChatLoaded -= OnChatLoaded;
+        ChatManager.Instance.OnActorAdded -= OnActorAdded;
+        ChatManager.Instance.OnActorRemoved -= OnActorRemoved;
+        ChatManager.Instance.OnChatNodeActivated -= OnChatNodeActivated;
         Globe.OnFlyEnd -= OnFlyEnd;
 
         Disable();

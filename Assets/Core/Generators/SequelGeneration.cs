@@ -20,7 +20,7 @@ public class SequelGeneration : MonoBehaviour, ISubGenerator
             states += $"#### {actor.Name}\n\n" + actor.Memory + "\n\n";
         var context = await MemoryBucket.GetContext(slug);
         var text = await LLM.CompleteAsync(
-            await prompt.Resolve(context, states), fastMode);
+            await prompt.Resolve(context, states), chat, fastMode);
         generator.AddIdeaToQueue(new Idea(text));
         return chat;
     }

@@ -1445,6 +1445,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4381866704193464}
   - component: {fileID: 95872013770673614}
+  - component: {fileID: -1864576697344615372}
+  - component: {fileID: -3016301610596696663}
+  - component: {fileID: 5543330460525860768}
   m_Layer: 0
   m_Name: Diane
   m_TagString: Untagged
@@ -1508,6 +1511,54 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &-1864576697344615372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1214972348348976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee6652bc5289dd24bbcd4824e4959446, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActorController
+  TextColor: {r: 0, g: 0, b: 0, a: 0}
+  voice: {fileID: 8169125287624360950}
+  sound: {fileID: 8169125287624360950}
+--- !u!114 &-3016301610596696663
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1214972348348976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81fd91283ffd44742adf48fcfe0beb08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimatorController
+  _animator: {fileID: 95872013770673614}
+  _lipSync: {fileID: 185863710836563497}
+  eyebrows: {fileID: 4768571383494956}
+  minEyebrowY: 0.1076692
+  maxEyebrowY: 0.1476692
+  speed: 2
+  energyOffset: 0.5
+  scoreOffset: 0.5
+--- !u!114 &5543330460525860768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1214972348348976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7592da6589445454ab288ca65cccf896, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EyesController
+  eyesRenderer: {fileID: 2618575883839777624}
 --- !u!1 &1227223949295252
 GameObject:
   m_ObjectHideFlags: 0
@@ -4269,9 +4320,25 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+--- !u!114 &185863710836563497 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5102653597228550699, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+  m_PrefabInstance: {fileID: 4919081320600163330}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 378b12534b0764d18bfa4f29746e96c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &7214051972317753265 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2331000291036855219, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+  m_PrefabInstance: {fileID: 4919081320600163330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!82 &8169125287624360950 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 3826518497620596724, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
   m_PrefabInstance: {fileID: 4919081320600163330}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5098281109444277331
@@ -4331,6 +4398,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e7b26ebf8997654479f5af676e0b9b2d, type: 3}
+--- !u!23 &2618575883839777624 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7104348475322408715, guid: e7b26ebf8997654479f5af676e0b9b2d, type: 3}
+  m_PrefabInstance: {fileID: 5098281109444277331}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3754911617728598071 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8276661261940417636, guid: e7b26ebf8997654479f5af676e0b9b2d, type: 3}

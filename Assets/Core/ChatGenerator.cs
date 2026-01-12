@@ -18,6 +18,8 @@ public class ChatGenerator : MonoBehaviour
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponents<ISubGenerator>());
     private ISubGenerator[] _generators;
 
+    private ChatManagerContext chatManagerContext;
+
     private ConcurrentQueue<Idea> ideaQueue = new ConcurrentQueue<Idea>();
 
     private void Start()
@@ -58,14 +60,15 @@ public class ChatGenerator : MonoBehaviour
     public async Task GenerateAndPlay(Idea idea)
     {
         var resolver = new PromptResolver(name, "Ideas");
-        await resolver.SaveOutput(idea.Prompt);
+        await resolver.SaveOutput(chatManagerContext, idea.Prompt);
         var chat = await GenerateAndSave(idea);
         ChatManager.Instance.AddToPlayList(chat);
     }
 
     private async Task<Chat> GenerateAndSave(Idea idea)
     {
-        var chat = new Chat(idea, name);
+        chatManagerContext = ChatManagerContext.Current;
+        var chat = new Chat(idea, chatManagerContext);
 
         try
         {
@@ -91,14 +94,14 @@ public class ChatGenerator : MonoBehaviour
         var context = await MemoryBucket.GetContext(slug);
 
         prompt = await prompt.Resolve(context, options, idea, secrets, locations);
-        var topic = await LLM.CompleteAsync(prompt, false);
+        var topic = await LLM.CompleteAsync(prompt, chat, false);
 
         var characters = topic.Find("Characters");
         if (characters != null)
         {
             chat.Actors = characters.Split(',')
                 .Select(n => n.Trim())
-                .Select(n => ChatManager.Instance.Actors[n])
+                .Select(n => chatManagerContext.ActorsSearch[n])
                 .OfType<Actor>()
                 .Select(a => new ActorContext(a))
                 .ToArray();
@@ -139,15 +142,14 @@ public class ChatGenerator : MonoBehaviour
 
     private string[] GetCharacterNames(bool legacy = false)
     {
-        return ChatManager.Instance.Actors.List
+        return chatManagerContext.Actors
             .Select(a => string.Format("{0} ({1})", a.Name, a.Pronouns.Chomp()))
             .ToArray();
     }
 
     private string[] GetLocationNames()
     {
-        return ChatManager.Instance.SpawnPoints
-            .Select(k => k.name)
+        return chatManagerContext.Locations
             .Shuffle()
             .ToArray();
     }

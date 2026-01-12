@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Pete
   m_EditorClassIdentifier: 
   Title: Pete
-  Pronouns: he/him
+  Pronouns: engineer, he/him
   Name: Pete
   Aliases:
   - Pete
+  - X
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
@@ -33,3 +34,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: f13d85f9b8255c54d9016e7e7827d3a3, type: 2}
+  WordReplacementDictionary: []

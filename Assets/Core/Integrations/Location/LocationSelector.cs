@@ -50,7 +50,7 @@ public class LocationSelector : MonoBehaviour, ISubGenerator
             .Select(s => s.Line)
             .ToArray());
         var characters = string.Join(", ", names);
-        var message = await LLM.CompleteAsync(await prompt.Resolve(options, characters, topic), true);
+        var message = await LLM.CompleteAsync(await prompt.Resolve(options, characters, topic), chat, true);
 
         var lines = message.Parse(names.Concat(new[] { "Location" }).ToArray());
         var location = lines.TryGetValue("Location", out var l) ? l : "Default";

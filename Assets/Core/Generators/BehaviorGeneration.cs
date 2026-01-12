@@ -30,6 +30,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
                 chat.Idea.Prompt,
                 actor.Prompt,
                 bucket.Get()),
+            chat,
             fastMode);
     }
 }

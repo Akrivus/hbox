@@ -40,7 +40,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
     private static int? RemainingTokens;
     private static TimeSpan ResetRequestsTimespan;
 
-    public static async Task<string> ChatAsync(List<Message> messages, bool fast = false, PromptResolver prompt = null, int attempts = 0)
+    public static async Task<string> ChatAsync(Chat chat, List<Message> messages, bool fast = false, PromptResolver prompt = null, int attempts = 0)
     {
         var text = "";
         if (attempts > 5) return text;
@@ -70,23 +70,23 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             text = response.Message.Content.ToString();
 
             if (prompt != null)
-                await prompt.SaveOutput(text);
+                await prompt.SaveOutput(chat.ManagerContext, text);
         }
         catch (Exception e)
         {
             Debug.LogError(e.Message);
             Debug.LogError(e.StackTrace);
             await Task.Delay(1000);
-            return await ChatAsync(messages, fast, prompt, ++attempts);
+            return await ChatAsync(chat, messages, fast, prompt, ++attempts);
         }
         return text;
     }
 
-    public static async Task<string> CompleteAsync(PromptResolver prompt, bool fast = false)
+    public static async Task<string> CompleteAsync(PromptResolver prompt, Chat chat, bool fast = false)
     {
         if (!prompt.Resolved)
-            Debug.LogWarning("Prompt not resolved. Call Resolve() first.");
-        return await ChatAsync(new List<Message> { new Message(Role.User, prompt.Text) }, fast, prompt);
+            throw new Exception("Prompt not resolved. Call Resolve() first.");
+        return await ChatAsync(chat, new List<Message> { new Message(Role.User, prompt.Text) }, fast, prompt);
     }
 
     public static async Task<double[]> EmbedAsync(string text, int dimensions = 1532)

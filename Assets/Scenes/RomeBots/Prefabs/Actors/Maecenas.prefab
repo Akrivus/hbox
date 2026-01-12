@@ -1800,7 +1800,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TextColor: {r: 1, g: 1, b: 1, a: 1}
   voice: {fileID: 6158431789565890225}
-  sound: {fileID: 0}
+  sound: {fileID: 6158431789565890225}
 --- !u!114 &-7826536025910254429
 MonoBehaviour:
   m_ObjectHideFlags: 0

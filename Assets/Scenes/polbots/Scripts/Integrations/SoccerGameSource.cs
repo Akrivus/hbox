@@ -139,8 +139,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (config.RequireTextPatternMatch && (string.IsNullOrEmpty(homeName) || string.IsNullOrEmpty(awayName)))
             return;
 
-        homeActor = ChatManager.Instance.Actors[homeName] ?? chat.Actors[0].Reference;
-        awayActor = ChatManager.Instance.Actors[awayName] ?? chat.Actors[1].Reference;
+        homeActor = ChatManagerContext.Current.ActorsSearch[homeName] ?? chat.Actors[0].Reference;
+        awayActor = ChatManagerContext.Current.ActorsSearch[awayName] ?? chat.Actors[1].Reference;
 
         if (homeActor != null && awayActor != null)
             StartCoroutine(LoadGame());

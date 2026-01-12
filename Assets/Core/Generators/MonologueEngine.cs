@@ -17,7 +17,7 @@ public class MonologueEngine : MonoBehaviour, ISubGenerator
 
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
-        var narratorActor = ChatManager.Instance.Actors["Narrator"];
+        var narratorActor = chat.ManagerContext.ActorsSearch["Narrator"];
         var actors = chat.Actors.ToList();
         actors.Add(new ActorContext(narratorActor));
         chat.Actors = actors.ToArray();
@@ -35,7 +35,7 @@ public class MonologueEngine : MonoBehaviour, ISubGenerator
 
             var nodes = chat.Nodes.ToList();
             var monologue = await LLM.CompleteAsync(
-                await prompt.Resolve(log, controller.Prompt, controller.Context, chat.Idea.Prompt), false);
+                await prompt.Resolve(log, controller.Prompt, controller.Context, chat.Idea.Prompt), chat, false);
 
             var delivery = monologue.Find("Delivery");
             var lines = monologue.Find("Lines") ?? monologue;

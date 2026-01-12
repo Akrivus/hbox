@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Sara
   m_EditorClassIdentifier: 
   Title: Sara
-  Pronouns: she/her
+  Pronouns: captain, she/her
   Name: Sara
   Aliases:
   - Sara
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 78e7c8d8c5e64fd4e9612a725a06a926, type: 2}
+  WordReplacementDictionary: []

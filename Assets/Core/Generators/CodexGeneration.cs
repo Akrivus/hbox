@@ -32,7 +32,7 @@ public class CodexGeneration : MonoBehaviour, ISubGenerator
             var resolver = new PromptResolver("Actors", actor.Name, "Codex", other.Name);
             await resolver.Resolve();
 
-            var codex = await LLM.CompleteAsync(await prompt.Resolve(chat.Log, resolver.Text, actor.Prompt, actor.Context, other.Name, actor.Name), fastMode);
+            var codex = await LLM.CompleteAsync(await prompt.Resolve(chat.Log, resolver.Text, actor.Prompt, actor.Context, other.Name, actor.Name), chat, fastMode);
         }
     }
 }

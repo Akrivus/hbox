@@ -16,7 +16,7 @@ public class VibeSelector : MonoBehaviour, ISubGenerator
 
         try
         {
-            var output = await LLM.CompleteAsync(await prompt.Resolve(options, chat.Log, chat.Topic));
+            var output = await LLM.CompleteAsync(await prompt.Resolve(options, chat.Log, chat.Topic), chat);
             var vibe = vibes.FirstOrDefault(vibe => output.Contains(vibe.name)).name;
 
             chat.Vibe = vibe;

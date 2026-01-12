@@ -12,24 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Clara
   m_EditorClassIdentifier: Assembly-CSharp::Actor
-  Title: 
-  Pronouns: 
-  Name: 
-  Aliases: []
+  Title: Clara
+  Pronouns: COO, she/her
+  Name: Clara
+  Aliases:
+  - Clara
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 0}
-  Voice: 
-  SpeakingRate: 0
-  Pitch: 0
-  Volume: 0
-  Confidence: 0
-  Color: {r: 0, g: 0, b: 0, a: 0}
+  Prefab: {fileID: 1975240265096882, guid: ca509a4a28f5a2a418a2ca9fbc30a0dc, type: 3}
+  Voice: en-US-Standard-C
+  SpeakingRate: 1
+  Pitch: 1
+  Volume: 1
+  Confidence: 1
+  Color: {r: 1, g: 1, b: 1, a: 1}
   Color1: {r: 0, g: 0, b: 0, a: 0}
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
-  DefaultSentiment: {fileID: 0}
+  DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}
   WordReplacementDictionary: []

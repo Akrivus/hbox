@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Adia
   m_EditorClassIdentifier: 
   Title: Adia
-  Pronouns: she/her
+  Pronouns: pilot, she/her
   Name: Adia
   Aliases:
   - Adia
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 3dd2a399a7f90dd4d964774a17b17104, type: 2}
+  WordReplacementDictionary: []

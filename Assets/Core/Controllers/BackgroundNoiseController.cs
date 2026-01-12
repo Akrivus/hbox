@@ -12,7 +12,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     private void PlaySoundGroup()
     {
-        if (ChatManager.Instance.DisableBGSFX || soundGroup == null) return;
+        if (ChatManagerContext.Current.DisableSoundEffects || soundGroup == null) return;
         if (soundGroup.Sounds.Length == 0)
             source.clip = null;
         else
@@ -23,9 +23,9 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     private void SetSoundGroup(string name)
     {
-        var group = Resources.Load<SoundGroup>($"{ChatManager.Instance.name}/SoundGroups/{name}");
+        var group = Resources.Load<SoundGroup>($"{ChatManagerContext.Current.Name}/SoundGroups/{name}");
         if (group == null)
-            soundGroup = Resources.Load<SoundGroup>($"{ChatManager.Instance.name}/SoundGroups/Silent");
+            soundGroup = Resources.Load<SoundGroup>($"{ChatManagerContext.Current.Name}/SoundGroups/Silent");
         else
             soundGroup = group;
     }
@@ -48,7 +48,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     public void UpdateActor(ActorContext context)
     {
-        var background = Resources.Load<Texture2D>($"{ChatManager.Instance.name}/Backgrounds/{Actor.Name}");
+        var background = Resources.Load<Texture2D>($"{ChatManagerContext.Current.Name}/Backgrounds/{Actor.Name}");
         if (background != null)
             bgRenderer.material.mainTexture = background;
     }

@@ -34,7 +34,6 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         Chat.FolderName = ReplayDirectory;
 
         ChatManager.Instance.OnChatQueueEmpty += OnChatQueueEmpty;
-        OnChatQueueEmpty();
     }
 
     public void OnChatQueueEmpty()

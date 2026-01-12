@@ -84,7 +84,7 @@ public class SubtitleManager : MonoBehaviour
                 yield return FadeOut(splashScreen);
             }
 
-            splashScreen.text = ChatManager.Instance.name;
+            splashScreen.text = ChatManagerContext.Current.Name;
             yield return FadeIn(splashScreen);
 
             yield return new WaitForSeconds(titleDuration);

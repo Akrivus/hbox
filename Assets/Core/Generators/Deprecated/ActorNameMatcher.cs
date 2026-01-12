@@ -8,7 +8,7 @@ public class ActorNameMatcher : MonoBehaviour, ISubGenerator.Sync
     public Chat Generate(PromptResolver prompt, Chat chat)
     {
         var actors = new List<Actor>();
-        foreach (var actor in ChatManager.Instance.Actors.List)
+        foreach (var actor in chat.ManagerContext.Actors)
             foreach (var alias in actor.Aliases)
                 if (Regex.IsMatch(chat.Topic, $@"\b{alias}(?: \(.+\))*(?:\*\*|:)"))
                     actors.Add(actor);

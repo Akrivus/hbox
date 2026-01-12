@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Mina
   m_EditorClassIdentifier: 
   Title: Mina
-  Pronouns: she/her
+  Pronouns: officer, she/her
   Name: Mina
   Aliases:
   - Mina
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: a2cb8de5c72a55042914e16012637c5e, type: 2}
+  WordReplacementDictionary: []

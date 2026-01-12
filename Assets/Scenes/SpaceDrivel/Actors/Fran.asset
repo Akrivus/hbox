@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Fran
   m_EditorClassIdentifier: 
   Title: Fran
-  Pronouns: she/her
+  Pronouns: engineer, she/her
   Name: Fran
   Aliases:
   - Fran
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 0fb3b8b971a337f44a729e835ff0791f, type: 2}
+  WordReplacementDictionary: []

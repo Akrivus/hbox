@@ -25,6 +25,7 @@ public class EditorProcess : MonoBehaviour, ISubGenerator
                     chat.Topic,
                     chat.Idea.Prompt,
                     chat.Characters),
+                chat,
                 fastMode);
         else
             chat.Context = string.Format("{0}\n\n### Characters:\n{1}",

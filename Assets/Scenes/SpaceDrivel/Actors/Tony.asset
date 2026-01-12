@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Tony
   m_EditorClassIdentifier: 
   Title: Tony
-  Pronouns: he/him
+  Pronouns: chemist, he/him
   Name: Tony
   Aliases:
   - Tony
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 508e395c4fc0f2b4396aa1c5e7c9a865, type: 2}
+  WordReplacementDictionary: []

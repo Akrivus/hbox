@@ -20,7 +20,7 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
     {
         if (chat == null || chat.IsLocked)
             return chat;
-        var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Idea.Prompt, chat.Characters, chat.Context), fastMode);
+        var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Idea.Prompt, chat.Characters, chat.Context), chat, fastMode);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         var actors = chat.Actors.ToList();
@@ -40,9 +40,9 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
             if (names.Length == 0)
                 continue;
 
-            nodes.AddRange(AddNodes(names[0], text, refs, false));
+            nodes.AddRange(AddNodes(chat, names[0], text, refs, false));
             foreach (var n in names.Skip(1))
-                nodes.AddRange(AddNodes(n, text, refs, true));
+                nodes.AddRange(AddNodes(chat, n, text, refs, true));
         }
 
         if (_attempts < 3 && nodes.Count < 2)
@@ -62,11 +62,11 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         return chat;
     }
 
-    private List<ChatNode> AddNodes(string name, string text, List<Actor> actors, bool async)
+    private List<ChatNode> AddNodes(Chat chat, string name, string text, List<Actor> actors, bool async)
     {
         var actor = actors.Find((a) => a.Aliases.Contains(name));
         if (actor == null)
-            FindNewActor(name, actors, out actor);
+            FindNewActor(chat, name, actors, out actor);
         var nodes = new List<ChatNode>();
         if (actor == null)
             return nodes;
@@ -99,11 +99,11 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
         return name.Split(" and ");
     }
 
-    private void FindNewActor(string name, List<Actor> actors, out Actor actor)
+    private void FindNewActor(Chat chat, string name, List<Actor> actors, out Actor actor)
     {
-        actor = ChatManager.Instance.Actors[name];
+        actor = chat.ManagerContext.ActorsSearch[name];
         if (actor != null)
             return;
-        actor = ChatManager.Instance.Actors["X"]; // X is a placeholder for unknown actors
+        actor = chat.ManagerContext.ActorsSearch["X"]; // X is a placeholder for unknown actors
     }
 }

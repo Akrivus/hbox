@@ -10,8 +10,8 @@ public class AvatarGenerator : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Actors = ChatManager.Instance.Actors.List.ToArray();
-        Sentiments = ChatManager.Instance.Sentiments.List.ToArray();
+        Actors = ChatManagerContext.Current.Actors;
+        Sentiments = ChatManagerContext.Current.Sentiments;
         StartCoroutine(GenerateAvatars());
     }
 
@@ -27,7 +27,7 @@ public class AvatarGenerator : MonoBehaviour
         {
             foreach (var sentiment in Sentiments)
             {
-                var part = $"Vault/WWW/{ChatManager.Instance.name}/{actor.Name}";
+                var part = $"Vault/WWW/{ChatManagerContext.Current.Name}/{actor.Name}";
                 var path = $"{part}/{sentiment.Name}.png";
                 if (File.Exists(path))
                     continue;

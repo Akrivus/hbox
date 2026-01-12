@@ -55,6 +55,6 @@ public class ActorConverter : JsonConverter
 
     public static Actor Convert(string name)
     {
-        return ChatManager.Instance.Actors[name];
+        return ChatManagerContext.Current.ActorsSearch[name];
     }
 }

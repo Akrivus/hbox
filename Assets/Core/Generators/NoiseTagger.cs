@@ -6,17 +6,7 @@ using UnityEngine;
 
 public class NoiseTagger : MonoBehaviour, ISubGenerator
 {
-    public static string[] SoundGroups;
-
     public bool IsBlocking => false;
-
-    private void Start()
-    {
-        if (SoundGroups == null)
-            SoundGroups = Resources.LoadAll<SoundGroup>($"{ChatManager.Instance.name}/SoundGroups")
-                .Select(t => t.name)
-                .ToArray();
-    }
 
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
@@ -31,9 +21,9 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
 
     private async Task<Dictionary<ActorContext, string>> SelectSoundGroup(PromptResolver prompt, Chat chat, string[] names)
     {
-        var options = string.Join(", ", SoundGroups);
+        var options = string.Join(", ", GetSoundGroups(chat));
         var characters = string.Join("\n- ", names);
-        var message = await LLM.CompleteAsync(await prompt.Resolve(options, characters, chat.Log), true);
+        var message = await LLM.CompleteAsync(await prompt.Resolve(options, characters, chat.Log), chat, true);
 
         var lines = message.Parse(names);
 
@@ -43,4 +33,11 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
                 line => chat.Actors.Get(line.Key),
                 line => line.Value);
     }
+
+    private string[] GetSoundGroups(Chat chat)
+    {
+		return Resources.LoadAll<SoundGroup>($"{chat.ManagerContext.Name}/SoundGroups")
+			.Select(t => t.name)
+			.ToArray();
+	}
 }

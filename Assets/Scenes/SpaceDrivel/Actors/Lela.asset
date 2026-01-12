@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Lela
   m_EditorClassIdentifier: 
   Title: Lela
-  Pronouns: she/her
+  Pronouns: physicist, she/her
   Name: Lela
   Aliases:
   - Lela
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 98c015dac76851d43b16aaedfb938af5, type: 2}
+  WordReplacementDictionary: []

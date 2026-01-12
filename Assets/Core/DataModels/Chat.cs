@@ -11,10 +11,10 @@ public class Chat
 {
     public static string FolderName = "";
     public string FileName { get; set; }
+    public string Key { get; set; }
 
     public string Title { get; set; }
     public string Synopsis { get; set; }
-    public string Generator { get; set; }
 
     public string Context { get; set; }
     public string Topic { get; set; } = "";
@@ -61,18 +61,22 @@ public class Chat
     [JsonIgnore]
     public List<Message> Messages { get; set; }
 
-    public Chat(Idea idea, string generator = null)
+    [JsonIgnore]
+    public ChatManagerContext ManagerContext { get; private set; }
+
+    public Chat(Idea idea, ChatManagerContext context)
     {
         _new = true;
         FileName = idea.Slug;
         Idea = idea;
-        Generator = generator;
+        ManagerContext = context;
+        Key = ManagerContext.Key;
         Actors = new ActorContext[0];
         Nodes = new List<ChatNode>();
         _locked = false;
     }
 
-    public Chat(string prompt, string generator = null) : this(new Idea(prompt), generator)
+    public Chat(string prompt, ChatManagerContext context) : this(new Idea(prompt), context)
     {
 
     }

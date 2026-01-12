@@ -31,7 +31,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForChat(PromptResolver prompt, Chat chat, string[] names, string context)
     {
-        var sentiment = await GetSentiment(prompt, names, chat.Log, "Analyze initial conversation state based on context.", chat.Context, string.Empty);
+        var sentiment = await GetSentiment(prompt, chat, names, chat.Log, "Analyze initial conversation state based on context.", chat.Context, string.Empty);
         var reactions = ParseReactions(sentiment, names);
         foreach (var reaction in reactions)
             chat.Actors.Get(reaction.Actor).Sentiment = reaction.Sentiment;
@@ -42,17 +42,17 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         var actor = chat.Actors.Get(node.Actor);
         await actor.SetPrompt();
 
-        var sentiment = await GetSentiment(prompt, names, chat.Log, node.Line, actor.Context, actor.Prompt);
+        var sentiment = await GetSentiment(prompt, chat, names, chat.Log, node.Line, actor.Context, actor.Prompt);
         node.Reactions = ParseReactions(sentiment, names);
         AfterTagging(sentiment, node);
     }
 
-    private async Task<string> GetSentiment(PromptResolver prompt, string[] names, string transcript, string line, string context, string text)
+    private async Task<string> GetSentiment(PromptResolver prompt, Chat chat, string[] names, string transcript, string line, string context, string text)
     {
-        var faces = "- " + string.Join("\n- ", ChatManager.Instance.Sentiments.List.Select(s => s.Name));
+        var faces = "- " + string.Join("\n- ", chat.ManagerContext.Sentiments.Select(s => s.Name));
         var options = "- " + string.Join("\n- ", names);
 
-        return await LLM.CompleteAsync(await prompt.Resolve(faces, options, transcript, line, context, text), true);
+        return await LLM.CompleteAsync(await prompt.Resolve(faces, options, transcript, line, context, text), chat, true);
     }
 
     private ChatNode.Reaction[] ParseReactions(string message, string[] names)

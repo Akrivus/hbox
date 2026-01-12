@@ -26,7 +26,7 @@ public static class ActorTeamGenerator
             text = resolver.Text;
             resolver = new PromptResolver("Character Converter");
 
-            output = await LLM.CompleteAsync(await resolver.Resolve(actor.Name, text, actor.Pronouns));
+            output = await LLM.CompleteAsync(await resolver.Resolve(actor.Name, text, actor.Pronouns), null);
             output = output
                 .Replace("```markdown", string.Empty)
                 .Replace("```", string.Empty)

@@ -1800,7 +1800,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   TextColor: {r: 1, g: 1, b: 1, a: 1}
   voice: {fileID: 6158431789565890225}
-  sound: {fileID: 0}
+  sound: {fileID: 6158431789565890225}
 --- !u!114 &-7826536025910254429
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3435,10 +3435,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8883364045144164245}
     m_Modifications:
-    - target: {fileID: 5231214842025136523, guid: 0262e45b3c64ee34192ab4ca7a5a751d, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: ab9b50dadd00c1c4eafd322c88374920, type: 2}
     - target: {fileID: 6024125660359258206, guid: 0262e45b3c64ee34192ab4ca7a5a751d, type: 3}
       propertyPath: m_Name
       value: SM_Chr_Face_Male

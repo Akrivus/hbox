@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Dana
   m_EditorClassIdentifier: 
   Title: Dana
-  Pronouns: they/them
+  Pronouns: survivalist, they/them
   Name: Dana
   Aliases:
   - Dana
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 303456ab78aed264d9c323234d806b7a, type: 2}
+  WordReplacementDictionary: []

@@ -15,6 +15,7 @@ public class RemoteControl : MonoBehaviour
     [Serializable]
     public class ChannelEntry
     {
+        public string codeName;
         public string displayName;
         public string scenePath;
         public Sprite icon;
@@ -237,12 +238,8 @@ public class RemoteControl : MonoBehaviour
         var loadOp = SceneManager.LoadSceneAsync(entry.scenePath, LoadSceneMode.Single);
         loadOp.completed += _ =>
         {
-            DisableExtraEventSystems();
-
-            if (staticFx)
-                StartCoroutine(Fade(staticFx, 0f, 0.10f));
-            if (zapBar)
-                StartCoroutine(Fade(zapBar, 0f, 10f));
+            if (staticFx) StartCoroutine(Fade(staticFx, 0f, 0.10f));
+            if (zapBar)   StartCoroutine(Fade(zapBar, 0f, 10f));
         };
     }
 
@@ -265,23 +262,18 @@ public class RemoteControl : MonoBehaviour
         canvas.interactable = visible;
     }
 
-    private void OnSceneLoaded(Scene s, LoadSceneMode m) => DisableExtraEventSystems();
-
-    private void DisableExtraEventSystems()
+    private void OnSceneLoaded(Scene s, LoadSceneMode m)
     {
         if (!primaryEventSystem)
             primaryEventSystem = FindFirstObjectByType<EventSystem>();
-        var systems = FindObjectsByType<EventSystem>(FindObjectsSortMode.None);
-
-        bool kept = false;
-        foreach (var es in systems)
+        foreach (var go in s.GetRootGameObjects())
         {
-            if (!kept && (primaryEventSystem == null || es == primaryEventSystem))
-            {
-                kept = true;
-                continue;
-            }
-            Destroy(es.gameObject);
+            var context = go.GetComponentInChildren<ChatManagerContext>();
+            if (context)
+                ChatManager.Instance.SetCurrentContext(context);
+            var systems = go.GetComponentInChildren<EventSystem>();
+            if (systems && systems != primaryEventSystem)
+                Destroy(systems.gameObject);
         }
     }
 

@@ -30,50 +30,13 @@ public class ChatManager : MonoBehaviour
 
     public event Action<ChatNode> OnChatNodeActivated;
 
-    public SpawnPointManager[] SpawnPoints => spawnPoints;
     public Chat NowPlaying { get; private set; }
-    public Actor.SearchableList Actors { get; private set; }
-    public Sentiment.SearchableList Sentiments { get; private set; }
-
+    public ChatManagerContext CurrentContext { get; private set; }
     public List<ActorController> ActorsInScene => actors;
 
-    public bool RemoveActorsOnCompletion
-    {
-        get => removeActorsOnCompletion;
-        set => removeActorsOnCompletion = value;
-    }
-
-    public bool DisableBGSFX = false;
-
+    private readonly Dictionary<string, ChatManagerContext> contexts = new Dictionary<string, ChatManagerContext>();
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
-
-    [SerializeField]
-    private AudioSource audioSource;
-
-    [SerializeField]
-    private Actor[] _actors;
-
-    [SerializeField]
-    private Sentiment[] _sentiments;
-
-    [SerializeField]
-    private SpawnPointManager[] spawnPoints;
-
-    [SerializeField]
-    private Transform[] fallbackSpawnPoints;
-
-    [SerializeField]
-    private string _forceEpisodeID;
-
-    [SerializeField]
-    private int minQueueSize = 1;
-
-    [SerializeField]
-    private bool removeActorsOnCompletion = true;
-
-    [SerializeField]
-    private bool disableSoundEffects = false;
 
     private SpawnPointManager spawnPointManager;
     private ChatNode lastNode;
@@ -81,18 +44,14 @@ public class ChatManager : MonoBehaviour
 
     private void Awake()
     {
+        DontDestroyOnLoad(gameObject);
         _instance = this;
         Cursor.visible = false;
     }
 
-    private async void Start()
+    private void Start()
     {
-        Actors = new Actor.SearchableList(_actors.ToList());
-        Sentiments = new Sentiment.SearchableList(_sentiments.ToList());
         StartCoroutine(UpdatePlayList());
-
-        if (!string.IsNullOrEmpty(_forceEpisodeID))
-            AddToPlayList(await Chat.Load(_forceEpisodeID));
     }
 
     private void OnDestroy()
@@ -108,16 +67,16 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator UpdatePlayList()
     {
+        yield return new WaitUntil(() => CurrentContext != null);
         while (Application.isPlaying)
         {
-            yield return new WaitUntilTimer(() => playList.Count >= minQueueSize);
+            yield return new WaitUntilTimer(() => playList.Count > 0, 20);
 
-            while (playList.Count > 0)
-                if (playList.TryDequeue(out var chat))
-                    if (chat != null)
-                        yield return Play(chat);
+            if (playList.TryDequeue(out var chat) && chat != null)
+                if (CurrentContext.Key == null || CurrentContext.Key == chat.Key)
+                    yield return Play(chat);
 
-            if (removeActorsOnCompletion)
+            if (CurrentContext.RemoveActorsOnCompletion)
                 yield return RemoveAllActors();
 
             SubtitleManager.Instance?.ClearSubtitles();
@@ -168,11 +127,13 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator InitChat(Chat chat)
     {
+        if (CurrentContext.Key != null && CurrentContext.Key != chat.Key)
+            throw new Exception($"ChatManagerContext '{chat.Key}' does not match current ChatManagerContext '{CurrentContext.Key}'");
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
         lastNode = null;
         maxChance = 1f;
-        if (removeActorsOnCompletion)
+        if (CurrentContext.RemoveActorsOnCompletion)
             yield return RemoveAllActors();
         else
             yield return RemoveActors(chat);
@@ -180,9 +141,9 @@ public class ChatManager : MonoBehaviour
         NowPlaying = chat;
 
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = spawnPoints.FirstOrDefault(s => s.name == chat.Location);
+            spawnPointManager = CurrentContext.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = spawnPoints.Shuffle().FirstOrDefault();
+            spawnPointManager = CurrentContext.SpawnPoints.Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
@@ -233,14 +194,14 @@ public class ChatManager : MonoBehaviour
             reaction.Key.Sentiment = reaction.Value;
             reaction.Key.LookTarget = actor.LookObject.transform;
         }
-        if (disableSoundEffects || audioSource == null)
+        if (CurrentContext.DisableSoundEffects || CurrentContext.AudioSource == null)
             yield break;
         yield return PlayReactionClip(node.Reactions);
     }
 
     private IEnumerator PlayReactionClip(ChatNode.Reaction[] reactions)
     {
-        if (audioSource == null)
+        if (CurrentContext.AudioSource == null)
             yield break;
 
         var chance = UnityEngine.Random.Range(0f, maxChance);
@@ -254,8 +215,8 @@ public class ChatManager : MonoBehaviour
         if (clip == null)
             yield break;
         maxChance *= reaction.ReactionDecay;
-        audioSource.clip = clip;
-        audioSource.Play();
+        CurrentContext.AudioSource.clip = clip;
+        CurrentContext.AudioSource.Play();
         yield return new WaitForSeconds(clip.length);
     }
 
@@ -264,7 +225,7 @@ public class ChatManager : MonoBehaviour
         if (context == null)
             yield break;
 
-        var spawnPointTransform = fallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+        var spawnPointTransform = CurrentContext.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
 
         if (spawnPointManager != null)
         {
@@ -307,6 +268,15 @@ public class ChatManager : MonoBehaviour
         yield return controller.Deactivate();
         actors.Remove(controller);
         OnActorRemoved?.Invoke(NowPlaying, controller);
+    }
+
+    public void SetCurrentContext(ChatManagerContext context)
+    {
+        if (CurrentContext == context)
+            return;
+        CurrentContext = context;
+        contexts[context.Key] = context;
+        DontDestroyOnLoad(context.gameObject);
     }
 
     private void PostChatActorMemories(Chat chat)

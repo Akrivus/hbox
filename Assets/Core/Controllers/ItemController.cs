@@ -46,7 +46,7 @@ public class ItemController : AutoActor, ISubChats, ISubNode
 
     private void SetItem(string item)
     {
-        var texture = Resources.Load<Texture2D>($"{ChatManager.Instance.name}/Props/{item}");
+        var texture = Resources.Load<Texture2D>($"{ChatManagerContext.Current.Name}/Props/{item}");
         if (texture != null)
             itemRenderer.material.mainTexture = texture;
     }

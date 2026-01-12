@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Gabe
   m_EditorClassIdentifier: 
   Title: Gabe
-  Pronouns: he/him
+  Pronouns: medic, he/him
   Name: Gabe
   Aliases:
   - Gabe
@@ -33,3 +33,4 @@ MonoBehaviour:
   Color2: {r: 0, g: 0, b: 0, a: 0}
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 8a85bbb8319e6144c9466a1a8fd2528b, type: 2}
+  WordReplacementDictionary: []

@@ -55,6 +55,6 @@ public class SentimentConverter : JsonConverter
 
     public static Sentiment Convert(string name)
     {
-        return ChatManager.Instance.Sentiments[name];
+        return ChatManagerContext.Current.SentimentsSearch[name];
     }
 }

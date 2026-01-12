@@ -893,6 +893,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4851776647047086}
   - component: {fileID: 95802126141898186}
+  - component: {fileID: 7172785676638033191}
+  - component: {fileID: 7233338687901868195}
+  - component: {fileID: 2505823778951175846}
   m_Layer: 0
   m_Name: Marcy
   m_TagString: Untagged
@@ -956,6 +959,54 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &7172785676638033191
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207000675054372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee6652bc5289dd24bbcd4824e4959446, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActorController
+  TextColor: {r: 0, g: 0, b: 0, a: 0}
+  voice: {fileID: 4217293885661386403}
+  sound: {fileID: 4217293885661386403}
+--- !u!114 &7233338687901868195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207000675054372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81fd91283ffd44742adf48fcfe0beb08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AnimatorController
+  _animator: {fileID: 95802126141898186}
+  _lipSync: {fileID: 5281618815145757564}
+  eyebrows: {fileID: 4424597503126754}
+  minEyebrowY: 0.1076692
+  maxEyebrowY: 0.1476692
+  speed: 2
+  energyOffset: 0.5
+  scoreOffset: 0.5
+--- !u!114 &2505823778951175846
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1207000675054372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7592da6589445454ab288ca65cccf896, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EyesController
+  eyesRenderer: {fileID: 6194744763767276181}
 --- !u!1 &1231856054891762
 GameObject:
   m_ObjectHideFlags: 0
@@ -3265,7 +3316,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2f834016e53f12c42a12baecd4450e34, type: 2}
+  - {fileID: 2100000, guid: 965f4c26683184f45916936a132fa4ed, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4274,6 +4325,22 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2331000291036855219, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
   m_PrefabInstance: {fileID: 1124862230419276119}
   m_PrefabAsset: {fileID: 0}
+--- !u!82 &4217293885661386403 stripped
+AudioSource:
+  m_CorrespondingSourceObject: {fileID: 3826518497620596724, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+  m_PrefabInstance: {fileID: 1124862230419276119}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5281618815145757564 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5102653597228550699, guid: efd9aa91eae14cb4e842a34f89a1db65, type: 3}
+  m_PrefabInstance: {fileID: 1124862230419276119}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 378b12534b0764d18bfa4f29746e96c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &3994570578313960862
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4334,5 +4401,10 @@ PrefabInstance:
 --- !u!4 &5022370474291673594 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8276661261940417636, guid: e7b26ebf8997654479f5af676e0b9b2d, type: 3}
+  m_PrefabInstance: {fileID: 3994570578313960862}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6194744763767276181 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7104348475322408715, guid: e7b26ebf8997654479f5af676e0b9b2d, type: 3}
   m_PrefabInstance: {fileID: 3994570578313960862}
   m_PrefabAsset: {fileID: 0}

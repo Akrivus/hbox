@@ -12,7 +12,7 @@ public class DialogueEditorProcess : MonoBehaviour, ISubGenerator
     {
         if (chat == null || chat.IsLocked)
             return chat;
-        var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Context, chat.OriginalLog, chat.Log, chat.Idea.Prompt), fastMode);
+        var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Context, chat.OriginalLog, chat.Log, chat.Idea.Prompt), chat, fastMode);
         var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         if (lines.Length != chat.Nodes.Count)

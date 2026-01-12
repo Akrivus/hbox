@@ -17,8 +17,8 @@ public class RBAvatarGenerator : MonoBehaviour
     {
         if (!initialUpdate) // unity wants to be a pain about two components using start at the same time, no LateStart, so this is the best way
             return;
-        Actors = ChatManager.Instance.Actors.List.ToArray();
-        Sentiments = ChatManager.Instance.Sentiments.List.ToArray();
+        Actors = ChatManagerContext.Current.Actors;
+        Sentiments = ChatManagerContext.Current.Sentiments;
         initialUpdate = false;
         StartCoroutine(GenerateAvatars());
     }
@@ -29,12 +29,12 @@ public class RBAvatarGenerator : MonoBehaviour
         {
             foreach (var sentiment in Sentiments)
             {
-                var path = $"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}/{sentiment.Name}.png";
+                var path = $"Vault/WWW/{ChatManagerContext.Current.Name}/Actors/{actor.Name}/{sentiment.Name}.png";
                 Debug.Log($"Checking {path} for {sentiment.Name}-{actor.Name}");
                 if (File.Exists(path))
                     continue;
-                else if (!Directory.Exists($"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}"))
-                    Directory.CreateDirectory($"Vault/WWW/{ChatManager.Instance.name}/Actors/{actor.Name}");
+                else if (!Directory.Exists($"Vault/WWW/{ChatManagerContext.Current.Name}/Actors/{actor.Name}"))
+                    Directory.CreateDirectory($"Vault/WWW/{ChatManagerContext.Current.Name}/Actors/{actor.Name}");
 
                 var gameObject = Instantiate(actor.Prefab);
                 var height = Vector3.up * gameObject.transform.localScale.y * 1.7f;

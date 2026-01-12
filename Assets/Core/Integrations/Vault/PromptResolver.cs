@@ -79,12 +79,12 @@ public class PromptResolver
         Path = string.Empty;
     }
 
-    public async Task<Dictionary<string, string>> ExtractSet(string[] names, string context, string[] set = null)
+    public async Task<Dictionary<string, string>> ExtractSet(Chat chat, string[] names, string context, string[] set = null)
     {
         if (set == null)
             set = names;
         var prompt = await Resolve(string.Join("\n- ", names), context);
-        var message = await LLM.CompleteAsync(prompt, true);
+        var message = await LLM.CompleteAsync(prompt, chat, true);
 
         var lines = message.Parse(set);
 
@@ -95,9 +95,9 @@ public class PromptResolver
                 line => line.Value);
     }
 
-    public async Task SaveOutput(string text)
+    public async Task SaveOutput(ChatManagerContext context, string text)
     {
-        var folder = System.IO.Path.Combine(BasePath, EngineName ?? ChatManager.Instance.name, BaseOutputPath, Part);
+        var folder = System.IO.Path.Combine(BasePath, context.Name, BaseOutputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
@@ -118,7 +118,7 @@ public class PromptResolver
         if (direct)
             Path = Part;
         else
-            Path = System.IO.Path.Combine(BasePath, EngineName ?? ChatManager.Instance.name, BasePromptPath, Part);
+            Path = System.IO.Path.Combine(BasePath, EngineName ?? ChatManagerContext.Current.Name, BasePromptPath, Part);
         if (!Path.EndsWith(".md")) Path += ".md";
     }
 

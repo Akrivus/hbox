@@ -64,7 +64,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     {
         while (Application.isPlaying)
         {
-            yield return new WaitUntil(() => !ChatManager.IsPaused);
+            yield return new WaitUntil(() => !ChatManager.IsPaused && ChatManagerContext.Current != null);
             yield return Drop();
 
             yield return new WaitForSeconds(BatchPeriodInMinutes * 60);
@@ -134,6 +134,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private void OnDestroy()
     {
+        StopAllCoroutines();
         File.WriteAllLines("reddit.txt", history);
     }
 
@@ -196,7 +197,8 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     {
         if (text.StartsWith("./"))
             text = await PromptResolver.Read(text);
-        await prompt.Resolve(text);
-        return prompt.Text;
+        if (prompt != null)
+            await prompt.Resolve(text);
+        return prompt != null ? prompt.Text : text;
     }
 }
