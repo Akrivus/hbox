@@ -24,6 +24,7 @@ public class ChatGenerator : MonoBehaviour
 
     private void Start()
     {
+        chatManagerContext = ChatManagerContext.Current;
         ServerSource.AddRoute("POST", $"/generate/{slug}", (_) => ServerSource.ProcessBodyString(_, AddPromptToQueue));
         StartCoroutine(UpdateQueue());
     }
@@ -67,7 +68,6 @@ public class ChatGenerator : MonoBehaviour
 
     private async Task<Chat> GenerateAndSave(Idea idea)
     {
-        chatManagerContext = ChatManagerContext.Current;
         var chat = new Chat(idea, chatManagerContext);
 
         try

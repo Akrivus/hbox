@@ -141,13 +141,13 @@ public class PromptResolver
         return resolver != null;
     }
 
-    public static async Task<string> Read(string path)
+    public static async Task<string> Read(string path, string blank = null)
     {
         if (TryFind(path, out var resolver))
         {
             await resolver.Resolve();
             return resolver.Text;
         }
-        return null;
+        return blank;
     }
 }

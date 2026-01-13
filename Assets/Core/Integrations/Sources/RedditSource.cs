@@ -27,7 +27,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private List<string> history = new List<string>();
     private Dictionary<string, DateTime> fetchTimes = new Dictionary<string, DateTime>();
-    private Queue<Task<Idea>> ideas = new Queue<Task<Idea>>();
+    private Queue<Idea> ideas = new Queue<Idea>();
 
     private int i = 0;
     private RedditThreadMiner miner;
@@ -76,32 +76,28 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         OnBatchStart?.Invoke();
         yield return FetchIdeas().AsCoroutine();
 
-        while (ideas.TryDequeue(out var task))
-        {
-            yield return task.AsCoroutine();
-            yield return generator.GenerateAndPlay(task.Result).AsCoroutine();
-        }
+        while (ideas.TryDequeue(out var idea))
+            yield return generator.GenerateAndPlay(idea).AsCoroutine();
         OnBatchEnd?.Invoke();
     }
 
     public async Task FetchIdeas()
     {
-        var prompt = new PromptResolver("Reddit Source");
-        var metaprompt = FindMetaPrompt();
-
+        var prompt = await PromptResolver.Read("Reddit Source", "{0}");
         for (var _ = i; _ < SubReddits.Count; _++)
         {
             var subreddit = SubReddits.ElementAt(_);
             var range = await FetchAsync(subreddit.Key);
-            var subprompt = await BuildSubPrompt(metaprompt, subreddit.Value);
-            ideas = new Queue<Task<Idea>>(range
+            var value = await BuildSubPrompt(subreddit.Value);
+            prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+            ideas = new Queue<Idea>(range
                     .Take(BatchMax)
                     .Select(post =>
                     {
                         history.Add(post.Value<string>("id"));
                         return post;
                     })
-                    .Select(post => PostToIdea(post).RePrompt(prompt, subprompt)
+                    .Select(post => PostToIdea(post, prompt)
                 ).ToList());
             if (ideas.Count >= BatchMax || !Application.isPlaying)
                 break;
@@ -111,15 +107,16 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             i = 0;
     }
 
-    private Idea PostToIdea(JToken post)
+    private Idea PostToIdea(JToken post, string template)
     {
         var permalink = post.Value<string>("permalink");
         var top = miner.Mine(permalink);
-        var topic = post.Value<string>("selftext") + "\n\n" + string.Join("\n\n", top.Select(t => t.DialogueSeed));
+        var topic = post.Value<string>("title") +
+            "\n\n" + post.Value<string>("selftext") +
+            "\n\n" + string.Join("\n\n", top.Select(t => t.DialogueSeed));
 
         return new Idea(
-            post.Value<string>("title"),
-            topic,
+            string.Format(template, topic),
             post.Value<string>("author"),
             post.Value<string>("subreddit_name_prefixed"),
             post.Value<string>("id")
@@ -175,7 +172,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             .Take(batchMax);
     }
 
-    private PromptResolver FindMetaPrompt()
+    private async Task<string> FindMetaPrompt()
     {
         var names = new string[]
         {
@@ -187,18 +184,19 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         };
         foreach (var name in names)
         {
-            if (PromptResolver.TryFind("Reddit Source/" + name, out var prompt))
+            var prompt = await PromptResolver.Read("Reddit Source/" + name);
+            if (prompt != null)
                 return prompt;
         }
         return null;
     }
 
-    private async Task<string> BuildSubPrompt(PromptResolver prompt, string text)
+    private async Task<string> BuildSubPrompt(string text)
     {
         if (text.StartsWith("./"))
             text = await PromptResolver.Read(text);
-        if (prompt != null)
-            await prompt.Resolve(text);
-        return prompt != null ? prompt.Text : text;
+        if (!text.Contains("{0}"))
+            text += "\n\n{0}";
+        return text;
     }
 }
