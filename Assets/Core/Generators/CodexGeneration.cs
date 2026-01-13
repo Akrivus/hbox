@@ -20,7 +20,7 @@ public class CodexGeneration : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForActor(PromptResolver prompt, Chat chat, ActorContext actor)
     {
-        if (actor.HasPrompt)
+        if (actor.HasNoPrompt)
             return;
 
         await actor.SetPrompt(chat.Actors);
@@ -29,10 +29,13 @@ public class CodexGeneration : MonoBehaviour, ISubGenerator
         {
             await other.SetPrompt(chat.Actors);
 
-            var resolver = new PromptResolver("Actors", actor.Name, "Codex", other.Name);
-            await resolver.Resolve();
+            var resolver = new PromptResolver(chat.ManagerContext, "Actors", actor.Name, "Codex", other.Name);
+            await resolver.Nullable().Resolve();
 
-            var codex = await LLM.CompleteAsync(await prompt.Resolve(chat.Log, resolver.Text, actor.Prompt, actor.Context, other.Name, actor.Name), chat, fastMode);
+            if (resolver.IsBlank)
+                continue;
+
+            await LLM.CompleteAsync(await prompt.Resolve(chat.Log, resolver.Text, actor.Prompt, actor.Context, other.Name, actor.Name), chat, fastMode);
         }
     }
 }

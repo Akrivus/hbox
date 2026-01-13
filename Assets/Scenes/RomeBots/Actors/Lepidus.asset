@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 4546196537496687338, guid: df506a3a943030a479893db5cbfa123a, type: 3}
-  Voice: en-US-Chirp3-HD-Iapetus
+  Voice: en-US-Wavenet-B
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

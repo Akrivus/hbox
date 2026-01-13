@@ -28,7 +28,7 @@ public class MonologueEngine : MonoBehaviour, ISubGenerator
             var controller = chat.Actors.Any(actor => actor.Reference == narrator) ? chat.Actors.Get(narrator) : null;
             if (controller == null) continue;
 
-            var resolver = new PromptResolver("Actors", "Memories", narrator.Name);
+            var resolver = new PromptResolver(chat.ManagerContext, "Actors", "Memories", narrator.Name);
             var bucket = await MemoryBucket.Get(narrator.Name);
 
             await controller.SetPrompt(chat.Actors);

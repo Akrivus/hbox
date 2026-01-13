@@ -21,9 +21,9 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
             source.Play();
     }
 
-    private void SetSoundGroup(string name)
+    private void SetSoundGroup(Chat chat, string name)
     {
-        var group = Resources.Load<SoundGroup>($"{ChatManagerContext.Current.Name}/SoundGroups/{name}");
+        var group = Resources.Load<SoundGroup>($"{chat.ManagerContext.Name}/SoundGroups/{name}");
         if (group == null)
             soundGroup = Resources.Load<SoundGroup>($"{ChatManagerContext.Current.Name}/SoundGroups/Silent");
         else
@@ -35,7 +35,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
         if (chat == null) return;
         var name = chat.Actors.Get(Actor).SoundGroup;
         if (name != null)
-            SetSoundGroup(name);
+            SetSoundGroup(chat, name);
         PlaySoundGroup();
     }
 

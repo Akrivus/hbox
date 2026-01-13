@@ -33,7 +33,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
         Chat.FolderName = ReplayDirectory;
 
-        ChatManager.Instance.OnChatQueueEmpty += OnChatQueueEmpty;
+        ChatManagerContext.Current.OnChatQueueEmpty += OnChatQueueEmpty;
     }
 
     public void OnChatQueueEmpty()
@@ -58,8 +58,9 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void OnDestroy()
     {
+        ChatManagerContext.Current.OnChatQueueEmpty -= OnChatQueueEmpty;
         StopAllCoroutines();
-        File.WriteAllLines("replays.txt", replays);
+        File.WriteAllLines($"replays.txt", replays);
     }
 
     private async Task FetchFiles(int count)

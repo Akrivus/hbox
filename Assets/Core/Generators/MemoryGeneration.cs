@@ -21,12 +21,11 @@ public class MemoryGeneration : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForActor(PromptResolver prompt, Chat chat, ActorContext actor)
     {
+        if (actor.HasNoPrompt)
+            return;
         await actor.SetPrompt();
 
-        if (actor.HasPrompt)
-            return;
-
-        var resolver = new PromptResolver("Actors", actor.Name, "Memories", DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss"));
+        var resolver = new PromptResolver(chat.ManagerContext, "Actors", actor.Name, "Memories", DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss"));
         var bucket = await MemoryBucket.Get(actor.Name);
         var memory = await LLM.CompleteAsync(
             await prompt.Resolve(chat.Log, actor.Prompt, bucket.Get(), actor.Context), chat, fastMode);

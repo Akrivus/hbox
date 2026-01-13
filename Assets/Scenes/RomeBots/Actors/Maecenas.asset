@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 4546196537496687338, guid: 719bf06acb0e5d448ab758bc6f20119c, type: 3}
-  Voice: en-US-Chirp3-HD-Puck
+  Voice: en-US-Wavenet-A
   SpeakingRate: 1
   Pitch: 1
   Volume: 1

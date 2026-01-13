@@ -25,7 +25,7 @@ public class ActorContext
     public string Name => Reference.Name;
 
     [JsonIgnore]
-    public bool HasPrompt => File.Exists($"./Vault/Prompts/Actors/{Name}.md");
+    public bool HasNoPrompt => !File.Exists($"./Vault/{Reference.ManagerContext.Key}/Prompts/Actors/{Name}.md");
 
 
     public ActorContext(Actor actor)
@@ -46,7 +46,7 @@ public class ActorContext
 
         if (!resolver.Resolved)
         {
-            resolver = new PromptResolver("Defaults", "Actors");
+            resolver = new PromptResolver(Reference.ManagerContext, "Defaults", "Actors");
             await resolver.Resolve(Reference.Name, Reference.Pronouns);
         }
 
@@ -55,8 +55,10 @@ public class ActorContext
         var names = actors.Select(a => a.Name).ToArray();
         foreach (var name in names)
         {
-            var r = new PromptResolver("Actors", Name, "Codex", name);
-            await r.Resolve();
+            var r = new PromptResolver(Reference.ManagerContext, "Actors", Name, "Codex", name);
+            await r.Nullable().Resolve();
+            if (r.IsBlank)
+                continue;
             Prompt += r.Text + "\n\n";
         }
     }

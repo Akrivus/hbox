@@ -13,56 +13,66 @@ public class PromptResolver
     public static string BaseOutputPath = "Outputs";
     public static string BasePath = "Vault";
 
+    public bool IsBlank => Resolved && string.IsNullOrEmpty(Text);
+
     public bool Resolved { get; private set; } = false;
     public string Part { get; private set; } = string.Empty;
     public string Path { get; private set; }
     public string Text { get; private set; } = string.Empty;
     public PromptResolver Output { get; private set; } = null;
+    public ChatManagerContext ManagerContext { get; private set; }
+
+    private bool nullable = false;
 
     public PromptResolver(Actor actor)
     {
         Part = "Actors/" + actor.Name;
-        SetPromptPath();
+        ManagerContext = actor.ManagerContext;
+        SetPromptPath(ManagerContext.Key);
     }
 
     public PromptResolver(ChatGenerator generator)
     {
         Part = generator.name;
-        SetPromptPath();
+        ManagerContext = generator.ManagerContext;
+        SetPromptPath(ManagerContext.Key);
         if (!File.Exists(Path))
             Part = "Defaults";
-        SetPromptPath();
+        SetPromptPath(ManagerContext.Key);
     }
 
     public PromptResolver(ChatGenerator generator, ISubGenerator sub)
     {
 
         Part = string.Join("/", generator.name, SplitTypeName(sub));
-        SetPromptPath();
+        ManagerContext = generator.ManagerContext;
+        SetPromptPath(ManagerContext.Key);
         if (!File.Exists(Path))
             Part = string.Join("/", "Defaults", SplitTypeName(sub));
-        SetPromptPath();
+        SetPromptPath(ManagerContext.Key);
     }
 
-    public PromptResolver(params string[] path)
+    public PromptResolver(ChatManagerContext chatManagerContext, params string[] path)
     {
         Part = string.Join("/", path);
-        SetPromptPath(false);
+        ManagerContext = chatManagerContext;
+        SetPromptPath(ManagerContext.Key);
     }
 
-    public PromptResolver(bool direct, params string[] path)
+    public PromptResolver Nullable()
     {
-        Part = string.Join("/", path);
-        SetPromptPath(direct);
+        nullable = true;
+        return this;
     }
 
     public async Task<PromptResolver> Resolve(params object[] args)
     {
         if (!File.Exists(Path))
         {
-            SetPromptPath();
-            if (!File.Exists(Path))
-                return this;
+            if (!nullable) throw new Exception($"Prompt '{Path}' not found.");
+            Text = string.Empty;
+            Resolved = true;
+            return this;
         }
         Text = await File.ReadAllTextAsync(Path);
         for (var i = 0; i < args.Length; ++i)
@@ -95,13 +105,13 @@ public class PromptResolver
                 line => line.Value);
     }
 
-    public async Task SaveOutput(ChatManagerContext context, string text)
+    public async Task SaveOutput(string text)
     {
-        var folder = System.IO.Path.Combine(BasePath, context.Name, BaseOutputPath, Part);
+        var folder = System.IO.Path.Combine(BasePath, ManagerContext.Name, BaseOutputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
-        Output = new PromptResolver(true, path);
+        Output = new PromptResolver(ManagerContext, path);
         await Save(path, text);
     }
 
@@ -113,12 +123,12 @@ public class PromptResolver
         await File.WriteAllTextAsync(path, text);
     }
 
-    private void SetPromptPath(bool direct = false)
+    private void SetPromptPath(string name, bool direct = false)
     {
         if (direct)
             Path = Part;
         else
-            Path = System.IO.Path.Combine(BasePath, EngineName ?? ChatManagerContext.Current.Name, BasePromptPath, Part);
+            Path = System.IO.Path.Combine(BasePath, name, BasePromptPath, Part);
         if (!Path.EndsWith(".md")) Path += ".md";
     }
 
@@ -127,23 +137,23 @@ public class PromptResolver
         return Regex.Replace(type.GetType().Name, "(\\B[A-Z])", " $1");
     }
 
-    public static PromptResolver Find(string part)
+    public static PromptResolver Find(ChatManagerContext context, string part)
     {
-        var resolver = new PromptResolver(part);
+        var resolver = new PromptResolver(context, part);
         if (File.Exists(resolver.Path))
             return resolver;
         return null;
     }
 
-    public static bool TryFind(string part, out PromptResolver resolver)
+    public static bool TryFind(ChatManagerContext context, string part, out PromptResolver resolver)
     {
-        resolver = Find(part);
+        resolver = Find(context, part);
         return resolver != null;
     }
 
-    public static async Task<string> Read(string path, string blank = null)
+    public static async Task<string> Read(ChatManagerContext context, string path, string blank = null)
     {
-        if (TryFind(path, out var resolver))
+        if (TryFind(context, path, out var resolver))
         {
             await resolver.Resolve();
             return resolver.Text;

@@ -83,12 +83,12 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     public async Task FetchIdeas()
     {
-        var prompt = await PromptResolver.Read("Reddit Source", "{0}");
+        var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
         for (var _ = i; _ < SubReddits.Count; _++)
         {
             var subreddit = SubReddits.ElementAt(_);
             var range = await FetchAsync(subreddit.Key);
-            var value = await BuildSubPrompt(subreddit.Value);
+            var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
             prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
             ideas = new Queue<Idea>(range
                     .Take(BatchMax)
@@ -172,7 +172,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             .Take(batchMax);
     }
 
-    private async Task<string> FindMetaPrompt()
+    private async Task<string> FindMetaPrompt(string blank = null)
     {
         var names = new string[]
         {
@@ -184,17 +184,19 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         };
         foreach (var name in names)
         {
-            var prompt = await PromptResolver.Read("Reddit Source/" + name);
-            if (prompt != null)
-                return prompt;
+            var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source/" + name);
+            if (prompt == null) continue;
+            if (!prompt.Contains("{0}"))
+                prompt += "\n\n{0}";
+            return prompt;
         }
-        return null;
+        return blank;
     }
 
     private async Task<string> BuildSubPrompt(string text)
     {
         if (text.StartsWith("./"))
-            text = await PromptResolver.Read(text);
+            text = await PromptResolver.Read(generator.ManagerContext, text, "{0}");
         if (!text.Contains("{0}"))
             text += "\n\n{0}";
         return text;

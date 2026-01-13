@@ -20,7 +20,9 @@ public class MemoryBucket
 
     public async Task Add(PromptResolver prompt)
     {
-        await prompt.Resolve();
+        await prompt.Nullable().Resolve();
+        if (prompt.IsBlank)
+            return;
         Memories.Add(new Memory(prompt, await Embed(prompt.Text)));
     }
 

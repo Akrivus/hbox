@@ -23,7 +23,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         WebhookURLs = c.WebhookURLs;
         webhooks = WebhookURLs.ToDictionary(k => k.Key, v => new DiscordWebhook(v.Value));
         url = c.AvatarURL;
-        ChatManager.Instance.OnChatNodeActivated += SendDialogue;
+        ChatManagerContext.Current.OnChatNodeActivated += SendDialogue;
 
         StartCoroutine(UpdateWebhooks());
     }

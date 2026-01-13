@@ -5,7 +5,7 @@ public class MemoryManager : MonoBehaviour
 {
     public void Start()
     {
-        ChatManager.Instance.OnChatQueueEmpty += SaveMemories;
+        ChatManagerContext.Current.OnChatQueueEmpty += SaveMemories;
     }
 
     public void OnDestroy()

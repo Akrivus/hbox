@@ -24,7 +24,7 @@ public static class ActorTeamGenerator
             await resolver.Resolve();
 
             text = resolver.Text;
-            resolver = new PromptResolver("Character Converter");
+            resolver = new PromptResolver(ChatManagerContext.Current, "Character Converter");
 
             output = await LLM.CompleteAsync(await resolver.Resolve(actor.Name, text, actor.Pronouns), null);
             output = output

@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
-    public int IdeaCount => ideaQueue.Count;
+    public ChatManagerContext ManagerContext => chatManagerContext;
 
     [SerializeField]
     private bool save = true;
@@ -60,8 +60,8 @@ public class ChatGenerator : MonoBehaviour
 
     public async Task GenerateAndPlay(Idea idea)
     {
-        var resolver = new PromptResolver(name, "Ideas");
-        await resolver.SaveOutput(chatManagerContext, idea.Prompt);
+        var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
+        await resolver.SaveOutput(idea.Prompt);
         var chat = await GenerateAndSave(idea);
         ChatManager.Instance.AddToPlayList(chat);
     }

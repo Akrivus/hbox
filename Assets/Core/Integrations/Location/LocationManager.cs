@@ -18,8 +18,8 @@ public class LocationManager : MonoBehaviour
 
     private void Start()
     {
-        ChatManager.Instance.OnChatQueueTaken += LoadLocation;
-        ChatManager.Instance.OnActorAdded += UpdateSpawnPoint;
+        ChatManagerContext.Current.OnChatQueueTaken += LoadLocation;
+        ChatManagerContext.Current.OnActorAdded += UpdateSpawnPoint;
     }
 
     private IEnumerator LoadLocation(Chat chat)

@@ -62,7 +62,7 @@ public class Chat
     public List<Message> Messages { get; set; }
 
     [JsonIgnore]
-    public ChatManagerContext ManagerContext { get; private set; }
+    public ChatManagerContext ManagerContext { get; set; }
 
     public Chat(Idea idea, ChatManagerContext context)
     {
@@ -73,17 +73,17 @@ public class Chat
         Key = ManagerContext.Key;
         Actors = new ActorContext[0];
         Nodes = new List<ChatNode>();
-        _locked = false;
-    }
-
-    public Chat(string prompt, ChatManagerContext context) : this(new Idea(prompt), context)
-    {
-
+        _locked = true;
     }
 
     public Chat()
     {
         _locked = true;
+    }
+
+    public void Unlock()
+    {
+        _locked = false;
     }
 
     public void Lock()

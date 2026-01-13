@@ -34,16 +34,16 @@ public class SpawnPointManager : MonoBehaviour
 
     public void Register()
     {
-        ChatManager.Instance.OnActorAdded += OnActorAdded;
-        ChatManager.Instance.OnChatNodeActivated += OnChatNodeActivated;
-        ChatManager.Instance.OnChatLoaded += OnChatLoaded;
+        ChatManagerContext.Current.OnActorAdded += OnActorAdded;
+        ChatManagerContext.Current.OnChatNodeActivated += OnChatNodeActivated;
+        ChatManagerContext.Current.OnChatLoaded += OnChatLoaded;
     }
 
     public void UnRegister()
     {
-        ChatManager.Instance.OnActorAdded -= OnActorAdded;
-        ChatManager.Instance.OnChatNodeActivated -= OnChatNodeActivated;
-        ChatManager.Instance.OnChatLoaded -= OnChatLoaded;
+        ChatManagerContext.Current.OnActorAdded -= OnActorAdded;
+        ChatManagerContext.Current.OnChatNodeActivated -= OnChatNodeActivated;
+        ChatManagerContext.Current.OnChatLoaded -= OnChatLoaded;
         actorToController.Clear();
         actorToSpawnPoint.Clear();
     }

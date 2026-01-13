@@ -18,7 +18,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForActor(PromptResolver prompt, Chat chat, ActorContext actor)
     {
-        if (actor.HasPrompt)
+        if (actor.HasNoPrompt)
             return;
 
         await actor.SetPrompt(chat.Actors);

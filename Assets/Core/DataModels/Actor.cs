@@ -39,6 +39,8 @@ public class Actor : ScriptableObject
 
     public WordReplacement[] WordReplacementDictionary;
 
+    public ChatManagerContext ManagerContext;
+
     public string ApplyWordReplacements(string text)
     {
         if (WordReplacementDictionary == null || WordReplacementDictionary.Length == 0)

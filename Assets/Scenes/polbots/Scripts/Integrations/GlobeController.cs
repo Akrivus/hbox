@@ -56,21 +56,21 @@ public class GlobeController : MonoBehaviour
 
     private void Start()
     {
-        ChatManager.Instance.OnChatQueueTaken += OnChatDequeued;
-        ChatManager.Instance.OnChatLoaded += OnChatLoaded;
-        ChatManager.Instance.OnActorAdded += OnActorAdded;
-        ChatManager.Instance.OnActorRemoved += OnActorRemoved;
-        ChatManager.Instance.OnChatNodeActivated += OnChatNodeActivated;
+        ChatManagerContext.Current.OnChatQueueTaken += OnChatDequeued;
+        ChatManagerContext.Current.OnChatLoaded += OnChatLoaded;
+        ChatManagerContext.Current.OnActorAdded += OnActorAdded;
+        ChatManagerContext.Current.OnActorRemoved += OnActorRemoved;
+        ChatManagerContext.Current.OnChatNodeActivated += OnChatNodeActivated;
         Globe.OnFlyEnd += OnFlyEnd;
     }
 
     private void OnDestroy()
     {
-        ChatManager.Instance.OnChatQueueTaken -= OnChatDequeued;
-        ChatManager.Instance.OnChatLoaded -= OnChatLoaded;
-        ChatManager.Instance.OnActorAdded -= OnActorAdded;
-        ChatManager.Instance.OnActorRemoved -= OnActorRemoved;
-        ChatManager.Instance.OnChatNodeActivated -= OnChatNodeActivated;
+        ChatManagerContext.Current.OnChatQueueTaken -= OnChatDequeued;
+        ChatManagerContext.Current.OnChatLoaded -= OnChatLoaded;
+        ChatManagerContext.Current.OnActorAdded -= OnActorAdded;
+        ChatManagerContext.Current.OnActorRemoved -= OnActorRemoved;
+        ChatManagerContext.Current.OnChatNodeActivated -= OnChatNodeActivated;
         Globe.OnFlyEnd -= OnFlyEnd;
 
         Disable();

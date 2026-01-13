@@ -67,10 +67,10 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         MatchManager.MatchTimeLimit = config.MatchTimeLimit;
 
-        ChatManager.Instance.AfterIntermission += TriggerGame;
+        ChatManagerContext.Current.AfterIntermission += TriggerGame;
 
         if (config.GameOnStart)
-            ChatManager.Instance.OnChatQueueEmpty += BreakTheSilence;
+            ChatManagerContext.Current.OnChatQueueEmpty += BreakTheSilence;
 
         if (config.GameOnBatchEnd)
             RedditSource.Instance.OnBatchEnd += BreakTheSilence;

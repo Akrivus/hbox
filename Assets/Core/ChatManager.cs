@@ -70,17 +70,19 @@ public class ChatManager : MonoBehaviour
         yield return new WaitUntil(() => CurrentContext != null);
         while (Application.isPlaying)
         {
-            yield return new WaitUntilTimer(() => playList.Count > 0, 20);
-
             if (playList.TryDequeue(out var chat) && chat != null)
                 if (CurrentContext.Key == null || CurrentContext.Key == chat.Key)
                     yield return Play(chat);
+                else
+                    playList.Enqueue(chat); // re-enqueue if context doesn't match
 
             if (CurrentContext.RemoveActorsOnCompletion)
                 yield return RemoveAllActors();
 
             SubtitleManager.Instance?.ClearSubtitles();
             OnChatQueueEmpty?.Invoke();
+
+            yield return new WaitUntilTimer(() => playList.Count > 0, 20);
         }
     }
 
@@ -88,6 +90,8 @@ public class ChatManager : MonoBehaviour
     {
         if (chat.IsLocked && chat.Nodes.Count < 2)
             yield break;
+        if (chat.ManagerContext == null)
+            chat.ManagerContext = ChatManagerContext.Current;
 
         if (OnChatQueueTaken != null)
             yield return OnChatQueueTaken(chat);

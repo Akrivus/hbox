@@ -38,11 +38,11 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         OnlyNewEpisodes = c.OnlyNewEpisodes;
 
         if (IsRecording)
-            ChatManager.Instance.AfterIntermission += StopOrStartRecording;
+            ChatManagerContext.Current.AfterIntermission += StopOrStartRecording;
         if (DoSplitRecording)
-            ChatManager.Instance.BeforeIntermission += SplitRecording;
+            ChatManagerContext.Current.BeforeIntermission += SplitRecording;
 
-        ChatManager.Instance.OnChatQueueEmpty += StopRecording;
+        ChatManagerContext.Current.OnChatQueueEmpty += StopRecording;
 
         if (IsStreaming)
             StartStreaming();

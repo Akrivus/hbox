@@ -70,7 +70,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             text = response.Message.Content.ToString();
 
             if (prompt != null)
-                await prompt.SaveOutput(chat.ManagerContext, text);
+                await prompt.SaveOutput(text);
         }
         catch (Exception e)
         {

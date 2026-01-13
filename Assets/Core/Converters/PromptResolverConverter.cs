@@ -38,7 +38,7 @@ public class PromptResolverConverter : JsonConverter
     private PromptResolver ReadJsonString(string path)
     {
         if (path == null)
-            return new PromptResolver();
+            return new PromptResolver(ChatManagerContext.Current, path);
 
         return Convert(path);
     }
@@ -55,6 +55,6 @@ public class PromptResolverConverter : JsonConverter
 
     public static PromptResolver Convert(string path)
     {
-        return new PromptResolver(path);
+        return new PromptResolver(ChatManagerContext.Current, path);
     }
 }

@@ -17,14 +17,14 @@ public class VibeSwitcher : MonoBehaviour
 
     private void Start()
     {
-        ChatManager.Instance.AfterIntermission += OnAfterIntermission;
-        ChatManager.Instance.BeforeIntermission += OnBeforeIntermission;
+        ChatManagerContext.Current.AfterIntermission += OnAfterIntermission;
+        ChatManagerContext.Current.BeforeIntermission += OnBeforeIntermission;
     }
 
     private void OnDestroy()
     {
-        ChatManager.Instance.AfterIntermission -= OnAfterIntermission;
-        ChatManager.Instance.BeforeIntermission -= OnBeforeIntermission;
+        ChatManagerContext.Current.AfterIntermission -= OnAfterIntermission;
+        ChatManagerContext.Current.BeforeIntermission -= OnBeforeIntermission;
     }
 
     private void OnBeforeIntermission()

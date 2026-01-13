@@ -31,8 +31,8 @@ public class SubtitleManager : MonoBehaviour
         splashDuration = c.SplashDuration;
         splashes = c.Splashes;
 
-        ChatManager.Instance.OnIntermission += StartSplashScreen;
-        ChatManager.Instance.OnChatNodeActivated += OnNodeActivated;
+        ChatManagerContext.Current.OnIntermission += StartSplashScreen;
+        ChatManagerContext.Current.OnChatNodeActivated += OnNodeActivated;
     }
 
     private void Awake()

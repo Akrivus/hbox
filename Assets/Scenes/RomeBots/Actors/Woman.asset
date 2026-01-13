@@ -20,11 +20,11 @@ MonoBehaviour:
   - Girl
   Players: []
   Neighbor: {fileID: 0}
-  IsLegacy: 1
+  IsLegacy: 0
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 6005658532464280047, guid: f6c90473fa1f47f438794c33677a7fca, type: 3}
-  Voice: en-US-Chirp3-HD-Kore
+  Voice: en-US-Wavenet-C
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
