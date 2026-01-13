@@ -41,6 +41,9 @@ public class ActorContext
 
     public async Task SetPrompt(params ActorContext[] actors)
     {
+        if (HasNoPrompt)
+            return;
+
         var resolver = new PromptResolver(Reference);
         await resolver.Resolve();
 
