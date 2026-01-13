@@ -179,7 +179,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     {
         var names = new string[]
         {
-            DateTime.Now.ToString("M-d"),
+            DateTime.Now.ToString("MMMM d"),
             DateTime.Now.ToString("MMMM"),
             DateTime.Now.ToString("dddd"),
             DateTime.Now.ToString("HH"),
