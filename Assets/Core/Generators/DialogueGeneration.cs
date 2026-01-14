@@ -14,43 +14,39 @@ public class DialogueGeneration : MonoBehaviour, ISubGenerator
     [SerializeField]
     private bool splitSentences = true;
 
-    private int _attempts = 0;
-
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
         if (chat == null || chat.IsLocked)
             return chat;
-        var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Idea.Prompt, chat.Characters, chat.Context), chat, fastMode);
-        var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
         var actors = chat.Actors.ToList();
         var refs = actors.Select(a => a.Reference).ToList();
 
         var nodes = new List<ChatNode>();
+        var attempts = 0;
 
-        foreach (var line in lines)
+        do
         {
-            var parts = line.Replace("**", string.Empty).Split(':');
-            if (parts.Length <= 1)
-                continue;
+            var content = await LLM.CompleteAsync(await prompt.Resolve(chat.Idea.Prompt, chat.Characters, chat.Context), chat, fastMode);
+            var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-            var names = GetNames(parts[0], refs);
-            var text = string.Join(":", parts.Skip(1));
+            foreach (var line in lines)
+            {
+                var parts = line.Replace("**", string.Empty).Split(':');
+                if (parts.Length <= 1)
+                    continue;
 
-            if (names.Length == 0)
-                continue;
+                var names = GetNames(parts[0], refs);
+                var text = string.Join(":", parts.Skip(1));
 
-            nodes.AddRange(AddNodes(chat, names[0], text, refs, false));
-            foreach (var n in names.Skip(1))
-                nodes.AddRange(AddNodes(chat, n, text, refs, true));
-        }
+                if (names.Length == 0)
+                    continue;
 
-        if (_attempts < 3 && nodes.Count < 2)
-        {
-            _attempts++;
-            return await Generate(prompt, chat);
-        }
-        _attempts = 0;
+                nodes.AddRange(AddNodes(chat, names[0], text, refs, false));
+                foreach (var n in names.Skip(1))
+                    nodes.AddRange(AddNodes(chat, n, text, refs, true));
+            }
+        } while (attempts++ < 3 && nodes.Count < 2);
 
         foreach (var n in nodes)
             if (actors.Get(n.Actor.Name) == null)

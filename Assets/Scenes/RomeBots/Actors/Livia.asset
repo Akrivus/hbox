@@ -25,7 +25,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 6005658532464280047, guid: ba2d89d1db864d04b87b8c1f797897bb, type: 3}
-  Voice: sage
+  Voice: coral
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -36,3 +36,4 @@ MonoBehaviour:
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: f13d85f9b8255c54d9016e7e7827d3a3, type: 2}
   WordReplacementDictionary: []
+  ManagerContext: {fileID: 0}

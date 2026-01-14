@@ -147,16 +147,22 @@ public class MemoryBucket
 
 public class Memory
 {
-    [JsonConverter(typeof(PromptResolverConverter))]
-    public PromptResolver Prompt { get; private set; }
+    [JsonIgnore]
+    public PromptResolver Prompt => _prompt ??= new PromptResolver(ChatManager.Instance.Contexts[ContextKey], Path);
+    public string ContextKey { get; private set; }
+    public string Path { get; private set; }
     public double[] Embeddings { get; private set; }
     public DateTime Created { get; private set; }
 
     public string Text => Prompt == null ? string.Empty : Prompt.Text;
 
+    private PromptResolver _prompt;
+
     public Memory(PromptResolver prompt, double[] embeddings)
     {
-        Prompt = prompt;
+        _prompt = prompt;
+        Path = prompt.Path;
+        ContextKey = prompt.ManagerContext.Key;
         Embeddings = embeddings;
         Created = DateTime.Now;
     }

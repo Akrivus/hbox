@@ -23,7 +23,7 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 4546196537496687338, guid: 719bf06acb0e5d448ab758bc6f20119c, type: 3}
-  Voice: en-US-Wavenet-A
+  Voice: echo
   SpeakingRate: 1
   Pitch: 1
   Volume: 1
@@ -34,3 +34,4 @@ MonoBehaviour:
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: b11cdf9634eed36409eacdd662cf8c12, type: 2}
   WordReplacementDictionary: []
+  ManagerContext: {fileID: 0}

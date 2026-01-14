@@ -73,7 +73,6 @@ public class Chat
         Key = ManagerContext.Key;
         Actors = new ActorContext[0];
         Nodes = new List<ChatNode>();
-        _locked = true;
     }
 
     public Chat()

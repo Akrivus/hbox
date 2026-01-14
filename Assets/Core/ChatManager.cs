@@ -32,6 +32,7 @@ public class ChatManager : MonoBehaviour
 
     public Chat NowPlaying { get; private set; }
     public ChatManagerContext CurrentContext { get; private set; }
+    public IDictionary<string, ChatManagerContext> Contexts => contexts;
     public List<ActorController> ActorsInScene => actors;
 
     private readonly Dictionary<string, ChatManagerContext> contexts = new Dictionary<string, ChatManagerContext>();
@@ -219,8 +220,7 @@ public class ChatManager : MonoBehaviour
         if (clip == null)
             yield break;
         maxChance *= reaction.ReactionDecay;
-        CurrentContext.AudioSource.clip = clip;
-        CurrentContext.AudioSource.Play();
+        CurrentContext.AudioSource.PlayOneShot(clip);
         yield return new WaitForSeconds(clip.length);
     }
 

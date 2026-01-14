@@ -123,11 +123,17 @@ public class ChatGenerator : MonoBehaviour
         foreach (var g in generators)
         {
             var p = new PromptResolver(this, g);
-            var task = g.Generate(p, chat);
+
             if (g.IsBlocking)
-                await task;
+            {
+                await Task.WhenAll(tasks);
+                tasks.Clear();
+                await g.Generate(p, chat);
+            }
             else
-                tasks.Add(task);
+            {
+                tasks.Add(g.Generate(p, chat));
+            }
         }
 
         await Task.WhenAll(tasks);

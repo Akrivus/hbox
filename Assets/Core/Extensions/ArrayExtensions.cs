@@ -4,6 +4,12 @@ using System.Linq;
 
 public static class ArrayExtensions
 {
+    public static bool TryGet(this IEnumerable<ActorContext> contexts, Actor actor, out ActorContext context)
+    {
+        context = Get(contexts, actor);
+        return context != null;
+    }
+
     public static ActorContext Get(this IEnumerable<ActorContext> contexts, Actor actor)
     {
         return contexts.FirstOrDefault(context => context.Reference == actor);
