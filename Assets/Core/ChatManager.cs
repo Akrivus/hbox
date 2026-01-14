@@ -190,14 +190,21 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator SetActorReactions(ActorController actor, ChatNode node)
     {
-        var reactions = node.Reactions
-            .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
-            .ToDictionary(a => a, a => node.Reactions
-            .First(r => r.Actor == a.Actor).Sentiment);
-        foreach (var reaction in reactions)
+        try
         {
-            reaction.Key.Sentiment = reaction.Value;
-            reaction.Key.LookTarget = actor.LookObject.transform;
+            var reactions = node.Reactions
+                .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
+                .ToDictionary(a => a, a => node.Reactions
+                .First(r => r.Actor == a.Actor).Sentiment);
+            foreach (var reaction in reactions)
+            {
+                reaction.Key.Sentiment = reaction.Value;
+                reaction.Key.LookTarget = actor.LookObject;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Error parsing reactions: {e}");
         }
         if (CurrentContext.DisableSoundEffects || CurrentContext.AudioSource == null)
             yield break;
@@ -206,9 +213,6 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator PlayReactionClip(ChatNode.Reaction[] reactions)
     {
-        if (CurrentContext.AudioSource == null)
-            yield break;
-
         var chance = UnityEngine.Random.Range(0f, maxChance);
         var reaction = reactions
             .GroupBy(r => r.Sentiment)

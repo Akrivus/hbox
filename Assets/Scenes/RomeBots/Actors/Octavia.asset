@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Octavia
   m_EditorClassIdentifier: 
-  Title: Octavia
+  Title: Octavia Minor
   Pronouns: she/her
   Name: Octavia
   Aliases:
@@ -34,3 +34,4 @@ MonoBehaviour:
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: 78e7c8d8c5e64fd4e9612a725a06a926, type: 2}
   WordReplacementDictionary: []
+  ManagerContext: {fileID: 0}

@@ -118,8 +118,11 @@ public class ActorController : MonoBehaviour
         if (clip == null)
             yield break;
 
-        voice.clip = clip;
-        voice.Play();
+        if (voice != null)
+        {
+            voice.clip = clip;
+            voice.Play();
+        }
 
         averageVolume = 1.0f;
         talkTime = 0.0f;

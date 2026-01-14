@@ -93,7 +93,7 @@ public class AnimatorController : AutoActor, ISubActor, ISubNode, ISubSentiment
 
     public void UpdateSentiment(Sentiment sentiment)
     {
-        if (sentiment == null)
+        if (sentiment == null || _animator == null)
             return;
 
         _animator.Play(sentiment.Name, 0);

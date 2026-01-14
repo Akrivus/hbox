@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Drusus
   m_EditorClassIdentifier: 
-  Title: Drusus
+  Title: Drusus Nero
   Pronouns: he/him
   Name: Drusus
   Aliases:
@@ -34,3 +34,4 @@ MonoBehaviour:
   Color3: {r: 0, g: 0, b: 0, a: 0}
   DefaultSentiment: {fileID: 11400000, guid: a2cb8de5c72a55042914e16012637c5e, type: 2}
   WordReplacementDictionary: []
+  ManagerContext: {fileID: 0}

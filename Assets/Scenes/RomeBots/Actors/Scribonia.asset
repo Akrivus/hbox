@@ -12,13 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Scribonia
   m_EditorClassIdentifier: 
-  Title: Julia
+  Title: Scribonia
   Pronouns: she/her
-  Name: Julia
+  Name: Scribonia
   Aliases:
-  - Julia
-  - Julia Caesaris
-  - Julia the Elder
+  - Scribonia
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0

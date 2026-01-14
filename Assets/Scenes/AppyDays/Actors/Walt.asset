@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Walt
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Walt
-  Pronouns: he/him, Facilities
+  Pronouns: he/him, Facility Manager
   Name: Walt
   Aliases:
   - Walt
