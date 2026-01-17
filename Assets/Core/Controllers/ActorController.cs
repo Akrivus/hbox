@@ -149,6 +149,13 @@ public class ActorController : MonoBehaviour
             sub.Deactivate();
         if (BeforeDestroy != null)
             yield return BeforeDestroy();
-        Destroy(gameObject);
+        try
+        {
+            Destroy(gameObject);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("ActorController destroyed before deactivated.");
+        }
     }
 }

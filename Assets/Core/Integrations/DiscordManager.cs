@@ -9,6 +9,9 @@ using UnityEngine;
 
 public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 {
+    public static DiscordManager Instance => _instance ??= FindFirstObjectByType<DiscordManager>();
+    private static DiscordManager _instance;
+
     public static Dictionary<string, DiscordWebhook> Webhooks => webhooks;
     private static Dictionary<string, DiscordWebhook> webhooks;
 
@@ -23,13 +26,13 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         WebhookURLs = c.WebhookURLs;
         webhooks = WebhookURLs.ToDictionary(k => k.Key, v => new DiscordWebhook(v.Value));
         url = c.AvatarURL;
-        ChatManagerContext.Current.OnChatNodeActivated += SendDialogue;
 
         StartCoroutine(UpdateWebhooks());
     }
 
     private void Awake()
     {
+        _instance = this;
         ConfigManager.Instance.RegisterConfig(typeof(DiscordConfigs), "discord", (config) => Configure((DiscordConfigs)config));
     }
 
@@ -49,14 +52,14 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         }
     }
 
+    public void SendDialogue(ChatNode node)
+    {
+        PutInQueue("#stream", node.Line, node.Actor.Name, GetAvatarURL(node));
+    }
+
     private void SendNarration(string text)
     {
         PutInQueue("#sports", text);
-    }
-
-    private void SendDialogue(ChatNode node)
-    {
-        PutInQueue("#stream", node.Line, node.Actor.Name, GetAvatarURL(node));
     }
 
     private void SendSportsUpdates(string message)

@@ -107,8 +107,6 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator PlayChat(Chat chat)
     {
-        if (CurrentContext.Key != null && CurrentContext.Key != chat.Key)
-            throw new Exception($"ChatManagerContext '{chat.Key}' does not match current ChatManagerContext '{CurrentContext.Key}'");
         yield return new WaitUntil(() => !IsPaused);
 
         if (chat.NextNode == null && !chat.IsLocked)
@@ -127,13 +125,13 @@ public class ChatManager : MonoBehaviour
         yield return Activate(node);
 
         node.New = false;
-        yield return PlayChat(chat);
+
+        if (CurrentContext.Key == chat.Key)
+            yield return PlayChat(chat);
     }
 
     private IEnumerator InitChat(Chat chat)
     {
-        if (CurrentContext.Key != null && CurrentContext.Key != chat.Key)
-            throw new Exception($"ChatManagerContext '{chat.Key}' does not match current ChatManagerContext '{CurrentContext.Key}'");
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
         lastNode = null;
@@ -153,6 +151,7 @@ public class ChatManager : MonoBehaviour
             spawnPointManager.Register();
 
         BeforeIntermission?.Invoke();
+        yield return SubtitleManager.Instance?.StartSplashScreen(chat);
         yield return OnIntermission?.Invoke(chat);
 
         OnChatLoaded?.Invoke(chat);
@@ -176,10 +175,12 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator Activate(ChatNode node)
     {
-        OnChatNodeActivated?.Invoke(node);
-
         if (SkipToEnd)
             yield break;
+
+        DiscordManager.Instance?.SendDialogue(node);
+        SubtitleManager.Instance?.OnNodeActivated(node);
+        OnChatNodeActivated?.Invoke(node);
 
         var actor = actors.Get(node.Actor);
         if (actor == null)

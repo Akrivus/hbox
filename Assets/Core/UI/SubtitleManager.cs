@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class SubtitleManager : MonoBehaviour
 {
-    public static SubtitleManager Instance { get; private set; }
+    public static SubtitleManager Instance => _instance ??= FindFirstObjectByType<SubtitleManager>();
+    private static SubtitleManager _instance;
 
     [SerializeField]
     private TextMeshProUGUI splashScreen;
@@ -30,18 +31,15 @@ public class SubtitleManager : MonoBehaviour
         titleDuration = c.TitleDuration;
         splashDuration = c.SplashDuration;
         splashes = c.Splashes;
-
-        ChatManagerContext.Current.OnIntermission += StartSplashScreen;
-        ChatManagerContext.Current.OnChatNodeActivated += OnNodeActivated;
     }
 
     private void Awake()
     {
-        Instance = this;
+        _instance = this;
         ConfigManager.Instance.RegisterConfig(typeof(SplashScreenConfigs), "splash", (config) => Configure((SplashScreenConfigs)config));
     }
 
-    private void OnNodeActivated(ChatNode node)
+    public void OnNodeActivated(ChatNode node)
     {
         SetSubtitle(node.Actor.Title, node.Say, node.Actor.Color
             .Lighten()
@@ -67,7 +65,7 @@ public class SubtitleManager : MonoBehaviour
         SetSubtitle(name, text, Color.white);
     }
 
-    private IEnumerator StartSplashScreen(Chat chat)
+    public IEnumerator StartSplashScreen(Chat chat)
     {
         if (splashScreen == null) yield break;
         yield return FadeOut(title);
@@ -75,7 +73,7 @@ public class SubtitleManager : MonoBehaviour
 
         if (ChatManager.Instance.ActorsInScene.Count == 0)
         {
-            if (splashes.Length > 0)
+            if (splashes != null && splashes.Length > 0)
             {
                 splashScreen.text = splashes[Random.Range(0, splashes.Length)];
                 yield return FadeIn(splashScreen);
