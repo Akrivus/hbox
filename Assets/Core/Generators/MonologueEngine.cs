@@ -29,7 +29,7 @@ public class MonologueEngine : MonoBehaviour, ISubGenerator
             if (controller == null) continue;
 
             var resolver = new PromptResolver(chat.ManagerContext, "Actors", "Memories", narrator.Name);
-            var bucket = await MemoryBucket.Get(chat.ManagerContext.Key, narrator.Name);
+            var bucket = await MemoryBucket.Get(chat.ManagerContext, narrator.Name);
 
             await controller.SetPrompt(chat.Actors);
 

@@ -124,19 +124,19 @@ public class MemoryBucket
         return await LLM.EmbedAsync(text);
     }
 
-    public static async Task<MemoryBucket> Get(string context, string name)
+    public static async Task<MemoryBucket> Get(ChatManagerContext context, string name)
     {
         if (Buckets.ContainsKey(name))
             return Buckets[name];
 
-        var bucket = new MemoryBucket(context, name);
+        var bucket = new MemoryBucket(context.Key, name);
         await bucket.Load();
 
         Buckets[name] = bucket;
         return bucket;
     }
 
-    public static async Task<string> GetContext(string context, string channel)
+    public static async Task<string> GetContext(ChatManagerContext context, string channel)
     {
         var bucket = await Get(context, "#" + channel);
         return bucket.Get();

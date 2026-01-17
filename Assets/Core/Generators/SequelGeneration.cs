@@ -18,7 +18,7 @@ public class SequelGeneration : MonoBehaviour, ISubGenerator
         var states = "";
         foreach (var actor in chat.Actors)
             states += $"#### {actor.Name}\n\n" + actor.Memory + "\n\n";
-        var context = await MemoryBucket.GetContext(chat.ManagerContext.Key, slug);
+        var context = await MemoryBucket.GetContext(chat.ManagerContext, slug);
         var text = await LLM.CompleteAsync(
             await prompt.Resolve(context, states), chat, fastMode);
         generator.AddIdeaToQueue(new Idea(text));

@@ -9,7 +9,6 @@ using UnityEngine;
 
 public class Chat
 {
-    public static string FolderName = "";
     public string FileName { get; set; }
     public string Key { get; set; }
 
@@ -99,7 +98,7 @@ public class Chat
         var json = JsonConvert.SerializeObject(this, Formatting.Indented);
 
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folder = Path.Combine(docs, FolderName);
+        var folder = Path.Combine(docs, ManagerContext.Name);
         if (!Directory.Exists(folder))
             Directory.CreateDirectory(folder);
         folder = Path.Combine(folder, $"{FileName}.json");
@@ -107,30 +106,18 @@ public class Chat
         await File.WriteAllTextAsync(folder, json);
     }
 
-    public static string[] GetFiles()
+    public static async Task<Chat> Load(string folder, string slug)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var path = Path.Combine(docs, FolderName);
-        return Directory.GetFiles(path, "*.json");
-    }
-
-    public static string[] GetNames()
-    {
-        return GetFiles().Select(Path.GetFileNameWithoutExtension).ToArray();
-    }
-
-    public static async Task<Chat> Load(string slug)
-    {
-        var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var path = Path.Combine(docs, FolderName, $"{slug}.json");
+        var path = Path.Combine(docs, folder, $"{slug}.json");
         var json = await File.ReadAllTextAsync(path);
         return JsonConvert.DeserializeObject<Chat>(json);
     }
 
-    public static bool FileExists(string slug)
+    public static bool FileExists(string folder, string slug)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var path = Path.Combine(docs, FolderName, $"{slug}.json");
+        var path = Path.Combine(docs, folder, $"{slug}.json");
         return File.Exists(path);
     }
 }

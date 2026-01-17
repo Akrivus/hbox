@@ -31,8 +31,6 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
         replays = LoadReplays();
 
-        Chat.FolderName = ReplayDirectory;
-
         ChatManagerContext.Current.OnChatQueueEmpty += OnChatQueueEmpty;
     }
 
@@ -66,7 +64,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private async Task FetchFiles(int count)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var path = Path.Combine(docs, Chat.FolderName);
+        var path = Path.Combine(docs, ReplayDirectory);
 
         var tasks = Directory.GetFiles(path, "*.json")
             .Where(file => File.GetLastWriteTime(file) > DateTime.Now.AddMinutes(-MaxReplayAgeInMinutes))
@@ -84,7 +82,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     {
         replays = replays.TakeLast(ReplayRate - 1).ToList();
         replays.Add(title);
-        return Chat.Load(title);
+        return Chat.Load(ReplayDirectory, title);
     }
 
     private List<string> LoadReplays()

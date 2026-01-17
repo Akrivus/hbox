@@ -23,7 +23,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
 
         await actor.SetPrompt(chat.Actors);
 
-        var bucket = await MemoryBucket.Get(chat.ManagerContext.Key, actor.Name);
+        var bucket = await MemoryBucket.Get(chat.ManagerContext, actor.Name);
         actor.Context = await LLM.CompleteAsync(
             await prompt.Resolve(
                 chat.Topic,
