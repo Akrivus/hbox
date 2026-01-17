@@ -9,11 +9,13 @@ public class MemoryBucket
 {
     public static Dictionary<string, MemoryBucket> Buckets = new Dictionary<string, MemoryBucket>();
 
+    public string Context { get; private set; }
     public string Name { get; private set; }
     public List<Memory> Memories { get; private set; }
 
-    public MemoryBucket(string name)
+    public MemoryBucket(string context, string name)
     {
+        Context = context;
         Name = name;
         Memories = new List<Memory>();
     }
@@ -30,14 +32,16 @@ public class MemoryBucket
     {
         try
         {
-            if (!Directory.Exists("./Memories"))
-                Directory.CreateDirectory("./Memories");
+            var folder = $"./Vault/{Context}/Memories";
+            var path = $"{folder}/{Name}.json";
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
 
-            var json = JsonConvert.SerializeObject(Memories);
+            var json = JsonConvert.SerializeObject(Memories, Formatting.Indented);
 
             try
             {
-                await File.WriteAllTextAsync($"./Memories/{Name}.json", json);
+                await File.WriteAllTextAsync(path, json);
                 Buckets.Remove(Name);
             }
             catch (Exception e)
@@ -55,13 +59,15 @@ public class MemoryBucket
     {
         try
         {
-            if (!Directory.Exists("./Memories"))
-                Directory.CreateDirectory("./Memories");
-            if (!File.Exists($"./Memories/{Name}.json"))
+            var folder = $"./Vault/{Context}/Memories";
+            var path = $"{folder}/{Name}.json";
+            if (!Directory.Exists(folder))
+                Directory.CreateDirectory(folder);
+            if (!File.Exists(path))
                 return;
             try
             {
-                var json = await File.ReadAllTextAsync($"./Memories/{Name}.json");
+                var json = await File.ReadAllTextAsync(path);
                 Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
             }
             catch (Exception e)
@@ -118,21 +124,21 @@ public class MemoryBucket
         return await LLM.EmbedAsync(text);
     }
 
-    public static async Task<MemoryBucket> Get(string name)
+    public static async Task<MemoryBucket> Get(string context, string name)
     {
         if (Buckets.ContainsKey(name))
             return Buckets[name];
 
-        var bucket = new MemoryBucket(name);
+        var bucket = new MemoryBucket(context, name);
         await bucket.Load();
 
         Buckets[name] = bucket;
         return bucket;
     }
 
-    public static async Task<string> GetContext(string channel)
+    public static async Task<string> GetContext(string context, string channel)
     {
-        var bucket = await Get("#" + channel);
+        var bucket = await Get(context, "#" + channel);
         return bucket.Get();
     }
 

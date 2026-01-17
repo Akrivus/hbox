@@ -74,8 +74,6 @@ public class ChatManager : MonoBehaviour
             if (playList.TryDequeue(out var chat) && chat != null)
                 if (CurrentContext.Key == null || CurrentContext.Key == chat.Key)
                     yield return Play(chat);
-                else
-                    playList.Enqueue(chat); // re-enqueue if context doesn't match
 
             if (CurrentContext.RemoveActorsOnCompletion)
                 yield return RemoveAllActors();
@@ -109,6 +107,8 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator PlayChat(Chat chat)
     {
+        if (CurrentContext.Key != null && CurrentContext.Key != chat.Key)
+            throw new Exception($"ChatManagerContext '{chat.Key}' does not match current ChatManagerContext '{CurrentContext.Key}'");
         yield return new WaitUntil(() => !IsPaused);
 
         if (chat.NextNode == null && !chat.IsLocked)
@@ -273,7 +273,7 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator RemoveActor(ActorController controller)
     {
-        yield return controller.Deactivate();
+        yield return controller?.Deactivate();
         actors.Remove(controller);
         OnActorRemoved?.Invoke(NowPlaying, controller);
     }

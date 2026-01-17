@@ -312,7 +312,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: cf59c109f7c752c4b8e62005c1f055d0, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: cf59c109f7c752c4b8e62005c1f055d0, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 0.5
@@ -739,7 +739,7 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 8300000, guid: bd8d5611f2a97d447a2b04f5a4324ae7, type: 3}
+  m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: bd8d5611f2a97d447a2b04f5a4324ae7, type: 3}
   m_PlayOnAwake: 1
   m_Volume: 1
@@ -1076,6 +1076,47 @@ Transform:
   - {fileID: 111481593}
   m_Father: {fileID: 1705980352}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!21 &862195500
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: UI/RoundedCorners/RoundedCorners
+  m_Shader: {fileID: 4800000, guid: 0bd2ec5d73751e34a814274a454bec41, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _ColorMask: 15
+    - _Stencil: 0
+    - _StencilComp: 8
+    - _StencilOp: 0
+    - _StencilReadMask: 255
+    - _StencilWriteMask: 255
+    - _UseUIAlphaClip: 0
+    m_Colors:
+    - _OuterUV: {r: 0, g: 0, b: 1, a: 1}
+    - _WidthHeightRadius: {r: 1670, g: 644, b: 16, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!1 &970992151
 GameObject:
   m_ObjectHideFlags: 0
@@ -1254,8 +1295,6 @@ MonoBehaviour:
   generator: {fileID: 1468372592}
   shareScreenUiManager: {fileID: 8619228844118958235}
   discordManager: {fileID: 544448225}
-  prompt1: {fileID: 4900000, guid: fffcebb198343d3478d71568c3914d0a, type: 3}
-  prompt2: {fileID: 4900000, guid: e9288e84dc973ca49bfb0deae910fb46, type: 3}
   teams:
   - {fileID: 11400000, guid: 203d304efa15e344f9320677d41e9cf7, type: 2}
   - {fileID: 11400000, guid: dd7146da3ef72564a8b02d840e93f420, type: 2}
@@ -1403,47 +1442,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1242223198}
   m_CullTransparentMesh: 1
---- !u!21 &1325189083
-Material:
-  serializedVersion: 8
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: UI/RoundedCorners/RoundedCorners
-  m_Shader: {fileID: 4800000, guid: 0bd2ec5d73751e34a814274a454bec41, type: 3}
-  m_Parent: {fileID: 0}
-  m_ModifiedSerializedProperties: 0
-  m_ValidKeywords: []
-  m_InvalidKeywords: []
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_LockedProperties: 
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Ints: []
-    m_Floats:
-    - _ColorMask: 15
-    - _Stencil: 0
-    - _StencilComp: 8
-    - _StencilOp: 0
-    - _StencilReadMask: 255
-    - _StencilWriteMask: 255
-    - _UseUIAlphaClip: 0
-    m_Colors:
-    - _OuterUV: {r: 0, g: 0, b: 1, a: 1}
-    - _WidthHeightRadius: {r: 1670, g: 644, b: 16, a: 0}
-  m_BuildTextureStacks: []
-  m_AllowLocking: 1
 --- !u!1 &1418338288
 GameObject:
   m_ObjectHideFlags: 0
@@ -1700,6 +1698,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1705980352}
   - component: {fileID: 1705980351}
+  - component: {fileID: 1705980353}
   m_Layer: 0
   m_Name: polbots
   m_TagString: Untagged
@@ -1719,10 +1718,62 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2922da5685e70642b68479e84c12b09, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  audioSource: {fileID: 970992153}
-  _actors:
+--- !u!4 &1705980352
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1705980350}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1468372590}
+  - {fileID: 544448211}
+  - {fileID: 1881774471}
+  - {fileID: 757884680}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1705980353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1705980350}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6552ad7dab27c454fbf6a723c2d01f7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChatManagerContext
+  key: polbots
+  AudioSource: {fileID: 970992153}
+  SpawnPoints: []
+  FallbackSpawnPoints:
+  - {fileID: 5663252623448048226}
+  - {fileID: 4013275410509602529}
+  - {fileID: 8290252843914763882}
+  - {fileID: 954726334164083890}
+  - {fileID: 4504264582452268046}
+  - {fileID: 5748567629692913513}
+  - {fileID: 6447532340280975409}
+  - {fileID: 542681195432589483}
+  - {fileID: 2503327377364046964}
+  - {fileID: 1415296379966113022}
+  - {fileID: 259160079115711971}
+  - {fileID: 4569057304092433769}
+  - {fileID: 478639327708719378}
+  - {fileID: 3429407935914403989}
+  - {fileID: 9110112758701779686}
+  - {fileID: 1587062198408039802}
+  Locations: []
+  Actors:
   - {fileID: 11400000, guid: e768a90993e27e742afca401b6d9c013, type: 2}
   - {fileID: 11400000, guid: 865da59c6aadd804ca7f59e3421f5ecb, type: 2}
+  - {fileID: 11400000, guid: 6b596a785313af741b233481e31fce16, type: 2}
   - {fileID: 11400000, guid: b99fd511c1820c14198d6c682811d256, type: 2}
   - {fileID: 11400000, guid: 0ab8acb2d02664a49ac9919fe7321f29, type: 2}
   - {fileID: 11400000, guid: 878c3e70ffb418a4d95899fe3872c1a4, type: 2}
@@ -1923,7 +1974,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6058176e046092246a2977d81a8a4021, type: 2}
   - {fileID: 11400000, guid: e8ff1a80b09185a41b510c6860efb20d, type: 2}
   - {fileID: 11400000, guid: 8af005d69afd3cb42b96db2310bbcb03, type: 2}
-  _sentiments:
+  Sentiments:
   - {fileID: 11400000, guid: 3b5fd02ad1e6da945a15690c9c364fcf, type: 2}
   - {fileID: 11400000, guid: 880f895d53772a84bbf7caf782f83a6c, type: 2}
   - {fileID: 11400000, guid: 4c40a0f3ed2ee7f4c9f9426d5277bc34, type: 2}
@@ -1970,46 +2021,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 92e4bd412ef7cd84db8541588d92f962, type: 2}
   - {fileID: 11400000, guid: ae174ed034c923c4cae68424e1e27849, type: 2}
   - {fileID: 11400000, guid: d037e7294d35c6741941745b2ceb853a, type: 2}
-  spawnPoints: []
-  fallbackSpawnPoints:
-  - {fileID: 5663252623448048226}
-  - {fileID: 4013275410509602529}
-  - {fileID: 8290252843914763882}
-  - {fileID: 954726334164083890}
-  - {fileID: 4504264582452268046}
-  - {fileID: 5748567629692913513}
-  - {fileID: 6447532340280975409}
-  - {fileID: 542681195432589483}
-  - {fileID: 2503327377364046964}
-  - {fileID: 1415296379966113022}
-  - {fileID: 259160079115711971}
-  - {fileID: 4569057304092433769}
-  - {fileID: 478639327708719378}
-  - {fileID: 3429407935914403989}
-  - {fileID: 9110112758701779686}
-  - {fileID: 1587062198408039802}
-  _forceEpisodeID: 
-  minQueueSize: 0
-  removeActorsOnCompletion: 0
---- !u!4 &1705980352
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1705980350}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1468372590}
-  - {fileID: 544448211}
-  - {fileID: 1881774471}
-  - {fileID: 757884680}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  RemoveActorsOnCompletion: 0
+  DisableSoundEffects: 0
 --- !u!1 &1881774467
 GameObject:
   m_ObjectHideFlags: 0
@@ -2041,7 +2054,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1705980352}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!21 &2013567972
+--- !u!21 &1932650199
 Material:
   serializedVersion: 8
   m_ObjectHideFlags: 0
@@ -2482,6 +2495,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Container: {fileID: 6672856584874975960}
   VideoScreenPrefab: {fileID: 4403121825232622136, guid: dbd3e44b1c52753479b4ec5edfe305c1, type: 3}
+  VideoScreenFooter: {fileID: 0}
   AudioSource: {fileID: 601602171252500425}
   _gridLayoutGroup: {fileID: 7984383449649644367}
   _profile:
@@ -2769,7 +2783,6 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
     m_Quality: 3
     m_FrameInfluence: 0.1
@@ -2777,6 +2790,7 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!1 &2398930859872175556
 GameObject:
   m_ObjectHideFlags: 0
@@ -3505,7 +3519,6 @@ MonoBehaviour:
   title: {fileID: 2169888537727004513}
   subtitle: {fileID: 6407392299532666911}
   subtitleShadow: {fileID: 339518828133446745}
-  pauseButton: {fileID: 2055290960}
   fadeOut: 0
 --- !u!4 &7467511178430168988
 Transform:

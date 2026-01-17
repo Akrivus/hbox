@@ -58,6 +58,9 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             var model = fast ? FAST_MODEL : SLOW_MODEL;
             var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
 
+            if (prompt != null)
+                await prompt.SaveInput();
+
             RemainingRequests = request.RemainingRequests;
             RemainingTokens = request.RemainingTokens;
             ResetRequestsTimespan = request.ResetRequestsTimespan;

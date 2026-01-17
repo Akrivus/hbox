@@ -10,6 +10,7 @@ public class PromptResolver
 {
     public static string EngineName = null;
     public static string BasePromptPath = "Prompts";
+    public static string BaseInputPath = "Inputs";
     public static string BaseOutputPath = "Outputs";
     public static string BasePath = "Vault";
 
@@ -103,6 +104,14 @@ public class PromptResolver
             .ToDictionary(
                 line => line.Key,
                 line => line.Value);
+    }
+
+    public async Task SaveInput()
+    {
+        var folder = System.IO.Path.Combine(BasePath, ManagerContext.Name, BaseInputPath, Part);
+        var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
+        var path = System.IO.Path.Combine(folder, timestamp + ".md");
+        await Save(path, Text);
     }
 
     public async Task SaveOutput(string text)

@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "UI Actions",
     "maps": [
         {
@@ -90,7 +91,7 @@
             "bindings": [
                 {
                     "name": "",
-                    "id": "4d58a69c-46de-4721-ac2a-72f07bc50f2c",
+                    "id": "a8456d80-5ca7-4bf1-a0fd-050a5fe9dc29",
                     "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
