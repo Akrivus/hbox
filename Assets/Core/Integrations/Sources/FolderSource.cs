@@ -18,6 +18,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private List<string> replays = new List<string>();
     private ConcurrentQueue<Chat> queue = new ConcurrentQueue<Chat>();
+    private string fileName;
 
     public void Configure(FolderConfigs c)
     {
@@ -31,10 +32,16 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
         replays = LoadReplays();
 
-        ChatManagerContext.Current.OnChatQueueEmpty += OnChatQueueEmpty;
+        ChatManagerContext.Current.OnChatQueueEmpty += ReplayNewEpisode;
+        ChatManagerContext.Current.OnChatLoaded += AddReplayToList;
     }
 
-    public void OnChatQueueEmpty()
+    public void AddReplayToList(Chat chat)
+    {
+        replays.Add(chat.FileName);
+    }
+
+    public void ReplayNewEpisode()
     {
         StartCoroutine(ReplayEpisodes());
     }
@@ -56,9 +63,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void OnDestroy()
     {
-        ChatManagerContext.Current.OnChatQueueEmpty -= OnChatQueueEmpty;
         StopAllCoroutines();
-        File.WriteAllLines($"replays.txt", replays);
+        File.WriteAllLines(fileName, replays);
     }
 
     private async Task FetchFiles(int count)
@@ -87,9 +93,10 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private List<string> LoadReplays()
     {
-        if (!File.Exists("replays.txt"))
+        fileName = $"replays-{ChatManagerContext.Current.Key}.txt";
+        if (!File.Exists(fileName))
             return new List<string>();
-        return File.ReadAllLines("replays.txt")
+        return File.ReadAllLines(fileName)
             .ToList();
     }
 }

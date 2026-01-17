@@ -28,6 +28,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     private List<string> history = new List<string>();
     private Dictionary<string, DateTime> fetchTimes = new Dictionary<string, DateTime>();
     private Queue<Idea> ideas = new Queue<Idea>();
+    private string fileName;
 
     private int i = 0;
     private RedditThreadMiner miner;
@@ -132,14 +133,15 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     private void OnDestroy()
     {
         StopAllCoroutines();
-        File.WriteAllLines("reddit.txt", history);
+        File.WriteAllLines(fileName, history);
     }
 
     private List<string> LoadHistory()
     {
-        if (!File.Exists("reddit.txt"))
+        fileName = $"reddit-{ChatManagerContext.Current.Key}.txt";
+        if (!File.Exists(fileName))
             return new List<string>();
-        return File.ReadAllLines("reddit.txt").ToList();
+        return File.ReadAllLines(fileName).ToList();
     }
 
     public Task<IEnumerable<JToken>> FetchAsync(string subreddit, int batchMax = 0)
