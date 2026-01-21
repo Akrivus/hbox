@@ -9,8 +9,7 @@ using UnityEngine;
 
 public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 {
-    public static DiscordManager Instance => _instance ??= FindFirstObjectByType<DiscordManager>();
-    private static DiscordManager _instance;
+    public static DiscordManager Instance { get; private set; }
 
     public static Dictionary<string, DiscordWebhook> Webhooks => webhooks;
     private static Dictionary<string, DiscordWebhook> webhooks;
@@ -30,10 +29,10 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         StartCoroutine(UpdateWebhooks());
     }
 
-    private void Awake()
+    private void Start()
     {
-        _instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(DiscordConfigs), "discord", (config) => Configure((DiscordConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(DiscordConfigs), "discord", (_config) => Configure((DiscordConfigs)_config));
+        Instance = this;
     }
 
     private void OnDestroy()
@@ -43,35 +42,18 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private IEnumerator UpdateWebhooks()
     {
-        while (Application.isPlaying)
+        do
         {
             yield return new WaitUntilTimer(() => Q.Count > 0, 30);
 
             if (Q.TryDequeue(out var m) && Webhooks.TryGetValue(m.Key, out var web))
                 yield return web.SendAsync(m.Value);
-        }
+        } while (this != null);
     }
 
     public void SendDialogue(ChatNode node)
     {
         PutInQueue("#stream", node.Line, node.Actor.Name, GetAvatarURL(node));
-    }
-
-    private void SendNarration(string text)
-    {
-        PutInQueue("#sports", text);
-    }
-
-    private void SendSportsUpdates(string message)
-    {
-        if (!message.StartsWith("#")) return;
-        PutInQueue("#stream-sports", message);
-        PutInQueue("#sports", message);
-    }
-
-    private int ToHex(Color color)
-    {
-        return (int)(color.r * 255) << 16 | (int)(color.g * 255) << 8 | (int)(color.b * 255);
     }
 
     private string GetAvatarURL(ChatNode node)

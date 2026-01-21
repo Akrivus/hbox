@@ -1,6 +1,5 @@
 ﻿
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,7 +11,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 
-public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
+public class ServerSource : MonoBehaviour
 {
     public static ServerSource Instance { get; private set; }
 
@@ -27,29 +26,12 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
 
     private HttpListener listener;
     private Thread thread;
+    private List<GeneratorInfo> g;
 
     private CancellationTokenSource cts = new CancellationTokenSource();
     private CancellationToken token;
 
-    [SerializeField]
-    private ChatGenerator generator;
-
     public bool IsListening { get; private set; } = true;
-
-    public void Configure(ServerConfigs c)
-    {
-        for (var i = 0; i < c.Prompts.Count; i++)
-            if (File.Exists(c.Prompts[i]))
-                c.Prompts[i] = File.ReadAllText(c.Prompts[i]);
-        if (c.Prompts.Count > 0)
-            StartCoroutine(GeneratePrompts(c.Prompts));
-    }
-
-    private IEnumerator GeneratePrompts(List<string> prompts)
-    {
-        foreach (var prompt in prompts)
-            yield return generator.GenerateAndPlay(new Idea(prompt)).AsCoroutine();
-    }
 
     public void Awake()
     {
@@ -57,18 +39,16 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         Instance = this;
 
-        ConfigManager.Instance.RegisterConfig(typeof(ServerConfigs), "human", (config) => Configure((ServerConfigs)config));
-
-        AddRoute("POST", $"/generate", (_) => ProcessBodyString(_, s => generator.AddPromptToQueue(s)));
         AddRoute("GET", "/", (_) => ProcessFileRequest(_, "index.html"));
+        AddRoute("GET", "/generate", (_) => GetListOfGenerators(_));
     }
 
     private void Start()
     {
         token = cts.Token;
         listener = new HttpListener();
-        listener.Prefixes.Add($"http://{GetLocalIPAddress()}:8080/");
-        listener.Prefixes.Add($"http://localhost:8080/");
+        listener.Prefixes.Add($"http://{GetLocalIPAddress()}:6789/");
+        listener.Prefixes.Add($"http://localhost:6789/");
         thread = new Thread(Listen);
         thread.Start();
     }
@@ -88,6 +68,12 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
         while (!token.IsCancellationRequested && listener.IsListening && IsListening)
             ProcessRequest(await listener.GetContextAsync());
         listener.Close();
+    }
+
+    private void GetListOfGenerators(HttpListenerContext context)
+    {
+        var json = JsonConvert.SerializeObject(g);
+        context.Response.WriteString(json, "application/json");
     }
 
     private void ProcessRequest(HttpListenerContext context)
@@ -118,6 +104,19 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
             response.StatusCode = 500;
         }
         response.Close();
+    }
+
+    public void AddGenerator(ChatGenerator generator)
+    {
+        if (g == null)
+            g = new List<GeneratorInfo>();
+        g.Add(new GeneratorInfo()
+        {
+            context = generator.ManagerContext.Name,
+            name = generator.name,
+            slug = generator.slug,
+            href = generator.href
+        });
     }
 
     public static void ProcessFileRequest(HttpListenerContext context, string path)
@@ -229,4 +228,12 @@ public class ServerSource : MonoBehaviour, IConfigurable<ServerConfigs>
                 return ip.ToString();
         throw new Exception("No network adapters with an IPv4 address in the system!");
     }
+}
+
+public struct GeneratorInfo
+{
+    public string context;
+    public string name;
+    public string slug;
+    public string href;
 }

@@ -60,13 +60,16 @@ public sealed class ChatManagerContext : MonoBehaviour
 
     public string Name => name;
     public string Key => key;
+    public string ScenePath => $"Scenes/{Name}";
 
     public Actor.SearchableList ActorsSearch { get; private set; }
     public Sentiment.SearchableList SentimentsSearch { get; private set; }
+    public bool IsActive => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context == this;
 
     [SerializeField]
     private string key;
 
+    public ConfigManager ConfigManager;
     public AudioSource AudioSource;
     public SpawnPointManager[] SpawnPoints;
     public Transform[] FallbackSpawnPoints;
@@ -96,5 +99,16 @@ public sealed class ChatManagerContext : MonoBehaviour
     {
         Bindings.Dispose();
         AudioSource.Stop();
+    }
+
+    private IEnumerator Death()
+    {
+        yield return new WaitUntil(() => !IsActive && GetComponentInChildren<ChatGenerator>()?.IsActive != true);
+        Destroy(gameObject);
+    }
+
+    public void MarkForDeath()
+    {
+        StartCoroutine(Death());
     }
 }

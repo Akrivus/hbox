@@ -13,8 +13,8 @@ public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
         OpenAiApiKey = config.OpenAiApiKey;
     }
 
-    private void Awake()
+    private void Start()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(TTSConfigs), "tts", (config) => Configure((TTSConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(TTSConfigs), "tts", (_config) => Configure((TTSConfigs)_config));
     }
 }

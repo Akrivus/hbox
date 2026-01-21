@@ -22,7 +22,6 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOn()
     {
-        FolderSource.IsEnabled = false;
         SetShareScreen(
             GridLayoutGroup.Corner.UpperLeft,
             GridLayoutGroup.Axis.Horizontal,
@@ -32,7 +31,6 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOff()
     {
-        FolderSource.IsEnabled = true;
         SetShareScreen(
             GridLayoutGroup.Corner.UpperLeft,
             GridLayoutGroup.Axis.Horizontal,

@@ -72,9 +72,6 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (config.GameOnStart)
             ChatManagerContext.Current.OnChatQueueEmpty += BreakTheSilence;
 
-        if (config.GameOnBatchEnd)
-            RedditSource.Instance.OnBatchEnd += BreakTheSilence;
-
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
     }
@@ -114,7 +111,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void Awake()
     {
         Instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(SoccerConfigs), "soccer", config => Configure((SoccerConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(SoccerConfigs), "soccer", config => Configure((SoccerConfigs)config));
         RegisterEmissionEvents();
     }
 

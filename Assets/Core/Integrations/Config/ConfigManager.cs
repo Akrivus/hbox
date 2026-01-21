@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -8,22 +9,20 @@ using UnityEngine;
 
 public class ConfigManager : MonoBehaviour
 {
-    public static ConfigManager Instance => _instance ??= FindFirstObjectByType<ConfigManager>();
-    private static ConfigManager _instance;
-
     public string ConfigPath = "config.json";
 
     private Dictionary<string, Type> casters = new Dictionary<string, Type>();
     private Dictionary<string, Action<object>> handlers = new Dictionary<string, Action<object>>();
     private List<object> configs = new List<object>();
 
-    private void Awake()
-    {
-        _instance = this;
-    }
-
     private void Start()
     {
+        StartCoroutine(LateStart());
+    }
+
+    private IEnumerator LateStart()
+    {
+        yield return new WaitForEndOfFrame();
         LoadConfigs();
     }
 

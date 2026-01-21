@@ -36,12 +36,12 @@ public class GlobeController : MonoBehaviour
 
     public void Disable()
     {
-        Camera.main.cullingMask = 122879;
-        Globe.ZoomTo(85.0f);
-        _zoomTo = false;
         ChatManagerContext.Current.RemoveActorsOnCompletion = false;
         ChatManagerContext.Current.DisableSoundEffects = false;
         VideoCallUIManager.Instance.Enabled = true;
+        Camera.main.cullingMask = 122879;
+        _zoomTo = false;
+        Globe.ZoomTo(85.0f);
     }
 
     public void Enable()
@@ -61,7 +61,9 @@ public class GlobeController : MonoBehaviour
         ChatManagerContext.Current.OnActorAdded += OnActorAdded;
         ChatManagerContext.Current.OnActorRemoved += OnActorRemoved;
         ChatManagerContext.Current.OnChatNodeActivated += OnChatNodeActivated;
-        Globe.OnFlyEnd += OnFlyEnd;
+
+        if (Globe != null)
+            Globe.OnFlyEnd += OnFlyEnd;
     }
 
     private void OnDestroy()
@@ -71,7 +73,9 @@ public class GlobeController : MonoBehaviour
         ChatManagerContext.Current.OnActorAdded -= OnActorAdded;
         ChatManagerContext.Current.OnActorRemoved -= OnActorRemoved;
         ChatManagerContext.Current.OnChatNodeActivated -= OnChatNodeActivated;
-        Globe.OnFlyEnd -= OnFlyEnd;
+
+        if (Globe != null)
+            Globe.OnFlyEnd -= OnFlyEnd;
 
         Disable();
     }

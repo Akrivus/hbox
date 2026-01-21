@@ -58,9 +58,6 @@ public class Chat
     public string[] Names => Actors.Select(a => a.Name).ToArray();
 
     [JsonIgnore]
-    public List<Message> Messages { get; set; }
-
-    [JsonIgnore]
     public ChatManagerContext ManagerContext { get; set; }
 
     public Chat(Idea idea, ChatManagerContext context)
@@ -79,16 +76,12 @@ public class Chat
         _locked = true;
     }
 
-    public void Unlock()
-    {
-        _locked = false;
-    }
-
     public void Lock()
     {
         _locked = true;
     }
-
+    
+    [JsonIgnore]
     public ChatNode NextNode => Nodes.FirstOrDefault(n => n.New);
 
     public async void Save()

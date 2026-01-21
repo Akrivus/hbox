@@ -7,9 +7,6 @@ using UnityEngine;
 
 public class YouTubeIntegration : MonoBehaviour, IConfigurable<YouTubeConfigs>
 {
-    public static YouTubeIntegration Instance => _instance ?? (_instance = FindFirstObjectByType<YouTubeIntegration>());
-    private static YouTubeIntegration _instance;
-
     private string accessToken;
     private string refreshToken;
     private string[] tags;

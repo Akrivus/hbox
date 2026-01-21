@@ -48,9 +48,9 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             StartStreaming();
     }
 
-    private void Awake()
+    private void Start()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(OBSConfigs), "obs", (config) => Configure((OBSConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(OBSConfigs), "obs", (_config) => Configure((OBSConfigs)_config));
     }
 
     private void OnDestroy()

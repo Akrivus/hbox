@@ -17,7 +17,7 @@ public class VideoCallUIManager : MonoBehaviour
         get => _enabled;
         set
         {
-            VideoScreenFooter.SetActive(value);
+            VideoScreenFooter?.SetActive(value);
             _enabled = value;
         }
     }

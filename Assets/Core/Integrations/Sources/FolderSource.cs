@@ -9,8 +9,6 @@ using UnityEngine;
 
 public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 {
-    public static bool IsEnabled = true;
-
     public string ReplayDirectory;
     public int ReplayRate = 80;
     public int ReplaysPerBatch = 20;
@@ -48,7 +46,6 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerator ReplayEpisodes()
     {
-        if (!IsEnabled) yield break;
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
 
         var chat = default(Chat);
@@ -56,13 +53,15 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         ChatManager.Instance.AddToPlayList(chat);
     }
 
-    private void Awake()
+    private void Start()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(FolderConfigs), "folder", (config) => Configure((FolderConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(FolderConfigs), "folder", (_config) => Configure((FolderConfigs)_config));
     }
 
     private void OnDestroy()
     {
+        ChatManagerContext.Current.OnChatQueueEmpty -= ReplayNewEpisode;
+        ChatManagerContext.Current.OnChatLoaded -= AddReplayToList;
         StopAllCoroutines();
         File.WriteAllLines(fileName, replays);
     }
@@ -75,13 +74,19 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         var tasks = Directory.GetFiles(path, "*.json")
             .Where(file => File.GetLastWriteTime(file) > DateTime.Now.AddMinutes(-MaxReplayAgeInMinutes))
             .OrderBy(file => File.GetLastWriteTime(file))
+            .Reverse() // newest first
             .Select(Path.GetFileNameWithoutExtension)
             .Where(title => !replays.Contains(title))
-            .Take(count).Select(LogThenLoad)
+            .Take(count)
+            .Reverse() // load oldest first
+            .Select(LogThenLoad)
             .ToList();
 
         foreach (var task in tasks)
             queue.Enqueue(await task);
+
+        if (tasks.Count > 0)
+            UiEventBus.Publish(ChatManagerContext.Current, $"Loaded {tasks.Count} replay{(tasks.Count == 1 ? "" : "s")}");
     }
 
     private Task<Chat> LogThenLoad(string title)

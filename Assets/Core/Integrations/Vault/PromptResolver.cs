@@ -22,6 +22,7 @@ public class PromptResolver
     public string Text { get; private set; } = string.Empty;
     public PromptResolver Output { get; private set; } = null;
     public ChatManagerContext ManagerContext { get; private set; }
+    public string FolderName { get; private set; }
 
     private bool nullable = false;
 
@@ -29,6 +30,7 @@ public class PromptResolver
     {
         Part = "Actors/" + actor.Name;
         ManagerContext = actor.ManagerContext;
+        FolderName = ManagerContext.Name;
         SetPromptPath(ManagerContext.Key);
     }
 
@@ -36,6 +38,7 @@ public class PromptResolver
     {
         Part = generator.name;
         ManagerContext = generator.ManagerContext;
+        FolderName = ManagerContext.Name;
         SetPromptPath(ManagerContext.Key);
         if (!File.Exists(Path))
             Part = "Defaults";
@@ -47,6 +50,7 @@ public class PromptResolver
 
         Part = string.Join("/", generator.name, SplitTypeName(sub));
         ManagerContext = generator.ManagerContext;
+        FolderName = ManagerContext.Name;
         SetPromptPath(ManagerContext.Key);
         if (!File.Exists(Path))
             Part = string.Join("/", "Defaults", SplitTypeName(sub));
@@ -57,6 +61,7 @@ public class PromptResolver
     {
         Part = string.Join("/", path);
         ManagerContext = chatManagerContext;
+        FolderName = ManagerContext.Name;
         SetPromptPath(ManagerContext.Key);
     }
 
@@ -108,7 +113,7 @@ public class PromptResolver
 
     public async Task SaveInput()
     {
-        var folder = System.IO.Path.Combine(BasePath, ManagerContext.Name, BaseInputPath, Part);
+        var folder = System.IO.Path.Combine(BasePath, FolderName, BaseInputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
         await Save(path, Text);
@@ -116,7 +121,7 @@ public class PromptResolver
 
     public async Task SaveOutput(string text)
     {
-        var folder = System.IO.Path.Combine(BasePath, ManagerContext.Name, BaseOutputPath, Part);
+        var folder = System.IO.Path.Combine(BasePath, FolderName, BaseOutputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 

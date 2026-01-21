@@ -77,8 +77,8 @@ crashlytics-build.properties
 /[Aa]ssets/3rd[Pp]arty/*
 /Memories/*
 context.txt
-reddit.txt
-replays.txt
+reddit-*.txt
+replays-*.txt
 config.json
 
 # hbox specific

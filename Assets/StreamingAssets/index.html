@@ -67,37 +67,99 @@
 			button:hover {
 				background-color: #111111;
 			}
+
+			#status {
+				margin-top: 8px;
+				color: #777777;
+				font-size: 12px;
+			}
 		</style>
 	</head>
 	<body>
 		<form id="form">
 			<div class="inputbox">
 				<button type="submit">Suggest</button>
-				<select>
-					<option value="un-discord">polbots: UN Discord</option>
-					<option value="romebots-full">RomeBots</option>
-					<option value="romebots-fast">RomeBots [FAST]</option>
-					<option value="space-drivel-full">Space Drivel</option>
-					<option value="space-drivel-fast">Space Drivel [FAST]</option>
-				</select>
+				<select id="options"></select>
+				<div id="status"></div>
 			</div>
 			<textarea id="input" placeholder="Write your idea here..."></textarea>
 		</form>
-
 		<script>
 			const form = document.getElementById('form');
 			const input = document.getElementById('input');
+			const options = document.getElementById('options');
+
+			function groupByContext(items) {
+				const map = new Map();
+				for (const it of items) {
+					const key = (it.context || 'other').toString();
+					if (!map.has(key)) map.set(key, []);
+					map.get(key).push(it);
+				}
+				return map;
+			}
+
+			function populateSelect(items) {
+				options.innerHTML = '';
+
+				const groups = groupByContext(items);
+				const contexts = Array.from(groups.keys()).sort((a,b) => a.localeCompare(b));
+
+				for (const ctx of contexts) {
+					const og = document.createElement('optgroup');
+					og.label = ctx;
+
+					const gens = groups.get(ctx)
+						.slice()
+						.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+
+					for (const g of gens) {
+						if (!g.href) continue;
+
+						const opt = document.createElement('option');
+						opt.value = g.href;
+						opt.textContent = g.name || g.href;
+						og.appendChild(opt);
+					}
+
+					options.appendChild(og);
+				}
+			}
+
+			async function loadGenerators() {
+				const res = await fetch('/generate', {
+					method: 'GET',
+					headers: { 'Accept': 'application/json' },
+					cache: 'no-store'
+				});
+
+				if (!res.ok)
+					throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!Array.isArray(data))
+					throw new Error('Expected array');
+
+				populateSelect(data);
+			}
+
+			loadGenerators().catch(err => console.warn('Failed to load generators:', err));
 
 			form.addEventListener('submit', async (e) => {
 				e.preventDefault();
-				const generator = form.querySelector('select').value.toLowerCase();
+
+				const url = options.value;
 				const content = input.value;
-				const res = await fetch('/generate/' + generator, {
+
+				if (!url) return;
+
+				const res = await fetch(url, {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/text' },
-					body: content });
-				if (res.ok)
-					input.value = '';
+					headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+					body: content
+				});
+
+				if (res.ok) input.value = '';
 			});
 		</script>
 	</body>

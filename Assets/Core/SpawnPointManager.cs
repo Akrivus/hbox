@@ -76,22 +76,22 @@ public class SpawnPointManager : MonoBehaviour
 
     private void OnActorAdded(Chat chat, ActorController actorController)
     {
-        var spawnPoint = spawnPoints.FirstOrDefault(t => t.transform == actorController.transform.parent);
-        var animator = actorController.GetComponent<Animator>();
+        var actor = actorController.Actor;
+        actorToController[actor] = actorController;
 
+        var spawnPoint = spawnPoints.FirstOrDefault(t => t.transform == actorController.transform.parent);
+        if (spawnPoint == null)
+            return;
+        actorToSpawnPoint[actor] = spawnPoint;
+        SetSpawnPoints(InCircle(transform.position, CalculateSpacing()));
+
+        var animator = actorController.GetComponent<Animator>();
         if (animator != null)
         {
             animator.SetBool("Sitting", spawnPoint.sitting);
             animator.SetFloat("Height", spawnPoint.height);
             animator.SetFloat("Posture", spawnPoint.posture);
         }
-
-        var actor = actorController.Actor;
-
-        actorToSpawnPoint[actor] = spawnPoint;
-        actorToController[actor] = actorController;
-
-        SetSpawnPoints(InCircle(transform.position, CalculateSpacing()));
     }
 
     private void OnChatLoaded(Chat chat)
@@ -190,7 +190,8 @@ public class SpawnPointManager : MonoBehaviour
 
     public void ArrangeSpawnPoints(Vector3[] positions)
     {
-        for (int i = 0; i < positions.Length; i++)
+        var max = Math.Min(positions.Length, actorToSpawnPoint.Keys.Count);
+        for (var i = 0; i < max; i++)
         {
             var actor = actorToSpawnPoint.Keys.ElementAt(i);
             var spawnPoint = actorToSpawnPoint[actor];
@@ -204,7 +205,8 @@ public class SpawnPointManager : MonoBehaviour
 
     public void SetSpawnPoints(Vector3[] positions)
     {
-        for (int i = 0; i < positions.Length; i++)
+        var max = Math.Min(positions.Length, actorToSpawnPoint.Keys.Count);
+        for (var i = 0; i < max; i++)
         {
             var actor = actorToSpawnPoint.Keys.ElementAt(i);
             var spawnPoint = actorToSpawnPoint[actor];

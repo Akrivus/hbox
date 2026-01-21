@@ -31,9 +31,9 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
         USE_EMBEDDINGS = c.UseEmbeddings;
     }
 
-    private void Awake()
+    private void Start()
     {
-        ConfigManager.Instance.RegisterConfig(typeof(OpenAIConfigs), "openai", (config) => Configure((OpenAIConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(OpenAIConfigs), "openai", (_config) => Configure((OpenAIConfigs)_config));
     }
 
     private static int? RemainingRequests;
@@ -107,6 +107,4 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             return new double[0];
         }
     }
-
-    private static List<Message> _ = new List<Message>();
 }

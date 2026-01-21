@@ -10,10 +10,13 @@ public class ChatGenerator : MonoBehaviour
 {
     public ChatManagerContext ManagerContext => chatManagerContext;
 
+    public bool IsActive { get; private set; }
+
     [SerializeField]
     private bool save = true;
 
-    private string slug => name.Replace(' ', '-').ToLower();
+    public string slug => name.Replace(' ', '-').ToLower();
+    public string href => $"/generate/{slug}";
 
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponents<ISubGenerator>());
     private ISubGenerator[] _generators;
@@ -25,7 +28,8 @@ public class ChatGenerator : MonoBehaviour
     private void Start()
     {
         chatManagerContext = ChatManagerContext.Current;
-        ServerSource.AddRoute("POST", $"/generate/{slug}", (_) => ServerSource.ProcessBodyString(_, AddPromptToQueue));
+        ServerSource.AddRoute("POST", href, (_) => ServerSource.ProcessBodyString(_, AddPromptToQueue));
+        ServerSource.Instance.AddGenerator(this);
         StartCoroutine(UpdateQueue());
     }
 
@@ -36,7 +40,8 @@ public class ChatGenerator : MonoBehaviour
 
     private IEnumerator UpdateQueue()
     {
-        while (Application.isPlaying)
+        IsActive = true;
+        do
         {
             var idea = default(Idea);
             yield return new WaitUntilTimer(() => ideaQueue.TryDequeue(out idea), 120);
@@ -45,7 +50,8 @@ public class ChatGenerator : MonoBehaviour
                 continue;
 
             yield return GenerateAndPlay(idea).AsCoroutine();
-        }
+        } while (chatManagerContext != null && chatManagerContext.IsActive);
+        IsActive = false;
     }
 
     public void AddIdeaToQueue(Idea idea)
@@ -68,6 +74,7 @@ public class ChatGenerator : MonoBehaviour
 
     private async Task<Chat> GenerateAndSave(Idea idea)
     {
+        UiEventBus.Publish(chatManagerContext, $"Generating idea: {idea.Prompt}");
         var chat = new Chat(idea, chatManagerContext);
 
         try
@@ -77,6 +84,7 @@ public class ChatGenerator : MonoBehaviour
             chat.Lock();
             if (save)
                 chat.Save();
+            UiEventBus.Publish(chatManagerContext, $"Generated new scene: {chat.Title}");
         }
         catch (Exception e)
         {
@@ -122,6 +130,7 @@ public class ChatGenerator : MonoBehaviour
 
         foreach (var g in generators)
         {
+            UiEventBus.Publish(chatManagerContext, $"Running generator: {g.GetType().Name}");
             var p = new PromptResolver(this, g);
 
             if (g.IsBlocking)
@@ -136,6 +145,7 @@ public class ChatGenerator : MonoBehaviour
             }
         }
 
+        UiEventBus.Publish(chatManagerContext, "Finalizing generators");
         await Task.WhenAll(tasks);
 
         return chat;

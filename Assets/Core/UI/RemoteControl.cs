@@ -1,11 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -24,9 +21,19 @@ public class RemoteControl : MonoBehaviour
         public GameObject gameObject;
     }
 
+    public ChannelEntry this[string codeName]
+    {
+        get
+        {
+            foreach (var entry in channels)
+                if (entry.codeName == codeName)
+                    return entry;
+            return null;
+        }
+    }
+
     [Header("Channels")]
     [SerializeField] private List<ChannelEntry> channels = new();
-    [SerializeField] private int startIndex = 0;
 
     private int selectedChannel = 0;
     private int currentChannel = -1;
@@ -34,7 +41,6 @@ public class RemoteControl : MonoBehaviour
     [Header("Overlay")]
     [SerializeField] private CanvasGroup menuGroup;
     [SerializeField] private CanvasGroup staticFx;
-    [SerializeField] private EventSystem primaryEventSystem;
 
     [SerializeField] private CanvasGroup zapBar;
     [SerializeField] private TextMeshProUGUI zapTitle;
@@ -165,13 +171,10 @@ public class RemoteControl : MonoBehaviour
         Bind(down, _ => DownArrow());
         Bind(pageUp, _ => PageUp());
         Bind(pageDown, _ => PageDown());
-
-        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void OnDestroy()
     {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
         UnbindAll();
     }
 
@@ -262,21 +265,6 @@ public class RemoteControl : MonoBehaviour
         canvas.interactable = visible;
     }
 
-    private void OnSceneLoaded(Scene s, LoadSceneMode m)
-    {
-        if (!primaryEventSystem)
-            primaryEventSystem = FindFirstObjectByType<EventSystem>();
-        foreach (var go in s.GetRootGameObjects())
-        {
-            var context = go.GetComponentInChildren<ChatManagerContext>();
-            if (context)
-                ChatManager.Instance.SetCurrentContext(context);
-            var systems = go.GetComponentInChildren<EventSystem>();
-            if (systems && systems != primaryEventSystem)
-                Destroy(systems.gameObject);
-        }
-    }
-
     private void JumpTo(int index)
     {
         if (index < 0 || index >= channels.Count) return;
@@ -302,16 +290,4 @@ public class RemoteControl : MonoBehaviour
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;
-
-    private void Launch(string path)
-    {
-        if (!File.Exists(path)) return;
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = path,
-            WorkingDirectory = Path.GetDirectoryName(path),
-            UseShellExecute = true
-        });
-        Application.Quit();
-    }
 }

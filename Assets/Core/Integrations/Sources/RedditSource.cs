@@ -10,8 +10,6 @@ using UnityEngine;
 
 public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 {
-    public static RedditSource Instance { get; private set; }
-
     private static readonly DateTime EPOCH = new DateTime(1970, 1, 1);
 
     public event Action OnBatchStart;
@@ -23,7 +21,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public Dictionary<string, string> SubReddits = new Dictionary<string, string>();
     public float MaxPostAgeInHours = 24;
     public int BatchMax = 20;
+    public string BatchPeriodOffset = "00:00";
     public float BatchPeriodInMinutes = 60;
+
+    public string ActiveWindowStart = "00:00";
+    public string ActiveWindowEnd = "23:59";
 
     private List<string> history = new List<string>();
     private Dictionary<string, DateTime> fetchTimes = new Dictionary<string, DateTime>();
@@ -32,6 +34,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private int i = 0;
     private RedditThreadMiner miner;
+    private ChatManagerContext chatManagerContext;
 
     public void Configure(RedditConfigs c)
     {
@@ -39,7 +42,10 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             .ToDictionary(k => k.Key, v => v.Value);
         MaxPostAgeInHours = c.MaxPostAgeInHours;
         BatchMax = c.BatchMax;
+        BatchPeriodOffset = c.BatchPeriodOffset;
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
+        ActiveWindowStart = c.ActiveWindowStart;
+        ActiveWindowEnd = c.ActiveWindowEnd;
 
         miner = new RedditThreadMiner
         {
@@ -56,20 +62,24 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         StartCoroutine(Drops());
     }
 
-    public void TriggerDrop()
-    {
-        StartCoroutine(Drop());
-    }
-
     public IEnumerator Drops()
     {
-        while (Application.isPlaying)
+        do
         {
-            yield return new WaitUntil(() => !ChatManager.IsPaused && ChatManagerContext.Current != null);
-            yield return Drop();
+            yield return WhenUnpaused();
 
-            yield return new WaitForSeconds(BatchPeriodInMinutes * 60);
-        }
+            var nextRunTime = GetNextRunTime();
+            UiEventBus.Publish(chatManagerContext, nextRunTime);
+            yield return new WaitUntil(() => chatManagerContext.IsActive && DateTime.Now >= nextRunTime);
+
+            yield return Drop();
+            yield return WhenUnpaused();
+        } while (chatManagerContext.IsActive);
+    }
+
+    private IEnumerator WhenUnpaused()
+    {
+        yield return new WaitUntil(() => !ChatManager.IsPaused && ChatManagerContext.Current != null);
     }
 
     public IEnumerator Drop()
@@ -124,16 +134,17 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         );
     }
 
-    private void Awake()
+    private void Start()
     {
-        Instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(RedditConfigs), "reddit", (config) => Configure((RedditConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(RedditConfigs), "reddit", (_config) => Configure((RedditConfigs)_config));
+        chatManagerContext = ChatManagerContext.Current;
     }
 
     private void OnDestroy()
     {
+        if (fileName != null)
+            File.WriteAllLines(fileName, history);
         StopAllCoroutines();
-        File.WriteAllLines(fileName, history);
     }
 
     private List<string> LoadHistory()
@@ -203,4 +214,59 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             text += "\n\n{0}";
         return text;
     }
+
+    private DateTime GetNextRunTime()
+    {
+        var now = DateTime.Now;
+
+        var offset = TimeSpan.Parse(BatchPeriodOffset);
+        var windowStart = TimeSpan.Parse(ActiveWindowStart);
+        var windowEnd = TimeSpan.Parse(ActiveWindowEnd);
+
+        var nextRun = new DateTime(now.Year, now.Month, now.Day, offset.Hours, offset.Minutes, offset.Seconds);
+        while (nextRun <= now) nextRun = nextRun.AddMinutes(BatchPeriodInMinutes);
+
+        if (!IsInWindow(nextRun.TimeOfDay, windowStart, windowEnd))
+        {
+            nextRun = NextWindowStart(now, windowStart, windowEnd);
+            var baseSlot = new DateTime(nextRun.Year, nextRun.Month, nextRun.Day, offset.Hours, offset.Minutes, offset.Seconds);
+            if (baseSlot < nextRun) baseSlot = nextRun;
+            nextRun = baseSlot;
+            while (nextRun <= now)
+                nextRun = nextRun.AddMinutes(BatchPeriodInMinutes);
+            if (!IsInWindow(nextRun.TimeOfDay, windowStart, windowEnd))
+                nextRun = NextWindowStart(nextRun, windowStart, windowEnd);
+        }
+        return nextRun;
+    }
+
+    private static bool IsInWindow(TimeSpan t, TimeSpan start, TimeSpan end)
+    {
+        if (start < end)
+            return t >= start && t < end;
+        if (start > end)
+            return t >= start || t < end;
+        return true;
+    }
+
+    private static DateTime NextWindowStart(DateTime now, TimeSpan start, TimeSpan end)
+    {
+        var todayStart = now.Date + start;
+        var todayEnd = now.Date + end;
+
+        if (start < end)
+        {
+            if (now < todayStart) return todayStart;
+            if (now >= todayEnd) return now.Date.AddDays(1) + start;
+            return now;
+        }
+        else if (start > end)
+        {
+            if (now.TimeOfDay < end) return now;
+            if (now < todayStart) return todayStart;
+            return now;
+        }
+        return now;
+    }
+
 }

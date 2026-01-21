@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class SubtitleManager : MonoBehaviour
 {
-    public static SubtitleManager Instance => _instance ??= FindFirstObjectByType<SubtitleManager>();
-    private static SubtitleManager _instance;
+    public static SubtitleManager Instance { get; private set; }
 
     [SerializeField]
     private TextMeshProUGUI splashScreen;
@@ -33,10 +32,10 @@ public class SubtitleManager : MonoBehaviour
         splashes = c.Splashes;
     }
 
-    private void Awake()
+    private void Start()
     {
-        _instance = this;
-        ConfigManager.Instance.RegisterConfig(typeof(SplashScreenConfigs), "splash", (config) => Configure((SplashScreenConfigs)config));
+        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(SplashScreenConfigs), "splash", (_config) => Configure((SplashScreenConfigs)_config));
+        Instance = this;
     }
 
     public void OnNodeActivated(ChatNode node)
@@ -91,9 +90,6 @@ public class SubtitleManager : MonoBehaviour
 
         title.text = chat.Title;
         yield return FadeIn(title);
-
-        if (chat.Idea.Source.StartsWith("r/"))
-            SetSubtitle(chat.Idea.Source, chat.Idea.Prompt);
 
         if (fadeOut)
         {
