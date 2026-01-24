@@ -71,12 +71,14 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var path = Path.Combine(docs, ReplayDirectory);
 
-        var tasks = Directory.GetFiles(path, "*.json")
+        var titles = Directory.GetFiles(path, "*.json")
             .Where(file => File.GetLastWriteTime(file) > DateTime.Now.AddMinutes(-MaxReplayAgeInMinutes))
             .OrderBy(file => File.GetLastWriteTime(file))
             .Reverse() // newest first
-            .Select(Path.GetFileNameWithoutExtension)
-            .Where(title => !replays.Contains(title))
+            .Select(Path.GetFileNameWithoutExtension);
+        if (titles.Count() >= ReplayRate)
+            titles = titles.Where(title => !replays.Contains(title));
+        var tasks = titles
             .Take(count)
             .Reverse() // load oldest first
             .Select(LogThenLoad)
