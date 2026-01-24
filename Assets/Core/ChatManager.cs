@@ -32,6 +32,8 @@ public class ChatManager : MonoBehaviour
 
     public event Action<ChatNode> OnChatNodeActivated;
 
+    public event Action<ChatManagerContext> OnContextChanged;
+
     public Chat NowPlaying { get; private set; }
     public ChatManagerContext CurrentContext { get; private set; }
     public IDictionary<string, ChatManagerContext> Contexts => contexts;
@@ -306,6 +308,7 @@ public class ChatManager : MonoBehaviour
         contexts[context.Key] = context;
         CurrentContext = context;
         DontDestroyOnLoad(context.gameObject);
+        OnContextChanged?.Invoke(context);
         return true;
     }
 

@@ -44,25 +44,25 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 
         if (IsRecording)
         {
-            ChatManager.Instance.AfterIntermission += StopOrStartRecording;
-            ChatManager.Instance.OnChatQueueEmpty += StopRecording;
+            ChatManagerContext.Current.AfterIntermission += StopOrStartRecording;
+            ChatManagerContext.Current.OnChatQueueEmpty += StopRecording;
 
             if (DoSplitRecording)
-                ChatManager.Instance.BeforeIntermission += SplitRecording;
+                ChatManagerContext.Current.BeforeIntermission += SplitRecording;
             else
-                ChatManager.Instance.BeforeIntermission -= SplitRecording;
+                ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
         }
         else
         {
-            ChatManager.Instance.AfterIntermission -= StopOrStartRecording;
-            ChatManager.Instance.OnChatQueueEmpty -= StopRecording;
-            ChatManager.Instance.BeforeIntermission -= SplitRecording;
+            ChatManagerContext.Current.AfterIntermission -= StopOrStartRecording;
+            ChatManagerContext.Current.OnChatQueueEmpty -= StopRecording;
+            ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
         }
     }
 
     private void Start()
     {
-        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(OBSConfigs), "obs", (_config) => Configure((OBSConfigs)_config));
+        ChatManager.Instance.OnContextChanged += OnContextChanged;
     }
 
     private void OnDestroy()
@@ -70,7 +70,18 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         if (IsStreaming)
             StopStreaming();
         if (IsRecording)
+        {
+            ChatManagerContext.Current.AfterIntermission -= StopOrStartRecording;
+            ChatManagerContext.Current.OnChatQueueEmpty -= StopRecording;
+            ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
+
             StopRecording();
+        }
+    }
+
+    private void OnContextChanged(ChatManagerContext context)
+    {
+        context.ConfigManager.RegisterConfig(typeof(OBSConfigs), "obs", (_config) => Configure((OBSConfigs)_config));
     }
 
     public async void StartRecording()
