@@ -37,15 +37,27 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
         DoSplitRecording = c.DoSplitRecording;
         OnlyNewEpisodes = c.OnlyNewEpisodes;
 
-        if (IsRecording)
-            ChatManagerContext.Current.AfterIntermission += StopOrStartRecording;
-        if (DoSplitRecording)
-            ChatManagerContext.Current.BeforeIntermission += SplitRecording;
-
-        ChatManagerContext.Current.OnChatQueueEmpty += StopRecording;
-
         if (IsStreaming)
             StartStreaming();
+        else
+            StopStreaming();
+
+        if (IsRecording)
+        {
+            ChatManager.Instance.AfterIntermission += StopOrStartRecording;
+            ChatManager.Instance.OnChatQueueEmpty += StopRecording;
+
+            if (DoSplitRecording)
+                ChatManager.Instance.BeforeIntermission += SplitRecording;
+            else
+                ChatManager.Instance.BeforeIntermission -= SplitRecording;
+        }
+        else
+        {
+            ChatManager.Instance.AfterIntermission -= StopOrStartRecording;
+            ChatManager.Instance.OnChatQueueEmpty -= StopRecording;
+            ChatManager.Instance.BeforeIntermission -= SplitRecording;
+        }
     }
 
     private void Start()
@@ -169,15 +181,18 @@ public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
             return;
         try
         {
-            var files = Directory.GetFiles(VideosFolder, "*.mkv");
+            var files = Directory.EnumerateFiles(VideosFolder)
+                .Where(file => file.EndsWith(".mkv") || file.EndsWith(".mp4"))
+                .ToList();
             var latest = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
             if (latest == null)
                 throw new Exception();
             var fileName = Path.GetFileNameWithoutExtension(latest);
+            var fileExt = Path.GetExtension(latest);
             if (fileName.Length == "1234-12-12 12-12-12".Length)
             {
                 var inst = ChatManager.Instance;
-                var newName = $"{fileName}-{inst.NowPlaying.FileName}.mkv";
+                var newName = $"{fileName}-{inst.NowPlaying.FileName}{fileExt}";
                 var newPath = Path.Combine(VideosFolder, newName);
 
                 if (File.Exists(newPath))

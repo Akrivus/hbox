@@ -21,6 +21,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public Dictionary<string, string> SubReddits = new Dictionary<string, string>();
     public float MaxPostAgeInHours = 24;
     public int BatchMax = 20;
+    public int BatchIterations = 1;
     public string BatchPeriodOffset = "00:00";
     public float BatchPeriodInMinutes = 60;
 
@@ -42,10 +43,13 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             .ToDictionary(k => k.Key, v => v.Value);
         MaxPostAgeInHours = c.MaxPostAgeInHours;
         BatchMax = c.BatchMax;
+        BatchIterations = c.BatchIterations;
         BatchPeriodOffset = c.BatchPeriodOffset;
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
         ActiveWindowStart = c.ActiveWindowStart;
         ActiveWindowEnd = c.ActiveWindowEnd;
+
+        i = UnityEngine.Random.Range(0, SubReddits.Count);
 
         miner = new RedditThreadMiner
         {
@@ -95,27 +99,24 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public async Task FetchIdeas()
     {
         var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
-        for (var _ = i; _ < SubReddits.Count; _++)
-        {
-            var subreddit = SubReddits.ElementAt(_);
-            var range = await FetchAsync(subreddit.Key);
-            var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
-            prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-            ideas = new Queue<Idea>(range
-                    .Take(BatchMax)
-                    .Select(post =>
-                    {
-                        history.Add(post.Value<string>("id"));
-                        return post;
-                    })
-                    .Select(post => PostToIdea(post, prompt)
-                ).ToList());
-            if (ideas.Count >= BatchMax || !Application.isPlaying)
-                break;
-            i = _;
-        }
-        if (i >= SubReddits.Count - 1)
-            i = 0;
+        for (var iteration = 0; iteration < BatchIterations; iteration++)
+            for (var iterations = 0; iterations < SubReddits.Count && ideas.Count < BatchMax; iterations++)
+            {
+                var subreddit = SubReddits.ElementAt(i);
+                var range = await FetchAsync(subreddit.Key);
+                var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
+                prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                ideas = new Queue<Idea>(range
+                        .Take(BatchMax)
+                        .Select(post =>
+                        {
+                            history.Add(post.Value<string>("id"));
+                            return post;
+                        })
+                        .Select(post => PostToIdea(post, prompt)
+                    ).ToList());
+                i = i++ % SubReddits.Count;
+            }
     }
 
     private Idea PostToIdea(JToken post, string template)
@@ -160,12 +161,15 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         return Task.Run(() => Fetch(subreddit, batchMax));
     }
 
-    public IEnumerable<JToken> Fetch(string subreddit, int batchMax = 0)
+    public IEnumerable<JToken> Fetch(string uri, int batchMax = 0)
     {
-        var fetchTime = fetchTimes.GetValueOrDefault(subreddit, DateTime.Now.AddHours(-MaxPostAgeInHours));
+        var fetchTime = fetchTimes.GetValueOrDefault(uri, DateTime.Now.AddHours(-MaxPostAgeInHours));
         var cutoff = fetchTime.Subtract(EPOCH).TotalSeconds;
 
-        var url = $"https://www.reddit.com/r/{subreddit}.json";
+        var parts = uri.Split(new char[] { '?' }, StringSplitOptions.RemoveEmptyEntries);
+        var subreddit = parts[0];
+        var query = parts.Length > 1 ? parts[1] : null;
+        var url = $"https://www.reddit.com/r/{subreddit}.json?{query}";
         var client = new WebClient();
 
         client.Headers.Add("User-Agent", "polbot:1.0 (by /u/Akrivus)");

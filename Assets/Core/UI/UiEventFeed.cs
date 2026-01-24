@@ -81,9 +81,14 @@ public class UiEventFeed : MonoBehaviour
                 tmp.text = "00:00";
                 yield break;
             }
-            tmp.text = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+            if (remaining.Hours > 0)
+                tmp.text = $"{remaining.Hours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+            else if (remaining.Minutes > 0)
+                tmp.text = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+            else
+                tmp.text = $"{remaining.Seconds:D2}";
             tmp.transform.parent.SetAsLastSibling();
-            yield return new WaitForSeconds(1f);
+            yield return new WaitForSeconds(0.9f);
         }
     }
 

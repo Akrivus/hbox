@@ -6,7 +6,7 @@ public class RedditConfigs : IConfig
     public Dictionary<string, string> SubReddits { get; set; }
     public float MaxPostAgeInHours { get; set; }
     public int BatchMax { get; set; }
-    public int BatchLifetimeMax { get; set; }
+    public int BatchIterations { get; set; } = 1;
     public string BatchPeriodOffset { get; set; } = "00:00";
     public float BatchPeriodInMinutes { get; set; }
     public string ActiveWindowStart { get; set; } = "00:00";
