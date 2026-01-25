@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -15,7 +16,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     public int MaxReplayAgeInMinutes = 1440;
 
     private List<string> replays = new List<string>();
-    private ConcurrentQueue<Chat> queue = new ConcurrentQueue<Chat>();
+    private ConcurrentQueue<Lazy<Task<Chat>>> queue = new ConcurrentQueue<Lazy<Task<Chat>>>();
     private string fileName;
 
     public void Configure(FolderConfigs c)
@@ -48,8 +49,16 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     {
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
 
-        if (queue.TryDequeue(out var chat))
-            ChatManager.Instance.AddToPlayList(chat);
+        while (queue.TryDequeue(out var task))
+            yield return ReplayEpisode(task).AsCoroutine();
+    }
+
+    private async Task ReplayEpisode(Lazy<Task<Chat>> lazyTask)
+    {
+        var task = lazyTask.Value;
+        var chat = await task;
+
+        ChatManager.Instance.AddToPlayList(chat);
     }
 
     private void Start()
@@ -78,8 +87,10 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .OrderBy(file => File.GetLastWriteTime(file))
             .Reverse() // newest first
             .Select(Path.GetFileNameWithoutExtension);
-        if (titles.Count() >= ReplayRate)
-            titles = titles.Where(title => !replays.Contains(title));
+        var unplayed = titles.Except(replays);
+        if (unplayed.Any())
+            titles = unplayed;
+
         var tasks = titles
             .Take(count)
             .Reverse() // load oldest first
@@ -87,17 +98,17 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .ToList();
 
         foreach (var task in tasks)
-            queue.Enqueue(await task);
+            queue.Enqueue(task);
 
         if (tasks.Count > 0)
             UiEventBus.Publish(ChatManagerContext.Current, $"Loaded {tasks.Count} replay{(tasks.Count == 1 ? "" : "s")}");
     }
 
-    private Task<Chat> LogThenLoad(string title)
+    private Lazy<Task<Chat>> LogThenLoad(string title)
     {
         replays = replays.TakeLast(ReplayRate - 1).ToList();
         replays.Add(title);
-        return Chat.Load(ReplayDirectory, title);
+        return new Lazy<Task<Chat>>(() => Chat.Load(ReplayDirectory, title));
     }
 
     private List<string> LoadReplays()
