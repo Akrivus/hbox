@@ -20,14 +20,14 @@ public class UiEventFeed : MonoBehaviour
     private RemoteControl remote;
 
     private Queue<GameObject> feed = new Queue<GameObject>();
-    private Dictionary<TextMeshProUGUI, DateTime> countdowns = new Dictionary<TextMeshProUGUI, DateTime>();
+    private Dictionary<string, UiEvent> pins = new Dictionary<string, UiEvent>();
 
     private void Start()
     {
         ChatManager.Instance.OnChatLoaded += ToggleFeed;
         ChatManager.Instance.OnChatQueueEmpty += ShowFeed;
         UiEventBus.OnEvent += OnUiEvent;
-        StartCoroutine(UpdateEventCountdowns());
+        StartCoroutine(UpdatePins());
     }
 
     private void OnDestroy()
@@ -56,41 +56,53 @@ public class UiEventFeed : MonoBehaviour
         PushToast(e);
     }
 
-    private IEnumerator UpdateEventCountdowns()
-    {
-        while (Application.isPlaying)
-        {
-            var tmps = new List<TextMeshProUGUI>();
-            foreach (var tmp in countdowns.Keys)
-                if (!UpdateEventCountdown(tmp, countdowns[tmp]))
-                    tmps.Add(tmp);
-            foreach (var tmp in tmps)
-                countdowns.Remove(tmp);
-            yield return new WaitForSeconds(1f);
-        }
-    }
-
     private void PushToast(UiEvent e)
     {
         if (!eventFeed || !eventFeedPrefab) return;
 
         var feedItem = Instantiate(eventFeedPrefab, eventFeed);
         feed.Enqueue(feedItem);
+        e.obj = feedItem;
 
-        var tmp = feedItem.GetComponentInChildren<TextMeshProUGUI>();
-        tmp.text = e.message;
-        if (e.countdown.HasValue && UpdateEventCountdown(tmp, e.countdown.Value))
-            countdowns[tmp] = e.countdown.Value;
         var img = feedItem.GetComponentsInChildren<Image>(true)[1];
         if (img && remote)
-            img.sprite = remote[e.channelCode].icon;
+            img.sprite = remote[e.ChannelCode].icon;
+
+        var tmp = feedItem.GetComponentInChildren<TextMeshProUGUI>();
+        tmp.text = e.Message;
+        if (e.IsPinned && UpdateEventCountdown(tmp, e.Countdown))
+        {
+            if (pins.TryGetValue(e.ChannelCode, out var oe))
+                Destroy(oe.obj);
+            pins[e.ChannelCode] = e;
+        }
 
         StartCoroutine(FadeAndDie(feedItem, e));
     }
 
-    private bool UpdateEventCountdown(TextMeshProUGUI tmp, DateTime countdown)
+    private IEnumerator UpdatePins()
     {
-        var remaining = countdown - DateTime.Now;
+        while (Application.isPlaying)
+        {
+            var tmps = new List<GameObject>();
+            foreach (var e in pins.Values)
+            {
+                if (e.IsPinned && UpdateEventCountdown(e.obj.GetComponentInChildren<TextMeshProUGUI>(), e.Countdown))
+                    continue;
+                tmps.Add(e.obj);
+            }
+            foreach (var tmp in tmps)
+                tmps.Remove(tmp);
+            yield return new WaitForSeconds(1f);
+        }
+    }
+
+    private bool UpdateEventCountdown(TextMeshProUGUI tmp, DateTime? countdown)
+    {
+        if (tmp == null || !countdown.HasValue)
+            return false;
+        var datetime = countdown.Value;
+        var remaining = datetime - DateTime.Now;
         if (remaining.TotalSeconds <= 0)
             tmp.text = "00:00";
         else if (remaining.Hours > 0)
@@ -108,11 +120,10 @@ public class UiEventFeed : MonoBehaviour
         var canvas = go.GetComponent<CanvasGroup>();
         var feedCount = feed.Count;
 
-        yield return new WaitUntil(() => e.IsComplete);
-        yield return new WaitForSeconds(e.lifetimeSeconds);
+        yield return new WaitUntil(() => DateTime.Now > e.DateTime);
 
-        if (e.lifetimeSeconds > 0)
-            yield return Fade(canvas, 0f, e.lifetimeSeconds);
+        if (e.LifetimeInSeconds > 0)
+            yield return Fade(canvas, 0f, e.LifetimeInSeconds);
 
         if (go)
             Destroy(go);

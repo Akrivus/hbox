@@ -241,7 +241,7 @@ public class RemoteControl : MonoBehaviour
         if (zapIcon)
             zapIcon.sprite = entry.icon;
 
-        audioSource?.Play();
+        StartCoroutine(LoadIntroSequence());
 
         if (staticImage)
             StartCoroutine(Fade(staticImage, 1f, 0.05f));
@@ -253,12 +253,9 @@ public class RemoteControl : MonoBehaviour
         var loadOp = SceneManager.LoadSceneAsync(entry.scenePath, LoadSceneMode.Single);
         loadOp.completed += _ =>
         {
-            if (staticImage)
-                StartCoroutine(Fade(staticImage, 0f, 0.05f));
             if (zapBar)
                 StartCoroutine(Fade(zapBar, 0f, 10f));
-            if (statusImage)
-                StartCoroutine(Fade(statusImage, 0f, 0.25f));
+            StartCoroutine(ExitIntroSequence());
         };
     }
 
@@ -321,19 +318,35 @@ public class RemoteControl : MonoBehaviour
             yield return Fade(staticImage, 1f, 2f);
         if (statusImage)
             yield return Fade(statusImage, 1f, 0.25f);
+        yield return WaitUntilIntroSequenceEnds();
+    }
+
+    private IEnumerator ExitIntroSequence()
+    {
+        yield return WaitUntilIntroSequenceEnds();
+
+        if (staticImage)
+            yield return Fade(staticImage, 0f, 0.1f);
+        if (statusImage)
+            yield return Fade(statusImage, 0f, 0.25f);
+    }
+
+    private IEnumerator WaitUntilIntroSequenceEnds()
+    {
+
+        yield return new WaitUntil(() => audioSource?.isPlaying == false);
     }
 
     private IEnumerator LoadAllChannels()
     {
         StartCoroutine(LoadIntroSequence());
+
         foreach (var entry in channels)
             yield return LoadChannel(entry);
         yield return LoadChannel(null);
+        yield return ExitIntroSequence();
+
         MenuOpen = true;
-        if (staticImage)
-            yield return Fade(staticImage, 0f, 0.1f);
-        if (statusImage)
-            yield return Fade(statusImage, 0f, 0.25f);
         _initalized = true;
     }
 

@@ -1,16 +1,26 @@
 ﻿using System;
+using UnityEngine;
 
 [Serializable]
 public struct UiEvent
 {
-    public string channelCode;
-    public string message;
-    public float lifetimeSeconds;
+    public string ChannelCode;
+    public string Message;
+    public float LifetimeInSeconds;
 
-    public DateTime timestamp;
-    public DateTime? countdown;
+    public DateTime Timestamp;
+    public DateTime? Countdown;
 
-    public bool IsComplete => !countdown.HasValue || DateTime.Now >= countdown.Value;
+    public GameObject obj;
+
+    public DateTime DateTime => (Countdown ?? Timestamp).AddSeconds(LifetimeInSeconds);
+    public bool IsPinned
+    {
+        get => _pinned || (Countdown.HasValue && DateTime.Now < DateTime);
+        set => _pinned = value;
+    }
+
+    private bool _pinned;
 }
 
 public static class UiEventBus
@@ -21,10 +31,10 @@ public static class UiEventBus
     {
         OnEvent?.Invoke(new UiEvent
         {
-            channelCode = context.Key,
-            message = message.Truncate(100),
-            lifetimeSeconds = lifetimeSeconds,
-            timestamp = DateTime.Now
+            ChannelCode = context.Key,
+            Message = message.Truncate(100),
+            LifetimeInSeconds = lifetimeSeconds,
+            Timestamp = DateTime.Now
         });
     }
 
@@ -32,11 +42,11 @@ public static class UiEventBus
     {
         OnEvent?.Invoke(new UiEvent
         {
-            channelCode = context.Key,
-            message = string.Empty,
-            lifetimeSeconds = lifetimeSeconds,
-            timestamp = DateTime.Now,
-            countdown = countdown
+            ChannelCode = context.Key,
+            Message = string.Empty,
+            LifetimeInSeconds = lifetimeSeconds,
+            Timestamp = DateTime.Now,
+            Countdown = countdown
         });
     }
 

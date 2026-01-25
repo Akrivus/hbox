@@ -108,8 +108,6 @@ public class ChatManager : MonoBehaviour
                 yield return RemoveAllActors();
 
             SubtitleManager.Instance?.ClearSubtitles();
-
-            yield return new WaitUntilTimer(() => playList.Count > 0, 20);
         }
     }
 
