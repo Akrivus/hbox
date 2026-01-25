@@ -34,13 +34,15 @@ public class RemoteControl : MonoBehaviour
 
     [Header("Channels")]
     [SerializeField] private List<ChannelEntry> channels = new();
+    [SerializeField] private string defaultScenePath = "Reset";
 
     private int selectedChannel = 0;
     private int currentChannel = -1;
 
     [Header("Overlay")]
     [SerializeField] private CanvasGroup menuGroup;
-    [SerializeField] private CanvasGroup staticFx;
+    [SerializeField] private CanvasGroup statusImage;
+    [SerializeField] private CanvasGroup staticImage;
 
     [SerializeField] private CanvasGroup zapBar;
     [SerializeField] private TextMeshProUGUI zapTitle;
@@ -61,9 +63,13 @@ public class RemoteControl : MonoBehaviour
     public InputActionReference pageUp;
     public InputActionReference pageDown;
 
+    [Header("Sound Effects")]
+    public AudioSource audioSource;
+
     private readonly List<(InputActionReference aref, Action<InputAction.CallbackContext> cb)> _bindings = new();
 
-    private bool _menuOpen = true;
+    private bool _menuOpen = false;
+    private bool _initalized = false;
 
     public bool MenuOpen
     {
@@ -77,6 +83,7 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void Select()
     {
+        if (!_initalized) return;
         if (MenuOpen)
         {
             var channel = selectedChannel >= 0 && selectedChannel < channels.Count ? channels[selectedChannel] : null;
@@ -90,23 +97,24 @@ public class RemoteControl : MonoBehaviour
         {
             ChatManager.IsPaused = !ChatManager.IsPaused;
             if (ChatManager.IsPaused)
-                StartCoroutine(Fade(staticFx, 1f, 0.10f));
+                StartCoroutine(Fade(statusImage, 1f, 0.10f));
             else
-                StartCoroutine(Fade(staticFx, 0f, 0.10f));
+                StartCoroutine(Fade(statusImage, 0f, 0.10f));
         }
     }
 
     public virtual void LeftArrow()
     {
-
+        if (!_initalized) return;
     }
     public virtual void RightArrow()
     {
-
+        if (!_initalized) return;
     }
 
     public virtual void UpArrow()
     {
+        if (!_initalized) return;
         if (!MenuOpen) return;
         selectedChannel = Mod(selectedChannel - 1, channels.Count);
         SelectChannel(selectedChannel);
@@ -114,6 +122,7 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void DownArrow()
     {
+        if (!_initalized) return;
         if (!MenuOpen) return;
         selectedChannel = Mod(selectedChannel + 1, channels.Count);
         SelectChannel(selectedChannel);
@@ -121,6 +130,7 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void PageUp()
     {
+        if (!_initalized) return;
         if (channels.Count == 0) return;
         currentChannel = Mod(currentChannel + 1, channels.Count);
         SwitchScene(channels[currentChannel]);
@@ -128,6 +138,7 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void PageDown()
     {
+        if (!_initalized) return;
         if (channels.Count == 0) return;
         currentChannel = Mod(currentChannel - 1, channels.Count);
         SwitchScene(channels[currentChannel]);
@@ -135,11 +146,13 @@ public class RemoteControl : MonoBehaviour
 
     public virtual void MenuButton()
     {
+        if (!_initalized) return;
         MenuOpen = !MenuOpen;
     }
 
     public virtual void BackButton()
     {
+        if (!_initalized) return;
         if (MenuOpen)
         {
             MenuOpen = false;
@@ -154,13 +167,6 @@ public class RemoteControl : MonoBehaviour
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
-
-        if (staticFx)
-        {
-            staticFx.alpha = 0f;
-            staticFx.blocksRaycasts = false;
-            staticFx.interactable = false;
-        }
 
         Bind(select, _ => Select());
         Bind(back, _ => BackButton());
@@ -180,6 +186,7 @@ public class RemoteControl : MonoBehaviour
 
     private void Start()
     {
+        StartCoroutine(LoadAllChannels());
         PopulateGuide();
         SelectChannel(selectedChannel);
     }
@@ -233,16 +240,25 @@ public class RemoteControl : MonoBehaviour
             zapTitle.text = string.IsNullOrWhiteSpace(entry.displayName) ? entry.scenePath : entry.displayName;
         if (zapIcon)
             zapIcon.sprite = entry.icon;
+
+        audioSource?.Play();
+
+        if (staticImage)
+            StartCoroutine(Fade(staticImage, 1f, 0.05f));
         if (zapBar)
             StartCoroutine(Fade(zapBar, 1f, 0.10f));
-        if (staticFx)
-            StartCoroutine(Fade(staticFx, 1f, 0.10f));
+        if (statusImage)
+            StartCoroutine(Fade(statusImage, 1f, 0.25f));
 
         var loadOp = SceneManager.LoadSceneAsync(entry.scenePath, LoadSceneMode.Single);
         loadOp.completed += _ =>
         {
-            if (staticFx) StartCoroutine(Fade(staticFx, 0f, 0.10f));
-            if (zapBar)   StartCoroutine(Fade(zapBar, 0f, 10f));
+            if (staticImage)
+                StartCoroutine(Fade(staticImage, 0f, 0.05f));
+            if (zapBar)
+                StartCoroutine(Fade(zapBar, 0f, 10f));
+            if (statusImage)
+                StartCoroutine(Fade(statusImage, 0f, 0.25f));
         };
     }
 
@@ -287,6 +303,38 @@ public class RemoteControl : MonoBehaviour
                     img.color = entry == selected ? Color.white : Color.black;
             }
         }
+    }
+
+    private IEnumerator LoadChannel(ChannelEntry entry)
+    {
+        var scenePath = entry == null ? defaultScenePath : entry.scenePath;
+        var op = SceneManager.LoadSceneAsync(scenePath, LoadSceneMode.Single);
+        while (!op.isDone)
+            yield return new WaitForEndOfFrame();
+    }
+
+    private IEnumerator LoadIntroSequence()
+    {
+        audioSource?.Play();
+
+        if (staticImage)
+            yield return Fade(staticImage, 1f, 2f);
+        if (statusImage)
+            yield return Fade(statusImage, 1f, 0.25f);
+    }
+
+    private IEnumerator LoadAllChannels()
+    {
+        StartCoroutine(LoadIntroSequence());
+        foreach (var entry in channels)
+            yield return LoadChannel(entry);
+        yield return LoadChannel(null);
+        MenuOpen = true;
+        if (staticImage)
+            yield return Fade(staticImage, 0f, 0.1f);
+        if (statusImage)
+            yield return Fade(statusImage, 0f, 0.25f);
+        _initalized = true;
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;

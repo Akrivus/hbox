@@ -48,9 +48,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     {
         yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
 
-        var chat = default(Chat);
-        yield return new WaitUntilTimer(() => queue.TryDequeue(out chat), 30);
-        ChatManager.Instance.AddToPlayList(chat);
+        if (queue.TryDequeue(out var chat))
+            ChatManager.Instance.AddToPlayList(chat);
     }
 
     private void Start()

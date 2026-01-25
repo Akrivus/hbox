@@ -20,12 +20,14 @@ public class UiEventFeed : MonoBehaviour
     private RemoteControl remote;
 
     private Queue<GameObject> feed = new Queue<GameObject>();
+    private Dictionary<TextMeshProUGUI, DateTime> countdowns = new Dictionary<TextMeshProUGUI, DateTime>();
 
     private void Start()
     {
         ChatManager.Instance.OnChatLoaded += ToggleFeed;
         ChatManager.Instance.OnChatQueueEmpty += ShowFeed;
         UiEventBus.OnEvent += OnUiEvent;
+        StartCoroutine(UpdateEventCountdowns());
     }
 
     private void OnDestroy()
@@ -33,6 +35,7 @@ public class UiEventFeed : MonoBehaviour
         ChatManager.Instance.OnChatLoaded -= ToggleFeed;
         ChatManager.Instance.OnChatQueueEmpty -= ShowFeed;
         UiEventBus.OnEvent -= OnUiEvent;
+        StopAllCoroutines();
     }
 
     private void ShowFeed()
@@ -53,6 +56,20 @@ public class UiEventFeed : MonoBehaviour
         PushToast(e);
     }
 
+    private IEnumerator UpdateEventCountdowns()
+    {
+        while (Application.isPlaying)
+        {
+            var tmps = new List<TextMeshProUGUI>();
+            foreach (var tmp in countdowns.Keys)
+                if (!UpdateEventCountdown(tmp, countdowns[tmp]))
+                    tmps.Add(tmp);
+            foreach (var tmp in tmps)
+                countdowns.Remove(tmp);
+            yield return new WaitForSeconds(1f);
+        }
+    }
+
     private void PushToast(UiEvent e)
     {
         if (!eventFeed || !eventFeedPrefab) return;
@@ -62,8 +79,8 @@ public class UiEventFeed : MonoBehaviour
 
         var tmp = feedItem.GetComponentInChildren<TextMeshProUGUI>();
         tmp.text = e.message;
-        if (e.countdown.HasValue)
-            StartCoroutine(UpdateEventCountdown(tmp, e.countdown.Value));
+        if (e.countdown.HasValue && UpdateEventCountdown(tmp, e.countdown.Value))
+            countdowns[tmp] = e.countdown.Value;
         var img = feedItem.GetComponentsInChildren<Image>(true)[1];
         if (img && remote)
             img.sprite = remote[e.channelCode].icon;
@@ -71,25 +88,17 @@ public class UiEventFeed : MonoBehaviour
         StartCoroutine(FadeAndDie(feedItem, e));
     }
 
-    private IEnumerator UpdateEventCountdown(TextMeshProUGUI tmp, DateTime countdown)
+    private bool UpdateEventCountdown(TextMeshProUGUI tmp, DateTime countdown)
     {
-        while (tmp != null)
-        {
-            var remaining = countdown - DateTime.Now;
-            if (remaining.TotalSeconds <= 0)
-            {
-                tmp.text = "00:00";
-                yield break;
-            }
-            if (remaining.Hours > 0)
-                tmp.text = $"{remaining.Hours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
-            else if (remaining.Minutes > 0)
-                tmp.text = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
-            else
-                tmp.text = $"{remaining.Seconds:D2}";
-            tmp.transform.parent.SetAsLastSibling();
-            yield return new WaitForSeconds(0.9f);
-        }
+        var remaining = countdown - DateTime.Now;
+        if (remaining.TotalSeconds <= 0)
+            tmp.text = "00:00";
+        else if (remaining.Hours > 0)
+            tmp.text = $"{remaining.Hours:D2}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+        else
+            tmp.text = $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
+        tmp.transform.parent.SetAsLastSibling();
+        return remaining.TotalSeconds >= 0;
     }
 
     private IEnumerator FadeAndDie(GameObject go, UiEvent e)

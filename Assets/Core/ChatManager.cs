@@ -9,10 +9,24 @@ using UnityEngine.SceneManagement;
 
 public class ChatManager : MonoBehaviour
 {
-    public static ChatManager Instance => _instance ?? (_instance = FindFirstObjectByType<ChatManager>());
-    private static ChatManager _instance;
+    public static ChatManager Instance { get; private set; }
 
-    public static bool IsPaused { get; set; }
+    public static bool IsPaused
+    {
+        get => _paused;
+        set
+        {
+            if (_paused == value)
+                return;
+            _paused = value;
+            if (_paused)
+                Instance.OnPaused?.Invoke();
+            else
+                Instance.OnResumed?.Invoke();
+        }
+    }
+    private static bool _paused;
+
     public static bool RepeatLastNode { get; set; }
     public static bool SkipToEnd { get; set; }
 
@@ -33,6 +47,8 @@ public class ChatManager : MonoBehaviour
     public event Action<ChatNode> OnChatNodeActivated;
 
     public event Action<ChatManagerContext> OnContextChanged;
+    public event Action OnPaused;
+    public event Action OnResumed;
 
     public Chat NowPlaying { get; private set; }
     public ChatManagerContext CurrentContext { get; private set; }
@@ -57,7 +73,7 @@ public class ChatManager : MonoBehaviour
     private void Awake()
     {
         DontDestroyOnLoad(gameObject);
-        _instance = this;
+        Instance = this;
         Cursor.visible = false;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -297,6 +313,13 @@ public class ChatManager : MonoBehaviour
         yield return controller?.Deactivate();
         actors.Remove(controller);
         OnActorRemoved?.Invoke(NowPlaying, controller);
+    }
+
+    public void ResetContext()
+    {
+        if (CurrentContext != null)
+            CurrentContext.MarkForDeath();
+        CurrentContext = null;
     }
 
     public bool SetCurrentContext(ChatManagerContext context)
