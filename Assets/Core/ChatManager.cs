@@ -67,14 +67,14 @@ public class ChatManager : MonoBehaviour
     [SerializeField]
     private EventSystem primaryEventSystem;
 
-    [SerializeField]
-    private bool forceSceneChange = true;
+    private void OnEnable()
+    {
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private void Awake()
     {
-        DontDestroyOnLoad(gameObject);
-        Instance = this;
-        Cursor.visible = false;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 

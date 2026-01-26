@@ -20,7 +20,7 @@ public class FlagController : AutoActor, ISubActor
         var duration = 1f;
         var elapsed = 0f;
 
-        while (elapsed < duration)
+        while (this != null && elapsed < duration)
         {
             elapsed += Time.deltaTime;
             transform.localScale *= (duration - Time.deltaTime) / duration;
@@ -34,7 +34,7 @@ public class FlagController : AutoActor, ISubActor
         var duration = 1f;
         var elapsed = 0f;
 
-        while (elapsed < duration)
+        while (this != null && elapsed < duration)
         {
             elapsed += Time.deltaTime;
             transform.localScale = Vector3.Lerp(Vector3.zero, scale, elapsed / duration);

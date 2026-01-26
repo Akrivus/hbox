@@ -81,15 +81,13 @@ public sealed class ChatManagerContext : MonoBehaviour
     public bool RemoveActorsOnCompletion = true;
     public bool DisableSoundEffects = false;
 
-    private ChatManagerBinding Bindings;
+    private ChatManagerBinding Bindings = new ChatManagerBinding();
 
     private void Awake()
     {
         ActorsSearch = new Actor.SearchableList(Actors.ToList());
         SentimentsSearch = new Sentiment.SearchableList(Sentiments.ToList());
         Locations = SpawnPoints.Select(s => s.name).ToArray();
-
-        Bindings = new ChatManagerBinding();
 
         foreach (var actor in Actors)
             actor.ManagerContext = this;

@@ -7,6 +7,7 @@ public struct UiEvent
     public string ChannelCode;
     public string Message;
     public float LifetimeInSeconds;
+    public bool IsPinned;
 
     public DateTime Timestamp;
     public DateTime? Countdown;
@@ -14,13 +15,6 @@ public struct UiEvent
     public GameObject obj;
 
     public DateTime DateTime => (Countdown ?? Timestamp).AddSeconds(LifetimeInSeconds);
-    public bool IsPinned
-    {
-        get => _pinned || (Countdown.HasValue && DateTime.Now < DateTime);
-        set => _pinned = value;
-    }
-
-    private bool _pinned;
 }
 
 public static class UiEventBus

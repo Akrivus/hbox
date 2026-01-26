@@ -177,6 +177,8 @@ public class RemoteControl : MonoBehaviour
         Bind(down, _ => DownArrow());
         Bind(pageUp, _ => PageUp());
         Bind(pageDown, _ => PageDown());
+
+        Cursor.visible = false;
     }
 
     private void OnDestroy()

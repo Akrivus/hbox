@@ -47,7 +47,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerator ReplayEpisodes()
     {
-        yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
+        FetchFiles(ReplaysPerBatch);
 
         while (queue.TryDequeue(out var task))
             yield return ReplayEpisode(task).AsCoroutine();
@@ -74,7 +74,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         File.WriteAllLines(fileName, replays);
     }
 
-    private async Task FetchFiles(int count)
+    private void FetchFiles(int count)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var path = Path.Combine(docs, ReplayDirectory);

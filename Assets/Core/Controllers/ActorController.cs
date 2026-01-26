@@ -153,7 +153,7 @@ public class ActorController : MonoBehaviour
         {
             Destroy(gameObject);
         }
-        catch (Exception e)
+        catch
         {
             Debug.LogWarning("ActorController destroyed before deactivated.");
         }

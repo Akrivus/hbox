@@ -70,7 +70,7 @@ public class UiEventFeed : MonoBehaviour
 
         var tmp = feedItem.GetComponentInChildren<TextMeshProUGUI>();
         tmp.text = e.Message;
-        if (e.IsPinned && UpdateEventCountdown(tmp, e.Countdown))
+        if (e.IsPinned || UpdateEventCountdown(tmp, e.Countdown))
         {
             if (pins.TryGetValue(e.ChannelCode, out var oe))
                 Destroy(oe.obj);
@@ -84,15 +84,15 @@ public class UiEventFeed : MonoBehaviour
     {
         while (Application.isPlaying)
         {
-            var tmps = new List<GameObject>();
+            var toRemove = new List<string>();
             foreach (var e in pins.Values)
             {
-                if (e.IsPinned && UpdateEventCountdown(e.obj.GetComponentInChildren<TextMeshProUGUI>(), e.Countdown))
+                if (e.obj != null && (e.IsPinned || UpdateEventCountdown(e.obj.GetComponentInChildren<TextMeshProUGUI>(), e.Countdown)))
                     continue;
-                tmps.Add(e.obj);
+                toRemove.Add(e.ChannelCode);
             }
-            foreach (var tmp in tmps)
-                tmps.Remove(tmp);
+            foreach (var to in toRemove)
+                pins.Remove(to);
             yield return new WaitForSeconds(1f);
         }
     }
