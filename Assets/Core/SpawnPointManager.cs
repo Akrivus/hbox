@@ -41,11 +41,15 @@ public class SpawnPointManager : MonoBehaviour
 
     public void UnRegister()
     {
+        actorToController.Clear();
+        actorToSpawnPoint.Clear();
+
+        if (ChatManagerContext.Current == null)
+            return;
+
         ChatManagerContext.Current.OnActorAdded -= OnActorAdded;
         ChatManagerContext.Current.OnChatNodeActivated -= OnChatNodeActivated;
         ChatManagerContext.Current.OnChatLoaded -= OnChatLoaded;
-        actorToController.Clear();
-        actorToSpawnPoint.Clear();
     }
 
     private void OnDestroy()

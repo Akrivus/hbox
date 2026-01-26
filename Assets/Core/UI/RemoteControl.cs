@@ -236,7 +236,8 @@ public class RemoteControl : MonoBehaviour
 
     private void SwitchScene(ChannelEntry entry)
     {
-        if (entry == null || string.IsNullOrEmpty(entry.scenePath)) return;
+        if (entry == null || entry.codeName == ChatManagerContext.Current.Key)
+            return;
 
         if (zapTitle)
             zapTitle.text = string.IsNullOrWhiteSpace(entry.displayName) ? entry.scenePath : entry.displayName;
@@ -348,7 +349,8 @@ public class RemoteControl : MonoBehaviour
         yield return LoadChannel(null);
         yield return ExitIntroSequence();
 
-        MenuOpen = true;
+        ChatManager.Instance.ResetContext();
+
         _initalized = true;
     }
 

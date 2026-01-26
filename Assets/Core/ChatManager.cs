@@ -64,6 +64,9 @@ public class ChatManager : MonoBehaviour
     private ChatNode lastNode;
     private float maxChance = 1f;
 
+    private bool _readyToPlay = false;
+    private bool _ready = false;
+
     [SerializeField]
     private EventSystem primaryEventSystem;
 
@@ -93,22 +96,24 @@ public class ChatManager : MonoBehaviour
     {
         playList.Enqueue(chat);
         OnChatQueueAdded?.Invoke(chat);
+        _readyToPlay = true;
     }
 
     private IEnumerator UpdatePlayList()
     {
-        yield return new WaitUntil(() => CurrentContext != null);
         while (Application.isPlaying)
         {
-            if (playList.IsEmpty) OnChatQueueEmpty?.Invoke();
+            yield return new WaitUntil(() => _ready);
             if (playList.TryDequeue(out var chat) && chat != null)
                 yield return Play(chat);
-
-            if (playList.IsEmpty || CurrentContext.RemoveActorsOnCompletion)
-                yield return RemoveAllActors();
-
+            else
+                OnChatQueueEmpty?.Invoke();
             SubtitleManager.Instance?.ClearSubtitles();
-            yield return new WaitUntilTimer(() => !playList.IsEmpty, 30);
+            yield return new WaitUntil(() => CurrentContext != null);
+            if (CurrentContext.RemoveActorsOnCompletion)
+                yield return RemoveAllActors();
+            yield return new WaitUntil(() => _readyToPlay);
+            _readyToPlay = false;
         }
     }
 
@@ -117,12 +122,11 @@ public class ChatManager : MonoBehaviour
         if (chat.IsLocked && chat.Nodes.Count < 2)
             yield break;
 
-        if (chat.ManagerContext == null && contexts.TryGetValue(chat.Key, out var context))
+        if (contexts.TryGetValue(chat.Key, out var context))
+        {
             chat.ManagerContext = context;
-        if (chat.ManagerContext != null)
-            yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
-        if (chat.ManagerContext == null)
-            chat.ManagerContext = ChatManagerContext.Current;
+            yield return SetCurrentContextAndChangeScene(context);
+        }
 
         if (StopPlaying(chat))
             yield break;
@@ -289,6 +293,7 @@ public class ChatManager : MonoBehaviour
         controller.Sentiment = context.Reference.DefaultSentiment;
 
         actors.Add(controller);
+
         yield return controller.Initialize(NowPlaying);
         OnActorAdded?.Invoke(NowPlaying, controller);
     }
@@ -319,14 +324,16 @@ public class ChatManager : MonoBehaviour
         if (CurrentContext != null)
             CurrentContext.MarkForDeath();
         CurrentContext = null;
+        _ready = true;
     }
 
     public bool SetCurrentContext(ChatManagerContext context)
     {
-        if (context == null || context.IsActive)
+        if (context == null)
             return false;
-        if (contexts.TryGetValue(context.Key, out var staleContext))
-            staleContext.MarkForDeath();
+        if (contexts.TryGetValue(context.Key, out var staleContext) && staleContext != null)
+            if (context != staleContext)
+                staleContext.MarkForDeath();
         contexts[context.Key] = context;
         CurrentContext = context;
         DontDestroyOnLoad(context.gameObject);
@@ -363,7 +370,10 @@ public class ChatManager : MonoBehaviour
 
     private bool StopPlaying(Chat chat)
     {
-        return chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext.Key;
+        var stop = chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
+        if (stop)
+            AddToPlayList(chat);
+        return stop;
     }
 
     private void PostChatActorMemories(Chat chat)

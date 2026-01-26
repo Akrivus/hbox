@@ -4,7 +4,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -33,10 +32,14 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
         ChatManagerContext.Current.OnChatQueueEmpty += ReplayNewEpisode;
         ChatManagerContext.Current.OnChatLoaded += AddReplayToList;
+
+        ReplayNewEpisode();
     }
 
     public void AddReplayToList(Chat chat)
     {
+        if (replays.Contains(chat.FileName))
+            return;
         replays.Add(chat.FileName);
     }
 

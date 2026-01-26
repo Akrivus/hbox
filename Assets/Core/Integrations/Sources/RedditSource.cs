@@ -106,15 +106,13 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
                 var range = await FetchAsync(subreddit.Key);
                 var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
                 prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                ideas = new Queue<Idea>(range
-                        .Take(BatchMax)
-                        .Select(post =>
-                        {
-                            history.Add(post.Value<string>("id"));
-                            return post;
-                        })
-                        .Select(post => PostToIdea(post, prompt)
-                    ).ToList());
+                range.Take(BatchMax)
+                    .Select(post =>
+                    {
+                        history.Add(post.Value<string>("id"));
+                        return post;
+                    })
+                    .Select(post => PostToIdea(post, prompt));
                 i = i++ % SubReddits.Count;
             }
     }
@@ -127,12 +125,16 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             "\n\n" + post.Value<string>("selftext") +
             "\n\n" + string.Join("\n\n", top.Select(t => t.DialogueSeed));
 
-        return new Idea(
+        var idea = new Idea(
             string.Format(template, topic),
             post.Value<string>("author"),
             post.Value<string>("subreddit_name_prefixed"),
             post.Value<string>("id")
         );
+
+        ideas.Enqueue(idea);
+
+        return idea;
     }
 
     private void Start()
