@@ -27,7 +27,6 @@ public class ActorContext
     [JsonIgnore]
     public bool HasNoPrompt => !File.Exists($"./Vault/{Reference.ManagerContext.Key}/Prompts/Actors/{Name}.md");
 
-
     public ActorContext(Actor actor)
     {
         Reference = actor;

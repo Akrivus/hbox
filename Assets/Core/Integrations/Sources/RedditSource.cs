@@ -20,7 +20,8 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     public Dictionary<string, string> SubReddits = new Dictionary<string, string>();
     public float MaxPostAgeInHours = 24;
-    public int BatchMax = 20;
+    public int BatchSize = 20;
+    public int BatchSizeLimit = 20;
     public int BatchIterations = 1;
     public string BatchPeriodOffset = "00:00";
     public float BatchPeriodInMinutes = 60;
@@ -42,7 +43,8 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         SubReddits = c.SubReddits.Shuffle()
             .ToDictionary(k => k.Key, v => v.Value);
         MaxPostAgeInHours = c.MaxPostAgeInHours;
-        BatchMax = c.BatchMax;
+        BatchSize = c.BatchSize;
+        BatchSizeLimit = c.BatchSizeLimit;
         BatchIterations = c.BatchIterations;
         BatchPeriodOffset = c.BatchPeriodOffset;
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
@@ -100,13 +102,13 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     {
         var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
         for (var iteration = 0; iteration < BatchIterations; iteration++)
-            for (var iterations = 0; iterations < SubReddits.Count && ideas.Count < BatchMax; iterations++)
+            for (var iterations = 0; iterations < BatchSize; iterations++)
             {
                 var subreddit = SubReddits.ElementAt(i);
                 var range = await FetchAsync(subreddit.Key);
                 var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
                 prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                range.Take(BatchMax)
+                range.Take(BatchSize)
                     .Select(post =>
                     {
                         history.Add(post.Value<string>("id"));
@@ -114,6 +116,8 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
                     })
                     .Select(post => PostToIdea(post, prompt));
                 i = i++ % SubReddits.Count;
+                if (ideas.Count >= BatchSizeLimit)
+                    return;
             }
     }
 
@@ -158,12 +162,12 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         return File.ReadAllLines(fileName).ToList();
     }
 
-    public Task<IEnumerable<JToken>> FetchAsync(string subreddit, int batchMax = 0)
+    public Task<IEnumerable<JToken>> FetchAsync(string subreddit, int batchSize = 0)
     {
-        return Task.Run(() => Fetch(subreddit, batchMax));
+        return Task.Run(() => Fetch(subreddit, batchSize));
     }
 
-    public IEnumerable<JToken> Fetch(string uri, int batchMax = 0)
+    public IEnumerable<JToken> Fetch(string uri, int batchSize = 0)
     {
         var fetchTime = fetchTimes.GetValueOrDefault(uri, DateTime.Now.AddHours(-MaxPostAgeInHours));
         var cutoff = fetchTime.Subtract(EPOCH).TotalSeconds;
@@ -181,14 +185,14 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
         fetchTimes[subreddit] = DateTime.Now;
 
-        if (batchMax <= 0)
-            batchMax = BatchMax;
+        if (batchSize <= 0)
+            batchSize = BatchSize;
 
         return data.SelectTokens("$.data.children[*].data")
             .Where(post => post.Value<long>("created_utc") > cutoff)
             .Where(post => !history.Contains(post.Value<string>("id")))
             .OrderByDescending(post => post.Value<long>("created_utc"))
-            .Take(batchMax);
+            .Take(batchSize);
     }
 
     private async Task<string> FindMetaPrompt(string blank = null)

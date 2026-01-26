@@ -123,10 +123,9 @@ public class ChatManager : MonoBehaviour
             yield break;
 
         if (contexts.TryGetValue(chat.Key, out var context))
-        {
             chat.ManagerContext = context;
-            yield return SetCurrentContextAndChangeScene(context);
-        }
+        if (chat.ManagerContext != null && chat.NewEpisode)
+            yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
 
         if (StopPlaying(chat))
             yield break;
@@ -269,7 +268,7 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator AddActor(ActorContext context)
     {
-        if (context == null)
+        if (context == null || context.Reference == null) // another weird fluke
             yield break;
 
         var spawnPointTransform = CurrentContext.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
