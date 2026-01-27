@@ -106,7 +106,7 @@ public class ChatManager : MonoBehaviour
         {
             if (playList.TryDequeue(out var chat) && chat != null)
             {
-                if (!chat.NewEpisode && StopPlaying(chat))
+                if (!chat.NewEpisode && chat.Key != CurrentContext?.Key)
                 {
                     readyToPlay = true;
                     continue;

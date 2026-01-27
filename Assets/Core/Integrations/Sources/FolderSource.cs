@@ -51,9 +51,6 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private IEnumerator ReplayEpisodes()
     {
         yield return FetchFiles(ReplaysPerBatch);
-
-        while (queue.TryDequeue(out var task))
-            ChatManager.Instance.AddToPlayList(task);
     }
 
     private void Start()
@@ -101,9 +98,10 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private async Task LogThenLoad(string title)
     {
+        var chat = await Chat.Load(ReplayDirectory, title);
+        ChatManager.Instance.AddToPlayList(chat);
         replays = replays.TakeLast(ReplayRate - 1).ToList();
         replays.Add(title);
-        queue.Enqueue(await Chat.Load(ReplayDirectory, title));
     }
 
     private List<string> LoadReplays()
