@@ -64,8 +64,8 @@ public class ChatManager : MonoBehaviour
     private ChatNode lastNode;
     private float maxChance = 1f;
 
-    private bool _readyToPlay = false;
-    private bool _ready = false;
+    private bool ready = false;
+    private bool readyToPlay = false;
 
     [SerializeField]
     private EventSystem primaryEventSystem;
@@ -96,24 +96,31 @@ public class ChatManager : MonoBehaviour
     {
         playList.Enqueue(chat);
         OnChatQueueAdded?.Invoke(chat);
-        _readyToPlay = true;
+        readyToPlay = false;
     }
 
     private IEnumerator UpdatePlayList()
     {
-        while (Application.isPlaying)
+        yield return new WaitUntil(() => ready);
+        while (ready)
         {
-            yield return new WaitUntil(() => _ready);
             if (playList.TryDequeue(out var chat) && chat != null)
+            {
+                if (!chat.NewEpisode && StopPlaying(chat))
+                {
+                    readyToPlay = true;
+                    continue;
+                }
                 yield return Play(chat);
-            else
+                SubtitleManager.Instance?.ClearSubtitles();
+                readyToPlay = true;
+            }
+            else if (readyToPlay)
+            {
                 OnChatQueueEmpty?.Invoke();
-            SubtitleManager.Instance?.ClearSubtitles();
-            yield return new WaitUntil(() => CurrentContext != null);
-            if (CurrentContext.RemoveActorsOnCompletion)
-                yield return RemoveAllActors();
-            yield return new WaitUntil(() => _readyToPlay);
-            _readyToPlay = false;
+                readyToPlay = false;
+            }
+            yield return new WaitUntil(() => !IsPaused);
         }
     }
 
@@ -323,7 +330,7 @@ public class ChatManager : MonoBehaviour
         if (CurrentContext != null)
             CurrentContext.MarkForDeath();
         CurrentContext = null;
-        _ready = true;
+        ready = true;
     }
 
     public bool SetCurrentContext(ChatManagerContext context)
@@ -369,10 +376,7 @@ public class ChatManager : MonoBehaviour
 
     private bool StopPlaying(Chat chat)
     {
-        var stop = chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
-        if (stop)
-            AddToPlayList(chat);
-        return stop;
+        return chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
     }
 
     private void PostChatActorMemories(Chat chat)

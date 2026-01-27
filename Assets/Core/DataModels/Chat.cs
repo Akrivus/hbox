@@ -78,6 +78,7 @@ public class Chat
 
     public void Lock()
     {
+        _new = true;
         _locked = true;
     }
     
