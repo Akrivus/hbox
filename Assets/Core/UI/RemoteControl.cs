@@ -110,6 +110,7 @@ public class RemoteControl : MonoBehaviour
     public virtual void RightArrow()
     {
         if (!_initalized) return;
+        ChatManager.SkipToEnd = true;
     }
 
     public virtual void UpArrow()

@@ -15,7 +15,6 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     public int MaxReplayAgeInMinutes = 1440;
 
     private List<string> replays = new List<string>();
-    private ConcurrentQueue<Chat> queue = new ConcurrentQueue<Chat>();
     private string fileName;
 
     public void Configure(FolderConfigs c)
@@ -31,16 +30,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         replays = LoadReplays();
 
         ChatManagerContext.Current.OnChatQueueEmpty += ReplayNewEpisode;
-        ChatManagerContext.Current.OnChatLoaded += AddReplayToList;
 
         ReplayNewEpisode();
-    }
-
-    public void AddReplayToList(Chat chat)
-    {
-        if (replays.Contains(chat.FileName))
-            return;
-        replays.Add(chat.FileName);
     }
 
     public void ReplayNewEpisode()
@@ -61,9 +52,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private void OnDestroy()
     {
         ChatManagerContext.Current.OnChatQueueEmpty -= ReplayNewEpisode;
-        ChatManagerContext.Current.OnChatLoaded -= AddReplayToList;
         StopAllCoroutines();
-        File.WriteAllLines(fileName, replays);
     }
 
     private IEnumerator FetchFiles(int count)
@@ -80,12 +69,12 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .Reverse() // newest first
             .Select(Path.GetFileNameWithoutExtension);
         var unplayed = titles.Except(replays);
-        if (unplayed.Any())
+        if (unplayed.Count() > ReplayRate)
             titles = unplayed;
 
         var tasks = titles
+            .Shuffle()
             .Take(count)
-            .Reverse() // load oldest first
             .Select(LogThenLoad)
             .ToList();
 
@@ -98,10 +87,9 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private async Task LogThenLoad(string title)
     {
+        AddReplayToList(title);
         var chat = await Chat.Load(ReplayDirectory, title);
         ChatManager.Instance.AddToPlayList(chat);
-        replays = replays.TakeLast(ReplayRate - 1).ToList();
-        replays.Add(title);
     }
 
     private List<string> LoadReplays()
@@ -111,5 +99,14 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             return new List<string>();
         return File.ReadAllLines(fileName)
             .ToList();
+    }
+
+    private void AddReplayToList(string title)
+    {
+        File.WriteAllLinesAsync(fileName, replays
+            .Distinct()
+            .Shuffle()
+            .TakeLast(ReplayRate)
+            .ToList());
     }
 }

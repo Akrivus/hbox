@@ -145,7 +145,8 @@ public class ChatManager : MonoBehaviour
         yield return InitChat(chat);
         yield return PlayChat(chat);
 
-        PostChatActorMemories(chat);
+        if (!SkipToEnd)
+            PostChatActorMemories(chat);
 
         SkipToEnd = false;
     }
