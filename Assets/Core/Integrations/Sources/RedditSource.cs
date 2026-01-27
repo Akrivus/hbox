@@ -85,7 +85,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private IEnumerator WhenUnpaused()
     {
-        yield return new WaitUntil(() => !ChatManager.IsPaused && ChatManagerContext.Current != null);
+        yield return new WaitUntil(() => !ChatManager.IsPaused);
     }
 
     public IEnumerator Drop()
@@ -108,13 +108,14 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
                 var range = await FetchAsync(subreddit.Key);
                 var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
                 prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                range.Take(BatchSize)
+                var posts = range.Take(BatchSize)
                     .Select(post =>
                     {
                         history.Add(post.Value<string>("id"));
                         return post;
-                    })
-                    .Select(post => PostToIdea(post, prompt));
+                    }).ToList();
+                foreach (var post in posts)
+                    PostToIdea(post, prompt);
                 i = i++ % SubReddits.Count;
                 if (ideas.Count >= BatchSizeLimit)
                     return;
