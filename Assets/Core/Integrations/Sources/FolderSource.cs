@@ -87,9 +87,16 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private async Task LogThenLoad(string title)
     {
-        AddReplayToList(title);
-        var chat = await Chat.Load(ReplayDirectory, title);
-        ChatManager.Instance.AddToPlayList(chat);
+        try
+        {
+            var chat = await Chat.Load(ReplayDirectory, title);
+            AddReplayToList(title);
+            ChatManager.Instance.AddToPlayList(chat);
+        }
+        catch
+        {
+            replays.Remove(title);
+        }
     }
 
     private List<string> LoadReplays()
@@ -103,6 +110,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void AddReplayToList(string title)
     {
+        replays.Add(title);
         File.WriteAllLinesAsync(fileName, replays
             .Distinct()
             .Shuffle()

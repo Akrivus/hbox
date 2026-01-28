@@ -53,8 +53,10 @@ public class ActorConverter : JsonConverter
         writer.WriteValue(name);
     }
 
-    public static Actor Convert(string name)
+    public static Actor Convert(string name, ChatManagerContext context = null)
     {
-        return ChatManagerContext.Current.ActorsSearch[name];
+        if (context == null)
+            context = ChatManagerContext.Current;
+        return context.ActorsSearch[name];
     }
 }

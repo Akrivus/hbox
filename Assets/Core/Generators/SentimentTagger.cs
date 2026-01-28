@@ -32,7 +32,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
     private async Task GenerateForChat(PromptResolver prompt, Chat chat, string[] names, string context)
     {
         var sentiment = await GetSentiment(prompt, chat, names, chat.Log, "Analyze initial conversation state based on context.", chat.Context, string.Empty);
-        var reactions = ParseReactions(sentiment, names);
+        var reactions = ParseReactions(chat, sentiment, names);
         foreach (var reaction in reactions)
             if (chat.Actors.TryGet(reaction.Actor, out var actor))
                 actor.Sentiment = reaction.Sentiment;
@@ -44,7 +44,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         await actor.SetPrompt();
 
         var sentiment = await GetSentiment(prompt, chat, names, chat.Log, node.Line, actor.Context, actor.Prompt);
-        node.Reactions = ParseReactions(sentiment, names);
+        node.Reactions = ParseReactions(chat, sentiment, names);
         AfterTagging(sentiment, node);
     }
 
@@ -56,22 +56,22 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
         return await LLM.CompleteAsync(await prompt.Resolve(faces, options, transcript, line, context, text), chat, true);
     }
 
-    private ChatNode.Reaction[] ParseReactions(string message, string[] names)
+    private ChatNode.Reaction[] ParseReactions(Chat chat, string message, string[] names)
     {
         var lines = message.Parse(names);
         var reactions = new ChatNode.Reaction[lines.Count];
         var i = 0;
 
         foreach (var l in lines)
-            if (TryParseReaction(l.Key, l.Value, out Actor actor, out Sentiment sentiment))
+            if (TryParseReaction(chat, l.Key, l.Value, out Actor actor, out Sentiment sentiment))
                 reactions[i++] = new ChatNode.Reaction(actor, sentiment);
         return reactions.OfType<ChatNode.Reaction>().ToArray();
     }
 
-    private bool TryParseReaction(string name, string text, out Actor actor, out Sentiment sentiment)
+    private bool TryParseReaction(Chat chat, string name, string text, out Actor actor, out Sentiment sentiment)
     {
-        actor = ActorConverter.Convert(name);
-        sentiment = SentimentConverter.Convert(text);
+        actor = ActorConverter.Convert(name, chat.ManagerContext);
+        sentiment = SentimentConverter.Convert(text, chat.ManagerContext);
         return sentiment != null && actor != null;
     }
 }

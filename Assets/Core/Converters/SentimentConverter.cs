@@ -53,8 +53,10 @@ public class SentimentConverter : JsonConverter
         writer.WriteValue(name);
     }
 
-    public static Sentiment Convert(string name)
+    public static Sentiment Convert(string name, ChatManagerContext context = null)
     {
-        return ChatManagerContext.Current.SentimentsSearch[name];
+        if (context == null)
+            context = ChatManagerContext.Current;
+        return context.SentimentsSearch[name];
     }
 }

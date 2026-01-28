@@ -353,7 +353,6 @@ public class RemoteControl : MonoBehaviour
         ChatManager.Instance.ResetContext();
 
         _initalized = true;
-        MenuOpen = true;
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;

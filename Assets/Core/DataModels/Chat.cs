@@ -97,7 +97,17 @@ public class Chat
             Directory.CreateDirectory(folder);
         folder = Path.Combine(folder, $"{FileName}.json");
 
-        await File.WriteAllTextAsync(folder, json);
+        var attempts = 0;
+        while (attempts < 3)
+            try
+            {
+                await File.WriteAllTextAsync(folder, json);
+            }
+            catch (IOException)
+            {
+                attempts++;
+                await Task.Delay(100);
+            }
     }
 
     public static async Task<Chat> Load(string folder, string slug)

@@ -53,8 +53,10 @@ public class PromptResolverConverter : JsonConverter
         writer.WriteValue(path);
     }
 
-    public static PromptResolver Convert(string path)
+    public static PromptResolver Convert(string path, ChatManagerContext context = null)
     {
-        return new PromptResolver(ChatManagerContext.Current, path);
+        if (context == null)
+            context = ChatManagerContext.Current;
+        return new PromptResolver(context, path);
     }
 }
