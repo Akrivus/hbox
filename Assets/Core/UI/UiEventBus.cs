@@ -44,6 +44,17 @@ public static class UiEventBus
         });
     }
 
+    public static void PublishError(ChatManagerContext context, string message, float lifetimeSeconds = 10)
+    {
+        OnEvent?.Invoke(new UiEvent
+        {
+            ChannelCode = $"<color=red>{context.Key}</color>",
+            Message = message.Truncate(100),
+            LifetimeInSeconds = lifetimeSeconds,
+            Timestamp = DateTime.Now
+        });
+    }
+
     private static string Truncate(this string value, int maxLength)
     {
         if (string.IsNullOrEmpty(value)) return value;

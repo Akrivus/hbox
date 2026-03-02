@@ -10,8 +10,8 @@ public class RedditConfigs : IConfig
     public int BatchIterations { get; set; } = 1;
     public string BatchPeriodOffset { get; set; } = "00:00";
     public float BatchPeriodInMinutes { get; set; }
-    public string ActiveWindowStart { get; set; } = "00:00";
-    public string ActiveWindowEnd { get; set; } = "23:59";
+    public string ActiveHoursStart { get; set; } = "00:00";
+    public string ActiveHoursEnd { get; set; } = "23:59";
     public int MaxDepth { get; set; } = 3;
     public int TopRoots { get; set; } = 3;
     public int TopLevelLimit { get; set; } = 30;

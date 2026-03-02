@@ -19,6 +19,9 @@ public class RemoteControl : MonoBehaviour
 
         [NonSerialized]
         public GameObject gameObject;
+
+        [NonSerialized]
+        public ChatManagerContext context;
     }
 
     public ChannelEntry this[string codeName]
@@ -34,6 +37,7 @@ public class RemoteControl : MonoBehaviour
 
     [Header("Channels")]
     [SerializeField] private List<ChannelEntry> channels = new();
+    [SerializeField] private int defaultChannel = -1;
     [SerializeField] private string defaultScenePath = "Reset";
 
     private int selectedChannel = 0;
@@ -237,7 +241,7 @@ public class RemoteControl : MonoBehaviour
 
     private void SwitchScene(ChannelEntry entry)
     {
-        if (entry == null || entry.scenePath == SceneManager.GetActiveScene().path)
+        if (entry == null || entry.context == ChatManagerContext.Current)
             return;
 
         if (zapTitle)
@@ -254,13 +258,12 @@ public class RemoteControl : MonoBehaviour
         if (statusImage)
             StartCoroutine(Fade(statusImage, 1f, 0.25f));
 
-        var loadOp = SceneManager.LoadSceneAsync(entry.scenePath, LoadSceneMode.Single);
-        loadOp.completed += _ =>
+        ChatManager.Instance.SwitchCurrentContextAndScene(entry.context, () =>
         {
             if (zapBar)
                 StartCoroutine(Fade(zapBar, 0f, 10f));
             StartCoroutine(ExitIntroSequence());
-        };
+        });
     }
 
     private IEnumerator Fade(CanvasGroup canvas, float target, float dur)
@@ -310,8 +313,9 @@ public class RemoteControl : MonoBehaviour
     {
         var scenePath = entry == null ? defaultScenePath : entry.scenePath;
         var op = SceneManager.LoadSceneAsync(scenePath, LoadSceneMode.Single);
-        while (!op.isDone)
-            yield return new WaitForEndOfFrame();
+        if (entry != null)
+            op.completed += _ => entry.context = ChatManagerContext.Current;
+        yield return op;
     }
 
     private IEnumerator LoadIntroSequence()
@@ -350,9 +354,10 @@ public class RemoteControl : MonoBehaviour
         yield return LoadChannel(null);
         yield return ExitIntroSequence();
 
-        ChatManager.Instance.ResetContext();
-
         _initalized = true;
+
+        if (defaultChannel > -1)
+            SwitchScene(channels[defaultChannel]);
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;

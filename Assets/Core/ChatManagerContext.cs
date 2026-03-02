@@ -62,6 +62,8 @@ public sealed class ChatManagerContext : MonoBehaviour
     public string Key => key;
     public string ScenePath => $"Scenes/{Name}";
 
+    public bool Dead { get; private set; } = false;
+
     public Actor.SearchableList ActorsSearch { get; private set; }
     public Sentiment.SearchableList SentimentsSearch { get; private set; }
     public bool IsActive => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context == this;
@@ -95,18 +97,25 @@ public sealed class ChatManagerContext : MonoBehaviour
 
     private void OnDestroy()
     {
-        Bindings.Dispose();
-        AudioSource.Stop();
+        Die();
     }
 
     private IEnumerator Death()
     {
         yield return new WaitUntil(() => !IsActive && GetComponentInChildren<ChatGenerator>()?.IsActive != true);
-        Destroy(gameObject);
+        Die();
     }
 
     public void MarkForDeath()
     {
         StartCoroutine(Death());
+    }
+
+    private void Die()
+    {
+        if (Dead) return;
+        Dead = true;
+        Bindings.Dispose();
+        AudioSource.Stop();
     }
 }

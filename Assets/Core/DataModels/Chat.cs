@@ -118,6 +118,14 @@ public class Chat
         return JsonConvert.DeserializeObject<Chat>(json);
     }
 
+    public static void Delete(string folder, string slug)
+    {
+        var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var path = Path.Combine(docs, folder, $"{slug}.json");
+        if (File.Exists(path))
+            File.Move(path, path + ".deleted");
+    }
+
     public static bool FileExists(string folder, string slug)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

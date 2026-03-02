@@ -52,19 +52,20 @@ public class ChatManager : MonoBehaviour
 
     public Chat NowPlaying { get; private set; }
     public ChatManagerContext CurrentContext { get; private set; }
+    public bool ReadyForAction { get; set; }
     public IDictionary<string, ChatManagerContext> Contexts => contexts;
     public ConcurrentQueue<Chat> PlayList => playList;
     public List<ActorController> ActorsInScene => actors;
+
+    public string ResetScenePath = "Reset";
 
     private readonly Dictionary<string, ChatManagerContext> contexts = new Dictionary<string, ChatManagerContext>();
     private List<ActorController> actors = new List<ActorController>();
     private ConcurrentQueue<Chat> playList = new ConcurrentQueue<Chat>();
 
     private SpawnPointManager spawnPointManager;
-    private ChatNode lastNode;
     private float maxChance = 1f;
 
-    private bool ready = false;
     private bool readyToPlay = false;
 
     [SerializeField]
@@ -101,8 +102,8 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator UpdatePlayList()
     {
-        yield return new WaitUntil(() => ready);
-        while (ready)
+        yield return new WaitUntil(() => ReadyForAction);
+        while (ReadyForAction)
         {
             if (playList.TryDequeue(out var chat) && chat != null)
             {
@@ -158,16 +159,9 @@ public class ChatManager : MonoBehaviour
         if (chat.NextNode == null && !chat.IsLocked)
             yield return new WaitUntilTimer(() => chat.NextNode != null);
 
-        if (RepeatLastNode)
-        {
-            lastNode.New = true;
-            RepeatLastNode = false;
-        }
-
         var node = chat.NextNode;
         if (node == null)
             yield break;
-        lastNode = node;
         yield return Activate(node);
 
         node.New = false;
@@ -179,9 +173,8 @@ public class ChatManager : MonoBehaviour
     {
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
-        lastNode = null;
         maxChance = 1f;
-        if (CurrentContext.RemoveActorsOnCompletion)
+        if (chat.ManagerContext.RemoveActorsOnCompletion)
             yield return RemoveAllActors();
         else
             yield return RemoveActors(chat);
@@ -189,9 +182,9 @@ public class ChatManager : MonoBehaviour
         NowPlaying = chat;
 
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = CurrentContext.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
+            spawnPointManager = chat.ManagerContext.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = CurrentContext.SpawnPoints.Shuffle().FirstOrDefault();
+            spawnPointManager = chat.ManagerContext.SpawnPoints.Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
@@ -205,7 +198,10 @@ public class ChatManager : MonoBehaviour
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var context in incoming)
-            yield return AddActor(context);
+        {
+            var t = chat.ManagerContext.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+            yield return AddActor(context, t);
+        }
 
         foreach (var ac in actors)
             if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
@@ -274,12 +270,10 @@ public class ChatManager : MonoBehaviour
         yield return new WaitForSeconds(clip.length);
     }
 
-    private IEnumerator AddActor(ActorContext context)
+    private IEnumerator AddActor(ActorContext context, Transform spawnPointTransform)
     {
         if (context == null || context.Reference == null) // another weird fluke
             yield break;
-
-        var spawnPointTransform = CurrentContext.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
 
         if (spawnPointManager != null)
         {
@@ -326,14 +320,6 @@ public class ChatManager : MonoBehaviour
         OnActorRemoved?.Invoke(NowPlaying, controller);
     }
 
-    public void ResetContext()
-    {
-        if (CurrentContext != null)
-            CurrentContext.MarkForDeath();
-        CurrentContext = null;
-        ready = true;
-    }
-
     public bool SetCurrentContext(ChatManagerContext context)
     {
         if (context == null)
@@ -348,16 +334,35 @@ public class ChatManager : MonoBehaviour
         return true;
     }
 
-    public IEnumerator SetCurrentContextAndChangeScene(ChatManagerContext context)
+    public void SwitchCurrentContextAndScene(ChatManagerContext context, Action callback = null)
     {
-        if (SetCurrentContext(context))
-            yield return ChangeScene();
+        StartCoroutine(SetCurrentContextAndChangeScene(context, callback));
     }
 
-    private IEnumerator ChangeScene()
+    public IEnumerator SetCurrentContextAndChangeScene(ChatManagerContext context, Action callback = null)
     {
+        if (SetCurrentContext(context))
+            yield return ResetAndChangeScene(callback);
+    }
+
+    private IEnumerator ResetAndChangeScene(Action callback = null)
+    {
+        var async = SceneManager.LoadSceneAsync(ResetScenePath);
+        async.completed += (_) => StartCoroutine(ChangeScene(callback));
+        yield return async;
+    }
+
+    private IEnumerator ChangeScene(Action callback = null)
+    {
+        ReadyForAction = false;
+
         var async = SceneManager.LoadSceneAsync(CurrentContext.ScenePath);
-        yield return new WaitUntil(() => async.isDone);
+        async.completed += (_) =>
+        {
+            callback?.Invoke();
+            ReadyForAction = true;
+        };
+        yield return async;
     }
 
     private void OnSceneLoaded(Scene s, LoadSceneMode m)

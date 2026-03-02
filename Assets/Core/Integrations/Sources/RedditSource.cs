@@ -48,8 +48,8 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         BatchIterations = c.BatchIterations;
         BatchPeriodOffset = c.BatchPeriodOffset;
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
-        ActiveWindowStart = c.ActiveWindowStart;
-        ActiveWindowEnd = c.ActiveWindowEnd;
+        ActiveWindowStart = c.ActiveHoursStart;
+        ActiveWindowEnd = c.ActiveHoursEnd;
 
         i = UnityEngine.Random.Range(0, SubReddits.Count);
 

@@ -1,10 +1,10 @@
 using System;
 using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
@@ -41,7 +41,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerator ReplayEpisodes()
     {
-        yield return FetchFiles(ReplaysPerBatch);
+        yield return new WaitUntil(() => ChatManager.Instance.ReadyForAction);
+        yield return FetchFiles(ReplaysPerBatch).AsCoroutine();
     }
 
     private void Start()
@@ -55,10 +56,13 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         StopAllCoroutines();
     }
 
-    private IEnumerator FetchFiles(int count)
+    private async Task FetchFiles(int count)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         var path = Path.Combine(docs, ReplayDirectory);
+
+        if (!Directory.Exists(path))
+            Directory.CreateDirectory(path);
 
         var titles = Directory.GetFiles(path, "*.json")
             .Where(file => File.GetLastWriteTime(file) > DateTime.Now.AddMinutes(-MaxReplayAgeInMinutes));
@@ -68,34 +72,56 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .OrderBy(file => File.GetLastWriteTime(file))
             .Reverse() // newest first
             .Select(Path.GetFileNameWithoutExtension);
-        var unplayed = titles.Except(replays);
-        if (unplayed.Count() > ReplayRate)
-            titles = unplayed;
+        count = Mathf.Min(count, titles.Count());
 
-        var tasks = titles
-            .Shuffle()
-            .Take(count)
-            .Select(LogThenLoad)
-            .ToList();
+        var tasks = new List<Task>();
+        var attempts = 0;
 
-        foreach (var task in tasks)
-            yield return task.AsCoroutine();
+        do
+        {
+            var unplayed = titles.Except(replays);
+            if (unplayed.Count() < ReplayRate)
+                unplayed = titles;
+            var _ = unplayed
+                .Shuffle()
+                .Take(count)
+                .Select(LogThenLoad)
+                .ToList();
+            foreach (var task in _)
+                if (await task)
+                    tasks.Add(task);
+            attempts++;
+        } while (tasks.Count < count && attempts < 3);
 
         if (tasks.Count > 0)
             UiEventBus.Publish(ChatManagerContext.Current, $"Loaded {tasks.Count} replay{(tasks.Count == 1 ? "" : "s")}");
     }
 
-    private async Task LogThenLoad(string title)
+    private async Task<bool> LogThenLoad(string title, int attempts = 0)
     {
+        if (attempts > 3) return false;
         try
         {
             var chat = await Chat.Load(ReplayDirectory, title);
             AddReplayToList(title);
             ChatManager.Instance.AddToPlayList(chat);
+            return true;
         }
-        catch
+        catch (JsonException)
         {
-            replays.Remove(title);
+            Chat.Delete(ReplayDirectory, title);
+            AddReplayToList(title);
+            return false;
+        }
+        catch (IOException)
+        {
+            return await LogThenLoad(title, ++attempts);
+        }
+        catch (Exception e)
+        {
+            Debug.LogException(e);
+            AddReplayToList(title);
+            return false;
         }
     }
 
