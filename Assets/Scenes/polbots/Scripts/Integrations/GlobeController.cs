@@ -38,20 +38,27 @@ public class GlobeController : MonoBehaviour
     {
         ChatManagerContext.Current.RemoveActorsOnCompletion = false;
         ChatManagerContext.Current.DisableSoundEffects = false;
-        VideoCallUIManager.Instance.Enabled = true;
-        Camera.main.cullingMask = 122879;
+
+        if (VideoCallUIManager.Instance != null)
+            VideoCallUIManager.Instance.Enabled = true;
+        if (Camera.main != null)
+            Camera.main.cullingMask = 122879;
         _zoomTo = false;
-        Globe.ZoomTo(85.0f);
+        Globe?.ZoomTo(85.0f);
     }
 
     public void Enable()
     {
-        Camera.main.cullingMask = 65535;
-        Globe.ZoomTo(MaxZoomLevel);
-        _zoomTo = true;
+        
         ChatManagerContext.Current.RemoveActorsOnCompletion = true;
         ChatManagerContext.Current.DisableSoundEffects = true;
-        VideoCallUIManager.Instance.Enabled = false;
+
+        if (VideoCallUIManager.Instance != null)
+            VideoCallUIManager.Instance.Enabled = false;
+        if (Camera.main != null)
+            Camera.main.cullingMask = 65535;
+        _zoomTo = true;
+        Globe?.ZoomTo(MaxZoomLevel);
     }
 
     private void Start()

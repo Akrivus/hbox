@@ -182,9 +182,9 @@ public class ChatManager : MonoBehaviour
         NowPlaying = chat;
 
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = chat.ManagerContext.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
+            spawnPointManager = ChatManagerContext.Current.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = chat.ManagerContext.SpawnPoints.Shuffle().FirstOrDefault();
+            spawnPointManager = ChatManagerContext.Current.SpawnPoints.Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
@@ -197,11 +197,8 @@ public class ChatManager : MonoBehaviour
         var incoming = chat.Actors
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
-        foreach (var context in incoming)
-        {
-            var t = chat.ManagerContext.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
-            yield return AddActor(context, t);
-        }
+        foreach (var actor in incoming)
+            yield return AddActor(actor, ChatManagerContext.Current.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0));
 
         foreach (var ac in actors)
             if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
@@ -341,7 +338,8 @@ public class ChatManager : MonoBehaviour
 
     public IEnumerator SetCurrentContextAndChangeScene(ChatManagerContext context, Action callback = null)
     {
-        if (SetCurrentContext(context))
+        var contextChanged = context.Key != CurrentContext.Key;
+        if (SetCurrentContext(context) && contextChanged)
             yield return ResetAndChangeScene(callback);
     }
 

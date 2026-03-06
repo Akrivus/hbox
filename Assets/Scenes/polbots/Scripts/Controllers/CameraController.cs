@@ -4,8 +4,12 @@ public class CameraController : AutoActor, ISubActor, ISubExits, ISubNode, ISubS
 {
     private Color color
     {
-        get => _camera.backgroundColor;
-        set => _camera.backgroundColor = value;
+        get => _camera?.backgroundColor ?? Color.black;
+        set
+        {
+            if (_camera != null)
+                _camera.backgroundColor = value;
+        }
     }
 
     [SerializeField]

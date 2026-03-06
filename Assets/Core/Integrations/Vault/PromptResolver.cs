@@ -129,12 +129,29 @@ public class PromptResolver
         await Save(path, text);
     }
 
-    private async Task Save(string path, string text)
+    private async Task Save(string path, string text, int attempt = 0)
     {
+        if (attempt > 5)
+        {
+            Debug.LogError($"Failed to save file '{path}' after multiple attempts.");
+            return;
+        }
         var folder = System.IO.Path.GetDirectoryName(path);
         if (!Directory.Exists(folder))
             Directory.CreateDirectory(folder);
-        await File.WriteAllTextAsync(path, text);
+        try
+        {
+            await File.WriteAllTextAsync(path, text);
+        }
+        catch (IOException)
+        {
+            await Task.Delay(100);
+            await Save(path, text, attempt + 1);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to save file '{path}': {e.Message}");
+        }
     }
 
     private void SetPromptPath(string name, bool direct = false)
