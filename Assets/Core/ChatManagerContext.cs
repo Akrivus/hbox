@@ -68,6 +68,9 @@ public sealed class ChatManagerContext : MonoBehaviour
     public Sentiment.SearchableList SentimentsSearch { get; private set; }
     public bool IsActive => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context == this;
 
+    public SpawnPointManager[] ActiveSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) ? context.SpawnPoints : SpawnPoints;
+    public Transform[] ActiveFallbackSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) ? context.FallbackSpawnPoints : FallbackSpawnPoints;
+
     [SerializeField]
     private string key;
 
@@ -80,6 +83,7 @@ public sealed class ChatManagerContext : MonoBehaviour
     public Actor[] Actors;
     public Sentiment[] Sentiments;
 
+    public bool PostMemories = false;
     public bool RemoveActorsOnCompletion = true;
     public bool DisableSoundEffects = false;
 

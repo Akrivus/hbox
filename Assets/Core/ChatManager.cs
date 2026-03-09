@@ -131,7 +131,8 @@ public class ChatManager : MonoBehaviour
             yield break;
 
         if (contexts.TryGetValue(chat.Key, out var context))
-            chat.ManagerContext = context;
+            if (chat.ManagerContext == null)
+                chat.ManagerContext = context;
         if (chat.ManagerContext != null && chat.NewEpisode)
             yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
 
@@ -146,7 +147,7 @@ public class ChatManager : MonoBehaviour
         yield return InitChat(chat);
         yield return PlayChat(chat);
 
-        if (!SkipToEnd)
+        if (!SkipToEnd || chat.ManagerContext.PostMemories)
             PostChatActorMemories(chat);
 
         SkipToEnd = false;
@@ -182,9 +183,9 @@ public class ChatManager : MonoBehaviour
         NowPlaying = chat;
 
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = ChatManagerContext.Current.SpawnPoints.FirstOrDefault(s => s.name == chat.Location);
+            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.FirstOrDefault(s => s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = ChatManagerContext.Current.SpawnPoints.Shuffle().FirstOrDefault();
+            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
@@ -198,7 +199,7 @@ public class ChatManager : MonoBehaviour
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var actor in incoming)
-            yield return AddActor(actor, ChatManagerContext.Current.FallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0));
+            yield return AddActor(actor, chat.ManagerContext.ActiveFallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0));
 
         foreach (var ac in actors)
             if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
@@ -389,6 +390,8 @@ public class ChatManager : MonoBehaviour
             return;
         foreach (var actor in chat.Actors)
         {
+            if (ChatManagerContext.Current.Key != chat.ManagerContext.Key)
+                continue;
             if (string.IsNullOrEmpty(actor.Memory))
                 continue;
             DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
