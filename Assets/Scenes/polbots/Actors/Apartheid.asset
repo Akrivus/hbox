@@ -12,11 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
   m_Name: Apartheid
   m_EditorClassIdentifier: 
-  Title: South Africa
+  Title: South Africa (Apartheid)
   Pronouns: she/her
   Name: Apartheid
   Aliases:
-  - South Africa
   - Apartheid
   Players:
   - Daniel
@@ -30,7 +29,7 @@ MonoBehaviour:
   - Anton
   - Stephen
   - Bruno
-  Neighbor: {fileID: 0}
+  Neighbor: {fileID: 11400000, guid: 01a92dc2fa8f10d4dbff2f2f5b5d6e5c, type: 2}
   IsLegacy: 1
   ColorScheme: 4B
   Costume: <:flag_apartheid:1339097685323677729>
@@ -46,3 +45,4 @@ MonoBehaviour:
   Color3: {r: 1, g: 1, b: 1, a: 1}
   DefaultSentiment: {fileID: 11400000, guid: 08672e6e2b9af0b42b3e90136d2c955f, type: 2}
   WordReplacementDictionary: []
+  ManagerContext: {fileID: 0}

@@ -127,6 +127,8 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator Play(Chat chat)
     {
+        yield return new WaitUntil(() => NowPlaying == null);
+
         if (chat.IsLocked && chat.Nodes.Count < 2)
             yield break;
 
@@ -151,6 +153,7 @@ public class ChatManager : MonoBehaviour
             PostChatActorMemories(chat);
 
         SkipToEnd = false;
+        NowPlaying = null;
     }
 
     private IEnumerator PlayChat(Chat chat)

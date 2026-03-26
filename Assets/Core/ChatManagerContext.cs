@@ -68,8 +68,8 @@ public sealed class ChatManagerContext : MonoBehaviour
     public Sentiment.SearchableList SentimentsSearch { get; private set; }
     public bool IsActive => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context == this;
 
-    public SpawnPointManager[] ActiveSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) ? context.SpawnPoints : SpawnPoints;
-    public Transform[] ActiveFallbackSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) ? context.FallbackSpawnPoints : FallbackSpawnPoints;
+    public SpawnPointManager[] ActiveSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.SpawnPoints.FirstOrDefault() != null ? context.SpawnPoints : SpawnPoints;
+    public Transform[] ActiveFallbackSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.FallbackSpawnPoints.FirstOrDefault() != null ? context.FallbackSpawnPoints : FallbackSpawnPoints;
 
     [SerializeField]
     private string key;
