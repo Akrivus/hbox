@@ -102,9 +102,10 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator UpdatePlayList()
     {
-        yield return new WaitUntil(() => ReadyForAction);
-        while (ReadyForAction)
+        while (this != null)
         {
+            yield return new WaitUntil(() => ReadyForAction);
+
             if (playList.TryDequeue(out var chat) && chat != null)
             {
                 if (!chat.NewEpisode && chat.Key != CurrentContext?.Key)
@@ -138,11 +139,13 @@ public class ChatManager : MonoBehaviour
         if (chat.ManagerContext != null && chat.NewEpisode)
             yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
 
+        if (contexts.TryGetValue(chat.Key, out context) && context != null)
+            chat.ManagerContext = context;
+
         if (StopPlaying(chat))
             yield break;
 
-        if (OnChatQueueTaken != null)
-            yield return OnChatQueueTaken(chat);
+        yield return RunEventCoroutines(OnChatQueueTaken, chat);
 
         PostChatTitleCard(chat);
 
@@ -186,15 +189,15 @@ public class ChatManager : MonoBehaviour
         NowPlaying = chat;
 
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.FirstOrDefault(s => s.name == chat.Location);
+            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.FirstOrDefault(s => s != null && s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.Shuffle().FirstOrDefault();
+            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.Where(s => s != null).Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
         BeforeIntermission?.Invoke();
         yield return SubtitleManager.Instance?.StartSplashScreen(chat);
-        yield return OnIntermission?.Invoke(chat);
+        yield return RunEventCoroutines(OnIntermission, chat);
 
         OnChatLoaded?.Invoke(chat);
 
@@ -202,7 +205,7 @@ public class ChatManager : MonoBehaviour
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var actor in incoming)
-            yield return AddActor(actor, chat.ManagerContext.ActiveFallbackSpawnPoints.FirstOrDefault(t => t.transform.childCount == 0));
+            yield return AddActor(actor, chat.ManagerContext.ActiveFallbackSpawnPoints.FirstOrDefault(t => t != null && t.childCount == 0));
 
         foreach (var ac in actors)
             if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
@@ -342,29 +345,30 @@ public class ChatManager : MonoBehaviour
 
     public IEnumerator SetCurrentContextAndChangeScene(ChatManagerContext context, Action callback = null)
     {
-        var contextChanged = context.Key != CurrentContext.Key;
+        var contextChanged = context.Key != CurrentContext?.Key;
         if (SetCurrentContext(context) && contextChanged)
-            yield return ResetAndChangeScene(callback);
+            yield return ResetAndChangeScene(context.Key, callback);
     }
 
-    private IEnumerator ResetAndChangeScene(Action callback = null)
-    {
-        var async = SceneManager.LoadSceneAsync(ResetScenePath);
-        async.completed += (_) => StartCoroutine(ChangeScene(callback));
-        yield return async;
-    }
-
-    private IEnumerator ChangeScene(Action callback = null)
+    private IEnumerator ResetAndChangeScene(string expectedKey, Action callback = null)
     {
         ReadyForAction = false;
 
+        var resetAsync = SceneManager.LoadSceneAsync(ResetScenePath);
+        yield return resetAsync;
+
+        yield return ChangeScene(expectedKey, callback);
+    }
+
+    private IEnumerator ChangeScene(string expectedKey, Action callback = null)
+    {
         var async = SceneManager.LoadSceneAsync(CurrentContext.ScenePath);
-        async.completed += (_) =>
-        {
-            callback?.Invoke();
-            ReadyForAction = true;
-        };
         yield return async;
+
+        yield return new WaitUntil(() => ContextReady(expectedKey));
+
+        callback?.Invoke();
+        ReadyForAction = true;
     }
 
     private void OnSceneLoaded(Scene s, LoadSceneMode m)
@@ -385,6 +389,35 @@ public class ChatManager : MonoBehaviour
     private bool StopPlaying(Chat chat)
     {
         return chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
+    }
+
+    private bool ContextReady(string expectedKey)
+    {
+        if (CurrentContext == null || CurrentContext.Key != expectedKey)
+            return false;
+
+        var spawnPoints = CurrentContext.ActiveSpawnPoints;
+        if (spawnPoints == null)
+            return false;
+
+        var fallbackSpawnPoints = CurrentContext.ActiveFallbackSpawnPoints;
+        if (fallbackSpawnPoints == null)
+            return false;
+
+        return true;
+    }
+
+    private IEnumerator RunEventCoroutines(Func<Chat, IEnumerator> handlers, Chat chat)
+    {
+        if (handlers == null)
+            yield break;
+
+        foreach (Func<Chat, IEnumerator> handler in handlers.GetInvocationList())
+        {
+            var routine = handler?.Invoke(chat);
+            if (routine != null)
+                yield return routine;
+        }
     }
 
     private void PostChatActorMemories(Chat chat)

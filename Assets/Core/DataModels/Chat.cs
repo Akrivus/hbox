@@ -102,6 +102,7 @@ public class Chat
             try
             {
                 await File.WriteAllTextAsync(folder, json);
+                break;
             }
             catch (IOException)
             {

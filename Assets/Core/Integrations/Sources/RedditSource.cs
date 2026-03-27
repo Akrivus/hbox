@@ -116,7 +116,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
                     }).ToList();
                 foreach (var post in posts)
                     PostToIdea(post, prompt);
-                i = i++ % SubReddits.Count;
+                i = ++i % SubReddits.Count;
                 if (ideas.Count >= BatchSizeLimit)
                     return;
             }

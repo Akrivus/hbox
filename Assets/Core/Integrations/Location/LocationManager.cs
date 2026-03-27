@@ -39,10 +39,13 @@ public class LocationManager : MonoBehaviour
 
     private void UpdateSpawnPoint(Chat chat, ActorController controller)
     {
+        if (_location == null || _location.SpawnPoints == null)
+            return;
+
         var a = chat.Actors.Get(controller.Actor.Name);
         if (a == null)
             return;
-        var s = _location.SpawnPoints.First(s => s.name == a.SpawnPoint);
+        var s = _location.SpawnPoints.FirstOrDefault(s => s != null && s.name == a.SpawnPoint);
         if (s == null)
             return;
         var t = controller.transform.parent = s;

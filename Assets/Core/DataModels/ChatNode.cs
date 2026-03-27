@@ -68,7 +68,6 @@ public class ChatNode
 
     public void SetText(string text)
     {
-        OriginalText = Text;
         if (text.StartsWith("- "))
             text = text.Substring(2);
         Line = Text = text;
