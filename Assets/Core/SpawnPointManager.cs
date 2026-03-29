@@ -32,6 +32,13 @@ public class SpawnPointManager : MonoBehaviour
 
     private ActorController lastActorController;
 
+    public bool IsReady =>
+        anchor != null &&
+        target != null &&
+        targetGroup != null &&
+        virtualCameras != null &&
+        virtualCameras.Length > 0;
+
     public void Register()
     {
         ChatManagerContext.Current.OnActorAdded += OnActorAdded;
@@ -100,6 +107,11 @@ public class SpawnPointManager : MonoBehaviour
 
     private void OnChatLoaded(Chat chat)
     {
+        if (!IsReady)
+        {
+            Debug.LogError($"SpawnPointManager '{name}' is not ready during OnChatLoaded. Anchor: {anchor}, Target: {target}, TargetGroup: {targetGroup}");
+            return;
+        }
         anchor.position = transform.position;
         anchor.rotation = transform.rotation;
         target.position = transform.position;
@@ -108,6 +120,17 @@ public class SpawnPointManager : MonoBehaviour
 
     private void OnChatNodeActivated(ChatNode node)
     {
+        if (!IsReady)
+        {
+            Debug.LogError($"SpawnPointManager '{name}' is not ready during OnChatNodeActivated. Anchor: {anchor}, Target: {target}, TargetGroup: {targetGroup}");
+            return;
+        }
+        if (!actorToController.ContainsKey(node.Actor))
+        {
+            Debug.LogError($"SpawnPointManager '{name}' has no controller registered for actor '{node.Actor?.Name}'.");
+            return;
+        }
+
         foreach (var actor in actorToSpawnPoint.Keys)
             ArrangeSpawnPoints(InCircle(transform.position, CalculateSpacing()));
 

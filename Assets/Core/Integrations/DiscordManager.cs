@@ -14,7 +14,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
     public static Dictionary<string, DiscordWebhook> Webhooks => webhooks;
     private static Dictionary<string, DiscordWebhook> webhooks;
 
-    private static Queue<KeyValuePair<string, DiscordWebhookMessage>> Q = new Queue<KeyValuePair<string, DiscordWebhookMessage>>();
+    private static Queue<KeyValuePair<DiscordWebhook, DiscordWebhookMessage>> Q = new Queue<KeyValuePair<DiscordWebhook, DiscordWebhookMessage>>();
 
     public Dictionary<string, string> WebhookURLs { get; private set; }
 
@@ -46,8 +46,8 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         {
             yield return new WaitUntilTimer(() => Q.Count > 0, 30);
 
-            if (Q.TryDequeue(out var m) && Webhooks.TryGetValue(m.Key, out var web))
-                yield return web.SendAsync(m.Value);
+            if (Q.TryDequeue(out var m))
+                yield return m.Key.SendAsync(m.Value);
         } while (this != null);
     }
 
@@ -77,9 +77,10 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         PutInQueue(webhook, new DiscordWebhookMessage(content, username, avatarUrl));
     }
 
-    public static void PutInQueue(string webhook, DiscordWebhookMessage message)
+    public static void PutInQueue(string channel, DiscordWebhookMessage message)
     {
-        Q.Enqueue(new KeyValuePair<string, DiscordWebhookMessage>(webhook, message));
+        var webhook = Webhooks.FirstOrDefault(w => w.Key == channel).Value;
+        Q.Enqueue(new KeyValuePair<DiscordWebhook, DiscordWebhookMessage>(webhook, message));
     }
 }
 

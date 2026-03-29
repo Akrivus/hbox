@@ -44,12 +44,20 @@ public class GlobeController : MonoBehaviour
         if (Camera.main != null)
             Camera.main.cullingMask = 122879;
         _zoomTo = false;
-        Globe?.ZoomTo(85.0f);
+
+        try
+        {
+            Globe?.ZoomTo(85.0f);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error zooming out globe: {e}");
+        }
     }
 
     public void Enable()
     {
-        
+
         ChatManagerContext.Current.RemoveActorsOnCompletion = true;
         ChatManagerContext.Current.DisableSoundEffects = true;
 
@@ -58,7 +66,15 @@ public class GlobeController : MonoBehaviour
         if (Camera.main != null)
             Camera.main.cullingMask = 65535;
         _zoomTo = true;
-        Globe?.ZoomTo(MaxZoomLevel);
+
+        try
+        {
+            Globe?.ZoomTo(MaxZoomLevel);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error zooming in globe: {e}");
+        }
     }
 
     private void Start()

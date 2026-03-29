@@ -347,25 +347,25 @@ public class ChatManager : MonoBehaviour
     {
         var contextChanged = context.Key != CurrentContext?.Key;
         if (SetCurrentContext(context) && contextChanged)
-            yield return ResetAndChangeScene(context.Key, callback);
+            yield return ResetAndChangeScene(context.Key, context, callback);
     }
 
-    private IEnumerator ResetAndChangeScene(string expectedKey, Action callback = null)
+    private IEnumerator ResetAndChangeScene(string expectedKey, ChatManagerContext previousContext, Action callback = null)
     {
         ReadyForAction = false;
 
         var resetAsync = SceneManager.LoadSceneAsync(ResetScenePath);
         yield return resetAsync;
 
-        yield return ChangeScene(expectedKey, callback);
+        yield return ChangeScene(expectedKey, previousContext, callback);
     }
 
-    private IEnumerator ChangeScene(string expectedKey, Action callback = null)
+    private IEnumerator ChangeScene(string expectedKey, ChatManagerContext previousContext, Action callback = null)
     {
         var async = SceneManager.LoadSceneAsync(CurrentContext.ScenePath);
         yield return async;
 
-        yield return new WaitUntil(() => ContextReady(expectedKey));
+        yield return new WaitUntil(() => ContextReady(expectedKey, previousContext));
 
         callback?.Invoke();
         ReadyForAction = true;
@@ -391,18 +391,26 @@ public class ChatManager : MonoBehaviour
         return chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
     }
 
-    private bool ContextReady(string expectedKey)
+    private bool ContextReady(string expectedKey, ChatManagerContext previousContext)
     {
         if (CurrentContext == null || CurrentContext.Key != expectedKey)
             return false;
+        if (CurrentContext == previousContext)
+            return false;
 
         var spawnPoints = CurrentContext.ActiveSpawnPoints;
-        if (spawnPoints == null)
-            return false;
+        var hasReadySpawnPointManager = spawnPoints != null
+            && spawnPoints.Any(s => s != null && s.IsReady);
 
         var fallbackSpawnPoints = CurrentContext.ActiveFallbackSpawnPoints;
-        if (fallbackSpawnPoints == null)
+        var hasFallbackSpawnPoint = fallbackSpawnPoints != null
+            && fallbackSpawnPoints.Any(t => t != null);
+
+        if (!hasReadySpawnPointManager && !hasFallbackSpawnPoint)
+        {
+            Debug.LogError($"Context '{CurrentContext.Name}' is missing both ready SpawnPointManagers and fallback spawn points.");
             return false;
+        }
 
         return true;
     }
