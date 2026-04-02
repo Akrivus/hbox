@@ -42,7 +42,7 @@ public class MemoryBucket
             try
             {
                 await File.WriteAllTextAsync(path, json);
-                Buckets.Remove(Name);
+                Buckets.Remove(GetBucketKey(Context, Name));
             }
             catch (Exception e)
             {
@@ -126,13 +126,14 @@ public class MemoryBucket
 
     public static async Task<MemoryBucket> Get(ChatManagerContext context, string name)
     {
-        if (Buckets.ContainsKey(name))
-            return Buckets[name];
+        var key = GetBucketKey(context.Key, name);
+        if (Buckets.ContainsKey(key))
+            return Buckets[key];
 
         var bucket = new MemoryBucket(context.Key, name);
         await bucket.Load();
 
-        Buckets[name] = bucket;
+        Buckets[key] = bucket;
         return bucket;
     }
 
@@ -149,12 +150,17 @@ public class MemoryBucket
         var magnitudeB = Math.Sqrt(b.Sum(x => x * x));
         return dotProduct / (magnitudeA * magnitudeB);
     }
+
+    private static string GetBucketKey(string context, string name)
+    {
+        return $"{context}:{name}";
+    }
 }
 
 public class Memory
 {
     [JsonIgnore]
-    public PromptResolver Prompt => _prompt ??= new PromptResolver(ChatManager.Instance.Contexts[ContextKey], Path);
+    public PromptResolver Prompt => _prompt ??= PromptResolver.FromPath(ChatManager.Instance.Contexts[ContextKey], Path);
     public string ContextKey { get; private set; }
     public string Path { get; private set; }
     public double[] Embeddings { get; private set; }

@@ -129,9 +129,14 @@ public class ActorController : MonoBehaviour
 
         if (!node.Async)
         {
-            var s = Mathf.Abs(1.0f - node.Actor.Confidence);
+            var c = node.Actor.Confidence;
+            var s = Mathf.Abs(1.0f - Mathf.Abs(c));
             var ratio = s - Mathf.Abs(Sentiment.Score * Energy) * s;
-            yield return new WaitForSeconds(ratio + node.Actor.Confidence * clip.length);
+            var seconds = ratio + c * clip.length;
+
+            if (node.Text.EndsWith("—\"") || node.Text.EndsWith("—"))
+                seconds -= 0.5f;
+            yield return new WaitForSeconds(seconds);
         }
     }
 

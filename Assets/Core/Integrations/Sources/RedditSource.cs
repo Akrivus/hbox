@@ -98,6 +98,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         OnBatchEnd?.Invoke();
     }
 
+    public void DoDrop()
+    {
+        StartCoroutine(Drop());
+    }
+
     public async Task FetchIdeas()
     {
         var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");

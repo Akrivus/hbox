@@ -152,6 +152,95 @@ Example:
 - OpenAI text generation and OpenAI TTS are configured separately.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.
 
+### Soccer config example
+
+`soccer` is scene-specific and currently powers three separate match-time layers in `polbots`:
+
+- `Lines`: live event narration text and residue
+- `InterruptSeeds`: short pre-generated reaction seeds for injected micro-chats
+- announcer settings: optional TTS playback for narrated event lines
+
+Example:
+
+```json
+{
+  "Type": "soccer",
+  "MatchTimeLimit": 10,
+  "TimeBetweenGames": 0,
+  "MaxVolume": 1.0,
+  "EnableAnnouncer": true,
+  "AnnouncerVolume": 0.9,
+  "MaxAnnouncerQueue": 4,
+  "SkipAnnouncerDuringInterrupts": false,
+  "AnnouncerVoice": "alloy",
+  "ClearSceneOnGameEnd": true,
+  "RequireTextPatternMatch": false,
+  "GameOnStart": false,
+  "GameOnBatchEnd": false,
+  "GameOnMatchEnd": false,
+  "Lines": {
+    "FirstWhistleEvent": [
+      "The whistle blows.",
+      "And we're off.",
+      "Kickoff."
+    ],
+    "FinalWhistleEvent": [
+      "# That's the final whistle! {1}",
+      "# Game over! {1}",
+      "# And that's full-time! {1}"
+    ],
+    "RefereeShortWhistleEvent": [
+      "Quick whistle!",
+      "What's the call?",
+      "The ref steps in!"
+    ],
+    "BallHitTheWoodWorkEvent": [
+      "SO CLOSE!",
+      "Denied by the post!",
+      "Off the bar!"
+    ],
+    "PlayerSlideTackleEvent": [
+      "{0} lunges in!",
+      "{0} goes for the slide tackle!",
+      "{0} clatters into them!"
+    ]
+  },
+  "InterruptSeeds": {
+    "Pregame": [
+      "Kickoff is approaching. Deliver a very short pregame beat about nerves, legitimacy, betting chatter, or alliance rivalry before play starts.",
+      "The match is about to begin. Deliver a very short pregame beat about diplomatic pageantry, procedural anxiety, or quiet panic before kickoff."
+    ],
+    "GoalScoredEvent": [
+      "A goal has just been scored. React briefly and sharply without naming a specific score or minute.",
+      "A goal has changed the atmosphere instantly. Deliver a short reaction about humiliation, momentum, or political overreaction without citing exact numbers."
+    ],
+    "RefereeShortWhistleEvent": [
+      "The referee has interrupted play. Deliver a brief reaction about procedure, officiating, corruption, or legitimacy.",
+      "A quick whistle just cut through the match. React briefly to the call, the process, or immediate suspicion of bias."
+    ],
+    "KeeperSavesTheBallEvent": [
+      "A dramatic save just happened. React briefly without naming a specific score or minute.",
+      "The keeper just denied what looked inevitable. Deliver a short reaction about survival, theft, or divine intervention without exact numbers."
+    ],
+    "BallHitTheWoodWorkEvent": [
+      "A near miss just rattled the stadium. React briefly without naming a specific score or minute.",
+      "The ball hit the woodwork and everything nearly changed. Deliver a short reaction about fate, robbery, or nerves without exact numbers."
+    ],
+    "PlayerSlideTackleEvent": [
+      "A hard tackle just changed the emotional temperature of the match. Deliver a brief reaction.",
+      "A heavy slide tackle just landed. React briefly about aggression, legitimacy, revenge, or selective outrage."
+    ]
+  }
+}
+```
+
+Notes:
+
+- `Lines` are short event phrases used for live narration, residue, and the optional announcer voice layer.
+- `InterruptSeeds` are not dialogue output; they are brief generation seeds used to prebuild character reaction packets.
+- Keep `InterruptSeeds` generic enough that pre-generated packets do not go stale immediately when the score changes.
+- Full-scene soccer framing now lives in Vault under [`Vault/polbots/Prompts/Soccer Mode/Idea Seeds`](C:/Users/akriv/OneDrive/Desktop/HBOx/Vault/polbots/Prompts/Soccer%20Mode/Idea%20Seeds).
+
 ## Replay and generation data
 
 Generated chats are serialized to the user's Documents folder under a per-show directory:

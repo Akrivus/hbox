@@ -27,7 +27,6 @@ public class ChatManager : MonoBehaviour
     }
     private static bool _paused;
 
-    public static bool RepeatLastNode { get; set; }
     public static bool SkipToEnd { get; set; }
 
     public event Action OnChatQueueEmpty;
@@ -98,6 +97,30 @@ public class ChatManager : MonoBehaviour
         playList.Enqueue(chat);
         OnChatQueueAdded?.Invoke(chat);
         readyToPlay = false;
+    }
+
+    public bool InjectNodes(Chat chat, IEnumerable<ChatNode> nodes)
+    {
+        if (chat == null || nodes == null)
+            return false;
+        if (chat != NowPlaying || StopPlaying(chat))
+            return false;
+
+        var injected = nodes
+            .Where(node => node != null)
+            .ToList();
+        if (injected.Count == 0)
+            return false;
+
+        foreach (var node in injected)
+            node.New = true;
+
+        var insertAt = chat.Nodes.FindIndex(node => node.New);
+        if (insertAt < 0)
+            insertAt = chat.Nodes.Count;
+
+        chat.Nodes.InsertRange(insertAt, injected);
+        return true;
     }
 
     private IEnumerator UpdatePlayList()

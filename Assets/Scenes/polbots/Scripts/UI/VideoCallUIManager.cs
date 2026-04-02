@@ -12,6 +12,8 @@ public class VideoCallUIManager : MonoBehaviour
     public GameObject VideoScreenFooter;
     public AudioSource AudioSource;
 
+    public ShareScreenUIManager ShareScreenUIManager;
+
     public bool Enabled
     {
         get => _enabled;
@@ -110,6 +112,16 @@ public class VideoCallUIManager : MonoBehaviour
                 AudioSource.PlayOneShot(_profile.Leave);
                 break;
         }
+    }
+
+    public void ShareScreenOn()
+    {
+        ShareScreenUIManager?.ShareScreenOn();
+    }
+
+    public void ShareScreenOff()
+    {
+        ShareScreenUIManager?.ShareScreenOff();
     }
 }
 

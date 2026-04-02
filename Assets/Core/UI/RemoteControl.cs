@@ -42,6 +42,7 @@ public class RemoteControl : MonoBehaviour
 
     private int selectedChannel = 0;
     private int currentChannel = -1;
+    private int lastChannel = -1;
 
     [Header("Overlay")]
     [SerializeField] private CanvasGroup menuGroup;
@@ -110,6 +111,9 @@ public class RemoteControl : MonoBehaviour
     public virtual void LeftArrow()
     {
         if (!_initalized) return;
+        var reddit = ChatManagerContext.Current.GetComponentInChildren<RedditSource>();
+        if (reddit)
+            reddit.DoDrop();
     }
     public virtual void RightArrow()
     {
@@ -163,10 +167,7 @@ public class RemoteControl : MonoBehaviour
             MenuOpen = false;
             return;
         }
-        else
-        {
-            ChatManager.RepeatLastNode = true;
-        }
+        SwitchScene(channels[lastChannel]);
     }
 
     private void Awake()
@@ -264,6 +265,8 @@ public class RemoteControl : MonoBehaviour
                 StartCoroutine(Fade(zapBar, 0f, 10f));
             StartCoroutine(ExitIntroSequence());
         });
+
+        lastChannel = currentChannel;
     }
 
     private IEnumerator Fade(CanvasGroup canvas, float target, float dur)

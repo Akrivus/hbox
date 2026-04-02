@@ -46,6 +46,9 @@ public class ShareScreenUIManager : MonoBehaviour
         _gridLayoutGroup.MaxChildren = childCount;
         _gridLayoutGroup.UpdateChildren();
 
+        if (VideoCallUIManager.Instance != null)
+            VideoCallUIManager.Instance.Enabled = active;
+
         switch (axis)
         {
             case GridLayoutGroup.Axis.Horizontal:

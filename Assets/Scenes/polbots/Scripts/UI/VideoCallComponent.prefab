@@ -166,6 +166,7 @@ MonoBehaviour:
   m_VerticalAlignment: 1024
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -364,6 +365,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -500,6 +502,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -729,6 +732,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1091,6 +1095,7 @@ MonoBehaviour:
   VideoScreenPrefab: {fileID: 4403121825232622136, guid: dbd3e44b1c52753479b4ec5edfe305c1, type: 3}
   VideoScreenFooter: {fileID: 6572199900021480177}
   AudioSource: {fileID: 6689251293733017559}
+  ShareScreenUIManager: {fileID: 1110814448138622308}
   _gridLayoutGroup: {fileID: 4065687736377402286}
   _profile:
     Mute: {fileID: 8300000, guid: 164b2852939954544bd52cdbdca78ff0, type: 3}
@@ -1111,7 +1116,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _gridLayoutGroup: {fileID: 4065687736377402286}
-  _shareScreenPrefab: {fileID: 4403121825232622136, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}
+  _shareScreenPrefab: {fileID: 1083639468753880464}
   maxVideoScreens: 12
   minVideoScreens: 4
 --- !u!114 &6281047954218032634
@@ -1130,7 +1135,6 @@ MonoBehaviour:
   title: {fileID: 1402401855583381432}
   subtitle: {fileID: 6584231771195942838}
   subtitleShadow: {fileID: 3999981593883415676}
-  pauseButton: {fileID: 2789799563137217546}
   fadeOut: 0
 --- !u!82 &6689251293733017559
 AudioSource:
@@ -1533,6 +1537,7 @@ MonoBehaviour:
   m_VerticalAlignment: 1024
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1801,6 +1806,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -1911,7 +1917,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4403121825232622136, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5637367899485077493, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}
       propertyPath: m_Material
@@ -2006,6 +2012,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}
+--- !u!1 &1083639468753880464 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4403121825232622136, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}
+  m_PrefabInstance: {fileID: 3608187741791688616}
+  m_PrefabAsset: {fileID: 0}
 --- !u!224 &5642358135581792624 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 8962010934072233688, guid: 338b70f7eb997f346a06ca8482f13946, type: 3}

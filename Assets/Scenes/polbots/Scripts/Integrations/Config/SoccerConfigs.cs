@@ -4,9 +4,15 @@ public class SoccerConfigs : IConfig
 {
     public string Type => "soccer";
     public Dictionary<string, string[]> Lines { get; set; } = new Dictionary<string, string[]>();
+    public Dictionary<string, string[]> InterruptSeeds { get; set; } = new Dictionary<string, string[]>();
     public int MatchTimeLimit { get; set; } = 10;
     public float TimeBetweenGames { get; set; } = 0;
     public float MaxVolume { get; set; }
+    public bool EnableAnnouncer { get; set; } = true;
+    public float AnnouncerVolume { get; set; } = 1f;
+    public int MaxAnnouncerQueue { get; set; } = 4;
+    public bool SkipAnnouncerDuringInterrupts { get; set; }
+    public string AnnouncerVoice { get; set; } = "alloy";
     public bool ClearSceneOnGameEnd { get; set; }
     public bool RequireTextPatternMatch { get; set; }
     public bool GameOnStart { get; set; }

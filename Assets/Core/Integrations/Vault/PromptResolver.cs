@@ -65,6 +65,14 @@ public class PromptResolver
         SetPromptPath(ManagerContext.Key);
     }
 
+    private PromptResolver(ChatManagerContext chatManagerContext, string path, bool direct)
+    {
+        Part = path;
+        ManagerContext = chatManagerContext;
+        FolderName = ManagerContext.Name;
+        SetPromptPath(ManagerContext.Key, direct);
+    }
+
     public PromptResolver Nullable()
     {
         nullable = true;
@@ -117,6 +125,8 @@ public class PromptResolver
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
         await Save(path, Text);
+
+        Debug.Log($"Saved input to '{path}'");
     }
 
     public async Task SaveOutput(string text)
@@ -125,8 +135,10 @@ public class PromptResolver
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
-        Output = new PromptResolver(ManagerContext, path);
+        Output = FromPath(ManagerContext, path);
         await Save(path, text);
+
+        Debug.Log($"Saved output to '{path}'");
     }
 
     private async Task Save(string path, string text, int attempt = 0)
@@ -174,6 +186,11 @@ public class PromptResolver
         if (File.Exists(resolver.Path))
             return resolver;
         return null;
+    }
+
+    public static PromptResolver FromPath(ChatManagerContext context, string path)
+    {
+        return new PromptResolver(context, path, true);
     }
 
     public static bool TryFind(ChatManagerContext context, string part, out PromptResolver resolver)

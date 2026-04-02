@@ -99,6 +99,17 @@ public sealed class ChatManagerContext : MonoBehaviour
             actor.ManagerContext = this;
     }
 
+    private void Start()
+    {
+        if (ChatManager.Instance == null)
+        {
+            if (Application.isEditor)
+                Debug.LogError("hey dipshit you forgot to switch to the main scene. lol");
+            Debug.LogWarning("ChatManagerContext scene without loading the Main scene first. Loading Main scene now...");
+            UnityEngine.SceneManagement.SceneManager.LoadScene("Main");
+        }
+    }
+
     private void OnDestroy()
     {
         Die();

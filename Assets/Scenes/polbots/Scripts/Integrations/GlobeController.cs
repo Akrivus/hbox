@@ -13,6 +13,8 @@ public class GlobeController : MonoBehaviour
 
     public WorldMapGlobe Globe => WorldMapGlobe.instance;
 
+    public Camera Camera;
+
     public float Scale;
     public float PushAngle;
 
@@ -41,8 +43,8 @@ public class GlobeController : MonoBehaviour
 
         if (VideoCallUIManager.Instance != null)
             VideoCallUIManager.Instance.Enabled = true;
-        if (Camera.main != null)
-            Camera.main.cullingMask = 122879;
+        if (Camera != null)
+            Camera.cullingMask = 5047;
         _zoomTo = false;
 
         try
@@ -63,8 +65,8 @@ public class GlobeController : MonoBehaviour
 
         if (VideoCallUIManager.Instance != null)
             VideoCallUIManager.Instance.Enabled = false;
-        if (Camera.main != null)
-            Camera.main.cullingMask = 65535;
+        if (Camera != null)
+            Camera.cullingMask = 13239;
         _zoomTo = true;
 
         try
@@ -126,8 +128,8 @@ public class GlobeController : MonoBehaviour
 
     private void UpdateBillboard(Transform actor)
     {
-        var toCamera = Camera.main.transform.position - actor.position;
-        var radialUp = Camera.main.transform.up;
+        var toCamera = Camera.transform.position - actor.position;
+        var radialUp = Camera.transform.up;
         actor.rotation = Quaternion.LookRotation(toCamera, radialUp)
             * Quaternion.Euler(RotationOffset);
     }
