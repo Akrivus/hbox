@@ -3,13 +3,22 @@ using UnityEngine;
 
 public class MemoryManager : MonoBehaviour
 {
+    private ChatManagerContext boundContext;
+
     public void Start()
     {
-        ChatManagerContext.Current.OnChatQueueEmpty += SaveMemories;
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.OnChatQueueEmpty += SaveMemories;
     }
 
     public void OnDestroy()
     {
+        if (boundContext != null)
+            boundContext.OnChatQueueEmpty -= SaveMemories;
+
         SaveMemories();
     }
 

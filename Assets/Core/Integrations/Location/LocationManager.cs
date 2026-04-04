@@ -10,6 +10,7 @@ public class LocationManager : MonoBehaviour
     public LocationDefinition[] Locations;
 
     private LocationDefinition _location;
+    private ChatManagerContext _boundContext;
 
     private void Awake()
     {
@@ -18,8 +19,22 @@ public class LocationManager : MonoBehaviour
 
     private void Start()
     {
-        ChatManagerContext.Current.OnChatQueueTaken += LoadLocation;
-        ChatManagerContext.Current.OnActorAdded += UpdateSpawnPoint;
+        _boundContext = ChatManagerContext.Current;
+        if (_boundContext == null)
+            return;
+
+        _boundContext.OnChatQueueTaken += LoadLocation;
+        _boundContext.OnActorAdded += UpdateSpawnPoint;
+    }
+
+    private void OnDestroy()
+    {
+        if (_boundContext == null)
+            return;
+
+        _boundContext.OnChatQueueTaken -= LoadLocation;
+        _boundContext.OnActorAdded -= UpdateSpawnPoint;
+        _boundContext = null;
     }
 
     private IEnumerator LoadLocation(Chat chat)

@@ -12,35 +12,53 @@ public class VibeSwitcher : MonoBehaviour
     [SerializeField]
     private float backgroundVolume = 0.05f;
 
+    private ChatManagerContext boundContext;
+
     private void Start()
     {
-        ChatManagerContext.Current.AfterIntermission += OnAfterIntermission;
-        ChatManagerContext.Current.BeforeIntermission += OnBeforeIntermission;
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.AfterIntermission += OnAfterIntermission;
+        boundContext.BeforeIntermission += OnBeforeIntermission;
     }
 
     private void OnDestroy()
     {
-        ChatManagerContext.Current.AfterIntermission -= OnAfterIntermission;
-        ChatManagerContext.Current.BeforeIntermission -= OnBeforeIntermission;
+        if (boundContext == null)
+            return;
+
+        boundContext.AfterIntermission -= OnAfterIntermission;
+        boundContext.BeforeIntermission -= OnBeforeIntermission;
+        boundContext = null;
     }
 
     private void OnBeforeIntermission()
     {
-        ChatManagerContext.Current.AudioSource.volume = foregroundVolume;
+        var audioSource = boundContext?.AudioSource;
+        if (audioSource == null)
+            return;
+
+        audioSource.volume = foregroundVolume;
     }
 
     private void OnAfterIntermission(Chat chat)
     {
-        ChatManagerContext.Current.AudioSource.volume = backgroundVolume;
-        ChatManagerContext.Current.AudioSource.Stop();
+        var audioSource = boundContext?.AudioSource;
+        if (audioSource == null)
+            return;
+
+        audioSource.volume = backgroundVolume;
+        audioSource.Stop();
 
         if (chat.Vibe != null)
         {
             var vibe = vibes.FirstOrDefault(vibe => vibe.name == chat.Vibe);
             if (vibe != null)
             {
-                ChatManagerContext.Current.AudioSource.clip = vibe;
-                ChatManagerContext.Current.AudioSource.Play();
+                audioSource.clip = vibe;
+                audioSource.Play();
             }
         }
     }

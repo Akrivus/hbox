@@ -16,6 +16,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private List<string> replays = new List<string>();
     private string fileName;
+    private ChatManagerContext boundContext;
+    private bool subscribedToQueueEmpty;
 
     public void Configure(FolderConfigs c)
     {
@@ -29,7 +31,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
         replays = LoadReplays();
 
-        ChatManagerContext.Current.OnChatQueueEmpty += ReplayNewEpisode;
+        SubscribeToQueueEmpty();
 
         ReplayNewEpisode();
     }
@@ -47,12 +49,16 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void Start()
     {
-        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(FolderConfigs), "folder", (_config) => Configure((FolderConfigs)_config));
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.ConfigManager.RegisterConfig(typeof(FolderConfigs), "folder", (_config) => Configure((FolderConfigs)_config));
     }
 
     private void OnDestroy()
     {
-        ChatManagerContext.Current.OnChatQueueEmpty -= ReplayNewEpisode;
+        UnsubscribeFromQueueEmpty();
         StopAllCoroutines();
     }
 
@@ -93,8 +99,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             attempts++;
         } while (tasks.Count < count && attempts < 3);
 
-        if (tasks.Count > 0)
-            UiEventBus.Publish(ChatManagerContext.Current, $"Loaded {tasks.Count} replay{(tasks.Count == 1 ? "" : "s")}");
+        if (tasks.Count > 0 && boundContext != null)
+            UiEventBus.Publish(boundContext, $"Loaded {tasks.Count} replay{(tasks.Count == 1 ? "" : "s")}");
     }
 
     private async Task<bool> LogThenLoad(string title, int attempts = 0)
@@ -127,7 +133,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private List<string> LoadReplays()
     {
-        fileName = $"replays-{ChatManagerContext.Current.Key}.txt";
+        fileName = $"replays-{boundContext?.Key ?? ChatManagerContext.Current?.Key}.txt";
         if (!File.Exists(fileName))
             return new List<string>();
         return File.ReadAllLines(fileName)
@@ -142,5 +148,25 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .Shuffle()
             .TakeLast(ReplayRate)
             .ToList());
+    }
+
+    private void SubscribeToQueueEmpty()
+    {
+        if (boundContext == null)
+            return;
+        if (subscribedToQueueEmpty)
+            return;
+
+        boundContext.OnChatQueueEmpty += ReplayNewEpisode;
+        subscribedToQueueEmpty = true;
+    }
+
+    private void UnsubscribeFromQueueEmpty()
+    {
+        if (boundContext == null || !subscribedToQueueEmpty)
+            return;
+
+        boundContext.OnChatQueueEmpty -= ReplayNewEpisode;
+        subscribedToQueueEmpty = false;
     }
 }

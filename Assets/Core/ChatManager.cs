@@ -20,9 +20,9 @@ public class ChatManager : MonoBehaviour
                 return;
             _paused = value;
             if (_paused)
-                Instance.OnPaused?.Invoke();
+                Instance?.SafeInvoke(Instance.OnPaused, nameof(OnPaused));
             else
-                Instance.OnResumed?.Invoke();
+                Instance?.SafeInvoke(Instance.OnResumed, nameof(OnResumed));
         }
     }
     private static bool _paused;
@@ -66,6 +66,8 @@ public class ChatManager : MonoBehaviour
     private float maxChance = 1f;
 
     private bool readyToPlay = false;
+    private int playbackGeneration = 0;
+    private bool lastPlayInterrupted = false;
 
     [SerializeField]
     private EventSystem primaryEventSystem;
@@ -95,7 +97,7 @@ public class ChatManager : MonoBehaviour
     public void AddToPlayList(Chat chat)
     {
         playList.Enqueue(chat);
-        OnChatQueueAdded?.Invoke(chat);
+        SafeInvoke(OnChatQueueAdded, chat, nameof(OnChatQueueAdded));
         readyToPlay = false;
     }
 
@@ -136,13 +138,13 @@ public class ChatManager : MonoBehaviour
                     readyToPlay = true;
                     continue;
                 }
-                yield return Play(chat);
+                yield return RunCoroutineSafely(Play(chat), "Play", () => chat == null || this == null);
                 SubtitleManager.Instance?.ClearSubtitles();
-                readyToPlay = true;
+                readyToPlay = !lastPlayInterrupted;
             }
             else if (readyToPlay)
             {
-                OnChatQueueEmpty?.Invoke();
+                SafeInvoke(OnChatQueueEmpty, nameof(OnChatQueueEmpty));
                 readyToPlay = false;
             }
             yield return new WaitUntil(() => !IsPaused);
@@ -153,120 +155,205 @@ public class ChatManager : MonoBehaviour
     {
         yield return new WaitUntil(() => NowPlaying == null);
 
-        if (chat.IsLocked && chat.Nodes.Count < 2)
-            yield break;
+        var completed = false;
+        lastPlayInterrupted = false;
 
-        if (contexts.TryGetValue(chat.Key, out var context))
-            if (chat.ManagerContext == null)
+        try
+        {
+            var expectedKey = chat?.ManagerContext?.Key ?? chat?.Key;
+
+            if (chat.IsLocked && chat.Nodes.Count < 2)
+                yield break;
+
+            if (contexts.TryGetValue(chat.Key, out var context))
+                if (chat.ManagerContext == null)
+                    chat.ManagerContext = context;
+            if (chat.ManagerContext != null && chat.NewEpisode)
+                yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
+
+            if (contexts.TryGetValue(chat.Key, out context) && context != null)
                 chat.ManagerContext = context;
-        if (chat.ManagerContext != null && chat.NewEpisode)
-            yield return SetCurrentContextAndChangeScene(chat.ManagerContext);
 
-        if (contexts.TryGetValue(chat.Key, out context) && context != null)
-            chat.ManagerContext = context;
+            expectedKey = chat?.ManagerContext?.Key ?? expectedKey;
+            var generation = playbackGeneration;
 
-        if (StopPlaying(chat))
-            yield break;
+            if (!IsPlaybackCurrent(chat, expectedKey, generation) || StopPlaying(chat))
+                yield break;
 
-        yield return RunEventCoroutines(OnChatQueueTaken, chat);
+            yield return RunEventCoroutines(OnChatQueueTaken, chat, generation, expectedKey, nameof(OnChatQueueTaken));
 
-        PostChatTitleCard(chat);
+            if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                yield break;
 
-        yield return InitChat(chat);
-        yield return PlayChat(chat);
+            PostChatTitleCard(chat);
 
-        if (!SkipToEnd || chat.ManagerContext.PostMemories)
-            PostChatActorMemories(chat);
+            yield return InitChat(chat, generation, expectedKey);
+            if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                yield break;
 
-        SkipToEnd = false;
-        NowPlaying = null;
+            yield return PlayChat(chat, generation, expectedKey);
+            if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                yield break;
+
+            if (!SkipToEnd || chat.ManagerContext.PostMemories)
+                PostChatActorMemories(chat);
+
+            completed = true;
+        }
+        finally
+        {
+            SkipToEnd = false;
+            lastPlayInterrupted = !completed;
+            if (NowPlaying == chat)
+                NowPlaying = null;
+
+            if (!completed && spawnPointManager != null && CurrentContext?.Key != chat?.ManagerContext?.Key)
+                spawnPointManager.UnRegister();
+        }
     }
 
-    private IEnumerator PlayChat(Chat chat)
+    private IEnumerator PlayChat(Chat chat, int generation, string expectedKey)
     {
         yield return new WaitUntil(() => !IsPaused);
+
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
         if (chat.NextNode == null && !chat.IsLocked)
             yield return new WaitUntilTimer(() => chat.NextNode != null);
 
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
+
         var node = chat.NextNode;
         if (node == null)
             yield break;
-        yield return Activate(node);
+        yield return Activate(chat, node, generation, expectedKey);
+
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
         node.New = false;
 
-        yield return PlayChat(chat);
+        yield return PlayChat(chat, generation, expectedKey);
     }
 
-    private IEnumerator InitChat(Chat chat)
+    private IEnumerator InitChat(Chat chat, int generation, string expectedKey)
     {
+        yield return RecoverLiveContext(chat, expectedKey, generation);
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
+
+        var context = ResolveLiveContext(chat, expectedKey) ?? chat?.ManagerContext;
+        if (context == null)
+        {
+            Debug.LogWarning("ChatManager.InitChat skipped because chat.ManagerContext is null.");
+            yield break;
+        }
+
+        chat.ManagerContext = context;
+
         if (spawnPointManager != null)
             spawnPointManager.UnRegister();
+        spawnPointManager = null;
         maxChance = 1f;
-        if (chat.ManagerContext.RemoveActorsOnCompletion)
+        if (context.RemoveActorsOnCompletion)
             yield return RemoveAllActors();
         else
             yield return RemoveActors(chat);
 
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
+
         NowPlaying = chat;
 
+        var activeSpawnPoints = GetReadySpawnPointManagers(context);
         if (!string.IsNullOrEmpty(chat.Location))
-            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.FirstOrDefault(s => s != null && s.name == chat.Location);
+            spawnPointManager = activeSpawnPoints.FirstOrDefault(s => s != null && s.name == chat.Location);
         if (spawnPointManager == null)
-            spawnPointManager = chat.ManagerContext.ActiveSpawnPoints.Where(s => s != null).Shuffle().FirstOrDefault();
+            spawnPointManager = activeSpawnPoints.Where(s => s != null).Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
 
-        BeforeIntermission?.Invoke();
+        SafeInvoke(BeforeIntermission, nameof(BeforeIntermission));
         yield return SubtitleManager.Instance?.StartSplashScreen(chat);
-        yield return RunEventCoroutines(OnIntermission, chat);
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
-        OnChatLoaded?.Invoke(chat);
+        yield return RunEventCoroutines(OnIntermission, chat, generation, expectedKey, nameof(OnIntermission));
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
-        var incoming = chat.Actors
+        SafeInvoke(OnChatLoaded, chat, nameof(OnChatLoaded));
+
+        var chatActors = chat.Actors ?? Array.Empty<ActorContext>();
+        var fallbackSpawnPoints = GetValidFallbackSpawnPoints(chat.ManagerContext);
+        var incoming = chatActors
+            .Where(a => a?.Reference != null)
             .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
 
         foreach (var actor in incoming)
-            yield return AddActor(actor, chat.ManagerContext.ActiveFallbackSpawnPoints.FirstOrDefault(t => t != null && t.childCount == 0));
+        {
+            yield return AddActor(actor, fallbackSpawnPoints.FirstOrDefault(t => t != null && t.childCount == 0));
+            if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                yield break;
+        }
 
         foreach (var ac in actors)
-            if (chat.Actors.Select(a => a.Reference).Contains(ac.Actor))
-                ac.Sentiment = chat.Actors.Get(ac.Actor).Sentiment;
+            if (chatActors.Select(a => a.Reference).Contains(ac.Actor))
+                ac.Sentiment = chatActors.Get(ac.Actor)?.Sentiment ?? ac.Sentiment;
 
         if (chat.IsLocked)
-            foreach (var node in chat.Nodes)
+            foreach (var node in chat.Nodes ?? Enumerable.Empty<ChatNode>())
                 node.New = true;
 
-        AfterIntermission?.Invoke(chat);
+        SafeInvoke(AfterIntermission, chat, nameof(AfterIntermission));
     }
 
-    private IEnumerator Activate(ChatNode node)
+    private IEnumerator Activate(Chat chat, ChatNode node, int generation, string expectedKey)
     {
-        if (SkipToEnd || StopPlaying(NowPlaying))
+        if (node == null || SkipToEnd || !IsPlaybackCurrent(chat, expectedKey, generation) || StopPlaying(chat))
             yield break;
 
         DiscordManager.Instance?.SendDialogue(node);
         SubtitleManager.Instance?.OnNodeActivated(node);
-        OnChatNodeActivated?.Invoke(node);
+        SafeInvoke(OnChatNodeActivated, node, nameof(OnChatNodeActivated));
+
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
         var actor = actors.Get(node.Actor);
         if (actor == null)
-            actor = actors.First();
+            actor = actors.FirstOrDefault();
+        if (actor == null)
+        {
+            Debug.LogWarning($"ChatManager.Activate skipped because no actor controller is available for '{node.Actor?.Name ?? "unknown"}'.");
+            yield break;
+        }
         yield return actor.Activate(node);
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
         yield return SetActorReactions(actor, node);
     }
 
     private IEnumerator SetActorReactions(ActorController actor, ChatNode node)
     {
+        if (actor == null || node == null)
+            yield break;
+
+        var reactions = node.Reactions ?? Array.Empty<ChatNode.Reaction>();
         try
         {
-            var reactions = node.Reactions
+            var parsedReactions = reactions
+                .Where(c => c?.Actor != null)
                 .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
-                .ToDictionary(a => a, a => node.Reactions
-                .First(r => r.Actor == a.Actor).Sentiment);
-            foreach (var reaction in reactions)
+                .Where(a => a != null)
+                .ToDictionary(a => a, a => reactions
+                .FirstOrDefault(r => r?.Actor == a.Actor)?.Sentiment);
+            foreach (var reaction in parsedReactions)
             {
+                if (reaction.Value == null)
+                    continue;
                 reaction.Key.Sentiment = reaction.Value;
                 reaction.Key.LookTarget = actor.LookObject;
             }
@@ -275,15 +362,20 @@ public class ChatManager : MonoBehaviour
         {
             Debug.LogWarning($"Error parsing reactions: {e}");
         }
-        if (CurrentContext.DisableSoundEffects || CurrentContext.AudioSource == null)
+        var context = CurrentContext;
+        if (context == null || context.DisableSoundEffects || context.AudioSource == null || reactions.Length == 0)
             yield break;
-        yield return PlayReactionClip(node.Reactions);
+        yield return PlayReactionClip(reactions, context);
     }
 
-    private IEnumerator PlayReactionClip(ChatNode.Reaction[] reactions)
+    private IEnumerator PlayReactionClip(ChatNode.Reaction[] reactions, ChatManagerContext context)
     {
+        if (reactions == null || reactions.Length == 0 || context?.AudioSource == null)
+            yield break;
+
         var chance = UnityEngine.Random.Range(0f, maxChance);
         var reaction = reactions
+            .Where(r => r?.Sentiment != null)
             .GroupBy(r => r.Sentiment)
             .FirstOrDefault(r => r.Count() >= r.Key.MinReactions && chance <= r.Key.ReactionChance)
             ?.First()?.Sentiment;
@@ -293,7 +385,7 @@ public class ChatManager : MonoBehaviour
         if (clip == null)
             yield break;
         maxChance *= reaction.ReactionDecay;
-        CurrentContext.AudioSource.PlayOneShot(clip);
+        context.AudioSource.PlayOneShot(clip);
         yield return new WaitForSeconds(clip.length);
     }
 
@@ -301,33 +393,55 @@ public class ChatManager : MonoBehaviour
     {
         if (context == null || context.Reference == null) // another weird fluke
             yield break;
+        if (context.Reference.Prefab == null)
+        {
+            Debug.LogWarning($"ChatManager.AddActor skipped because prefab is missing for actor '{context.Name}'.");
+            yield break;
+        }
 
         if (spawnPointManager != null)
         {
-            var spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.name == context.Name);
+            var spawnPoints = spawnPointManager.spawnPoints ?? Array.Empty<SpawnPointManager.SpawnPoint>();
+            var spawnPoint = spawnPoints.FirstOrDefault(t => t != null && t.name == context.Name);
             if (spawnPoint == null)
-                spawnPoint = spawnPointManager.spawnPoints.FirstOrDefault(t => t.transform.childCount == 0);
+                spawnPoint = spawnPoints.FirstOrDefault(t => t != null && t.transform.childCount == 0);
             if (spawnPoint != null)
                 spawnPointTransform = spawnPoint.transform;
         }
 
-        var obj = Instantiate(context.Reference.Prefab, spawnPointTransform);
+        var obj = spawnPointTransform != null
+            ? Instantiate(context.Reference.Prefab, spawnPointTransform)
+            : Instantiate(context.Reference.Prefab);
+        if (obj == null)
+        {
+            Debug.LogWarning($"ChatManager.AddActor failed to instantiate actor '{context.Name}'.");
+            yield break;
+        }
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
 
         var controller = obj.GetComponent<ActorController>();
+        if (controller == null)
+        {
+            Debug.LogWarning($"ChatManager.AddActor skipped because prefab for '{context.Name}' has no ActorController.");
+            Destroy(obj);
+            yield break;
+        }
         controller.Context = context;
         controller.Sentiment = context.Reference.DefaultSentiment;
 
         actors.Add(controller);
 
         yield return controller.Initialize(NowPlaying);
-        OnActorAdded?.Invoke(NowPlaying, controller);
+        SafeInvoke(OnActorAdded, NowPlaying, controller, nameof(OnActorAdded));
     }
 
     private IEnumerator RemoveActors(Chat chat)
     {
+        if (chat?.Actors == null)
+            yield break;
+
         var outgoing = actors.Except(chat.Actors.Select(ac => actors.Get(ac.Reference))).ToList();
         foreach (var actor in outgoing)
             yield return RemoveActor(actor);
@@ -344,7 +458,7 @@ public class ChatManager : MonoBehaviour
     {
         yield return controller?.Deactivate();
         actors.Remove(controller);
-        OnActorRemoved?.Invoke(NowPlaying, controller);
+        SafeInvoke(OnActorRemoved, NowPlaying, controller, nameof(OnActorRemoved));
     }
 
     public bool SetCurrentContext(ChatManagerContext context)
@@ -356,8 +470,9 @@ public class ChatManager : MonoBehaviour
                 staleContext.MarkForDeath();
         contexts[context.Key] = context;
         CurrentContext = context;
+        InvalidatePlaybackGeneration();
         DontDestroyOnLoad(context.gameObject);
-        OnContextChanged?.Invoke(context);
+        SafeInvoke(OnContextChanged, context, nameof(OnContextChanged));
         return true;
     }
 
@@ -390,7 +505,7 @@ public class ChatManager : MonoBehaviour
 
         yield return new WaitUntil(() => ContextReady(expectedKey, previousContext));
 
-        callback?.Invoke();
+        SafeInvoke(callback, nameof(callback));
         ReadyForAction = true;
     }
 
@@ -421,13 +536,8 @@ public class ChatManager : MonoBehaviour
         if (CurrentContext == previousContext)
             return false;
 
-        var spawnPoints = CurrentContext.ActiveSpawnPoints;
-        var hasReadySpawnPointManager = spawnPoints != null
-            && spawnPoints.Any(s => s != null && s.IsReady);
-
-        var fallbackSpawnPoints = CurrentContext.ActiveFallbackSpawnPoints;
-        var hasFallbackSpawnPoint = fallbackSpawnPoints != null
-            && fallbackSpawnPoints.Any(t => t != null);
+        var hasReadySpawnPointManager = GetReadySpawnPointManagers(CurrentContext).Length > 0;
+        var hasFallbackSpawnPoint = GetValidFallbackSpawnPoints(CurrentContext).Length > 0;
 
         if (!hasReadySpawnPointManager && !hasFallbackSpawnPoint)
         {
@@ -440,14 +550,216 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator RunEventCoroutines(Func<Chat, IEnumerator> handlers, Chat chat)
     {
+        yield return RunEventCoroutines(handlers, chat, playbackGeneration, chat?.ManagerContext?.Key ?? chat?.Key, nameof(handlers));
+    }
+
+    private IEnumerator RunCoroutineSafely(IEnumerator routine, string routineName, Func<bool> shouldAbort = null)
+    {
+        if (routine == null)
+            yield break;
+
+        bool complete = false;
+        while (!complete)
+        {
+            if (shouldAbort?.Invoke() == true)
+                yield break;
+
+            object current = null;
+            try
+            {
+                complete = !routine.MoveNext();
+                if (!complete)
+                    current = routine.Current;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ChatManager.{routineName} failed: {e}");
+                yield break;
+            }
+
+            if (!complete)
+                yield return current;
+        }
+    }
+
+    private IEnumerator RunEventCoroutines(Func<Chat, IEnumerator> handlers, Chat chat, int generation, string expectedKey, string eventName)
+    {
         if (handlers == null)
             yield break;
 
         foreach (Func<Chat, IEnumerator> handler in handlers.GetInvocationList())
         {
-            var routine = handler?.Invoke(chat);
-            if (routine != null)
-                yield return routine;
+            if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                yield break;
+
+            IEnumerator routine = null;
+            try
+            {
+                routine = handler?.Invoke(chat);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ChatManager.{eventName} handler '{handler?.Method?.DeclaringType?.Name}.{handler?.Method?.Name}' failed before yielding: {e}");
+            }
+
+            if (routine == null)
+                continue;
+
+            bool complete = false;
+            while (!complete)
+            {
+                if (!IsPlaybackCurrent(chat, expectedKey, generation))
+                    yield break;
+
+                object current = null;
+                try
+                {
+                    complete = !routine.MoveNext();
+                    if (!complete)
+                        current = routine.Current;
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning($"ChatManager.{eventName} handler '{handler?.Method?.DeclaringType?.Name}.{handler?.Method?.Name}' failed during execution: {e}");
+                    break;
+                }
+
+                if (!complete)
+                    yield return current;
+            }
+        }
+    }
+
+    private bool IsPlaybackCurrent(Chat chat, string expectedKey, int generation)
+    {
+        if (generation != playbackGeneration)
+            return false;
+        if (chat == null || string.IsNullOrEmpty(expectedKey))
+            return false;
+        if (chat.ManagerContext == null || chat.ManagerContext.Key != expectedKey)
+            return false;
+        return CurrentContext != null && CurrentContext.Key == expectedKey;
+    }
+
+    private void InvalidatePlaybackGeneration()
+    {
+        unchecked
+        {
+            playbackGeneration++;
+        }
+    }
+
+    private ChatManagerContext ResolveLiveContext(Chat chat, string expectedKey)
+    {
+        var key = expectedKey ?? chat?.ManagerContext?.Key ?? chat?.Key;
+        if (string.IsNullOrEmpty(key))
+            return null;
+
+        if (CurrentContext != null && CurrentContext.Key == key)
+            return CurrentContext;
+
+        if (contexts.TryGetValue(key, out var context) && context != null)
+            return context;
+
+        if (chat?.ManagerContext != null && chat.ManagerContext.Key == key)
+            return chat.ManagerContext;
+
+        return null;
+    }
+
+    private SpawnPointManager[] GetReadySpawnPointManagers(ChatManagerContext context)
+    {
+        return (context?.ActiveSpawnPoints ?? Array.Empty<SpawnPointManager>())
+            .Where(s => s != null && s.IsReady)
+            .ToArray();
+    }
+
+    private Transform[] GetValidFallbackSpawnPoints(ChatManagerContext context)
+    {
+        return (context?.ActiveFallbackSpawnPoints ?? Array.Empty<Transform>())
+            .Where(t => t != null && t.gameObject != null && t.gameObject.scene.IsValid() && t.gameObject.scene.isLoaded)
+            .ToArray();
+    }
+
+    private IEnumerator RecoverLiveContext(Chat chat, string expectedKey, int generation, float timeoutSeconds = 1f)
+    {
+        var startedAt = Time.time;
+
+        while (Time.time - startedAt < timeoutSeconds)
+        {
+            if (!IsPlaybackCurrent(chat, expectedKey, generation) && ResolveLiveContext(chat, expectedKey) == null)
+                yield break;
+
+            var liveContext = ResolveLiveContext(chat, expectedKey);
+            if (liveContext != null)
+            {
+                chat.ManagerContext = liveContext;
+
+                var hasReadySpawnPointManager = GetReadySpawnPointManagers(liveContext).Length > 0;
+                var hasFallbackSpawnPoint = GetValidFallbackSpawnPoints(liveContext).Length > 0;
+                if (hasReadySpawnPointManager || hasFallbackSpawnPoint)
+                    yield break;
+            }
+
+            yield return null;
+        }
+
+        var recoveredContext = ResolveLiveContext(chat, expectedKey);
+        if (recoveredContext != null)
+            chat.ManagerContext = recoveredContext;
+    }
+
+    private void SafeInvoke(Action handlers, string eventName)
+    {
+        if (handlers == null)
+            return;
+
+        foreach (Action handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ChatManager.{eventName} handler '{handler?.Method?.DeclaringType?.Name}.{handler?.Method?.Name}' failed: {e}");
+            }
+        }
+    }
+
+    private void SafeInvoke<T>(Action<T> handlers, T arg, string eventName)
+    {
+        if (handlers == null)
+            return;
+
+        foreach (Action<T> handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler?.Invoke(arg);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ChatManager.{eventName} handler '{handler?.Method?.DeclaringType?.Name}.{handler?.Method?.Name}' failed: {e}");
+            }
+        }
+    }
+
+    private void SafeInvoke<T1, T2>(Action<T1, T2> handlers, T1 arg1, T2 arg2, string eventName)
+    {
+        if (handlers == null)
+            return;
+
+        foreach (Action<T1, T2> handler in handlers.GetInvocationList())
+        {
+            try
+            {
+                handler?.Invoke(arg1, arg2);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"ChatManager.{eventName} handler '{handler?.Method?.DeclaringType?.Name}.{handler?.Method?.Name}' failed: {e}");
+            }
         }
     }
 
@@ -455,11 +767,14 @@ public class ChatManager : MonoBehaviour
     {
         if (StopPlaying(chat))
             return;
+        if (chat?.Actors == null || chat.ManagerContext == null || CurrentContext == null)
+            return;
+
         foreach (var actor in chat.Actors)
         {
             if (ChatManagerContext.Current.Key != chat.ManagerContext.Key)
                 continue;
-            if (string.IsNullOrEmpty(actor.Memory))
+            if (actor == null || string.IsNullOrEmpty(actor.Memory) || actor.Reference == null)
                 continue;
             DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
                 string.Empty, null, null,
@@ -474,7 +789,7 @@ public class ChatManager : MonoBehaviour
 
     private void PostChatTitleCard(Chat chat)
     {
-        if (StopPlaying(chat) || chat.Title == null)
+        if (chat == null || StopPlaying(chat) || string.IsNullOrEmpty(chat.Title))
             return;
         DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
             "# :clapper: Now Streaming!", null, null,

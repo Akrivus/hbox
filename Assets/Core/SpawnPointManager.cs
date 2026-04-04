@@ -31,6 +31,7 @@ public class SpawnPointManager : MonoBehaviour
     private int nodeIndex = 0;
 
     private ActorController lastActorController;
+    private ChatManagerContext boundContext;
 
     public bool IsReady =>
         anchor != null &&
@@ -41,22 +42,30 @@ public class SpawnPointManager : MonoBehaviour
 
     public void Register()
     {
-        ChatManagerContext.Current.OnActorAdded += OnActorAdded;
-        ChatManagerContext.Current.OnChatNodeActivated += OnChatNodeActivated;
-        ChatManagerContext.Current.OnChatLoaded += OnChatLoaded;
+        UnRegister();
+
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.OnActorAdded += OnActorAdded;
+        boundContext.OnChatNodeActivated += OnChatNodeActivated;
+        boundContext.OnChatLoaded += OnChatLoaded;
     }
 
     public void UnRegister()
     {
         actorToController.Clear();
         actorToSpawnPoint.Clear();
+        lastActorController = null;
 
-        if (ChatManagerContext.Current == null)
+        if (boundContext == null)
             return;
 
-        ChatManagerContext.Current.OnActorAdded -= OnActorAdded;
-        ChatManagerContext.Current.OnChatNodeActivated -= OnChatNodeActivated;
-        ChatManagerContext.Current.OnChatLoaded -= OnChatLoaded;
+        boundContext.OnActorAdded -= OnActorAdded;
+        boundContext.OnChatNodeActivated -= OnChatNodeActivated;
+        boundContext.OnChatLoaded -= OnChatLoaded;
+        boundContext = null;
     }
 
     private void OnDestroy()

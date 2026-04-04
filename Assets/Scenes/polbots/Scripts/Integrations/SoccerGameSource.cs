@@ -94,6 +94,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private SoccerIdeaService ideaService;
     private SoccerMatchStateService matchStateService;
     private SoccerAnnouncerService announcerService;
+    private ChatManagerContext boundContext;
+    private bool eventsBound;
 
     public void Configure(SoccerConfigs config)
     {
@@ -103,19 +105,20 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         interruptService?.Configure(config);
         announcerService?.Configure(config, announcerAudio);
 
-        if (isConfigured)
-        {
-            ChatManagerContext.Current.AfterIntermission -= TriggerGame;
-            ChatManagerContext.Current.OnChatQueueEmpty -= BreakTheSilence;
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-            SceneManager.sceneUnloaded -= OnSceneUnloaded;
-        }
+        UnbindContextEvents();
 
-        ChatManagerContext.Current.AfterIntermission += TriggerGame;
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.AfterIntermission += TriggerGame;
 
         if (config.GameOnStart)
-            ChatManagerContext.Current.OnChatQueueEmpty += BreakTheSilence;
+            boundContext.OnChatQueueEmpty += BreakTheSilence;
 
+        eventsBound = true;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
         isConfigured = true;
@@ -170,7 +173,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void Start()
     {
-        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(SoccerConfigs), "soccer", cfg => Configure((SoccerConfigs)cfg));
+        boundContext = ChatManagerContext.Current;
+        if (boundContext == null)
+            return;
+
+        boundContext.ConfigManager.RegisterConfig(typeof(SoccerConfigs), "soccer", cfg => Configure((SoccerConfigs)cfg));
         RegisterEmissionEvents();
         OnEmit += HandleAnnouncerEmit;
     }
@@ -181,12 +188,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         StopAllCoroutines();
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
-
-        if (ChatManagerContext.Current != null)
-        {
-            ChatManagerContext.Current.AfterIntermission -= TriggerGame;
-            ChatManagerContext.Current.OnChatQueueEmpty -= BreakTheSilence;
-        }
+        UnbindContextEvents();
 
         OnEmit -= HandleAnnouncerEmit;
 
@@ -225,11 +227,22 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (config.RequireTextPatternMatch && (string.IsNullOrEmpty(homeName) || string.IsNullOrEmpty(awayName)))
             return;
 
-        homeActor = ChatManagerContext.Current.ActorsSearch[homeName] ?? chat.Actors[0].Reference;
-        awayActor = ChatManagerContext.Current.ActorsSearch[awayName] ?? chat.Actors[1].Reference;
+        homeActor = boundContext?.ActorsSearch[homeName] ?? chat.Actors[0].Reference;
+        awayActor = boundContext?.ActorsSearch[awayName] ?? chat.Actors[1].Reference;
 
         if (homeActor != null && awayActor != null)
             StartCoroutine(LoadGame());
+    }
+
+    private void UnbindContextEvents()
+    {
+        if (!eventsBound || boundContext == null)
+            return;
+
+        boundContext.AfterIntermission -= TriggerGame;
+        boundContext.OnChatQueueEmpty -= BreakTheSilence;
+        eventsBound = false;
+        boundContext = null;
     }
 
     private IEnumerator LoadGame()
