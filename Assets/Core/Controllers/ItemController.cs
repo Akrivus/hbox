@@ -47,7 +47,8 @@ public class ItemController : AutoActor, ISubChats, ISubNode
     private void SetItem(string item)
     {
         OperatorTelemetry.RecordTouchedProp($"{ChatManagerContext.Current?.Name}/Props/{item}");
-        var texture = Resources.Load<Texture2D>($"{ChatManagerContext.Current.Name}/Props/{item}");
+        var ownerKey = RuntimeAssetCache.BuildContextOwnerKey(ChatManagerContext.Current?.Key);
+        var texture = RuntimeAssetCache.LoadContextTexture(ChatManagerContext.Current?.Name, "Props", item, ownerKey);
         if (texture != null)
             itemRenderer.material.mainTexture = texture;
     }

@@ -36,8 +36,6 @@ public class NoiseTagger : MonoBehaviour, ISubGenerator
 
     private string[] GetSoundGroups(Chat chat)
     {
-		return Resources.LoadAll<SoundGroup>($"{chat.ManagerContext.Name}/SoundGroups")
-			.Select(t => t.name)
-			.ToArray();
-	}
+        return RuntimeAssetCache.GetContextAssetNames<SoundGroup>(chat.ManagerContext.Name, "SoundGroups");
+    }
 }

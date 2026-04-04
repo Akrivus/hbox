@@ -419,21 +419,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void OnSceneUnloaded(Scene scene)
     {
         addedScenes.Remove(scene.handle);
-
-        if (VideoCallUIManager.Instance != null)
-            VideoCallUIManager.Instance.ShareScreenOff();
-
-        SceneLoader.PreserveHostScene = false;
-        isSceneLoaded = false;
-        startedMatchId = null;
-        queuedPregameMatchId = null;
-
-        matchStateService.EndMatch();
-        announcerService?.EndMatch();
-        OperatorTelemetry.CaptureMemorySnapshot("soccer_unloaded");
-        OnMatchEnd?.Invoke();
-
-        currentMatchId = null;
+        FinalizeSoccerTeardown("soccer_unloaded");
     }
 
     private void DisableFootballBoot(Scene scene)
@@ -713,29 +699,43 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         {
             interruptService?.EndMatch();
             announcerService?.EndMatch();
-            ClearBroadcastCamera();
-            RestoreHostMainCameras();
             SnapManager.Clear();
-
-            if (VideoCallUIManager.Instance != null)
-                VideoCallUIManager.Instance.ShareScreenOff();
-
-            SceneLoader.PreserveHostScene = false;
             FStudio.Utilities.DontDestroy.DestroyTracked();
             addedScenes.Clear();
-            isSceneLoaded = false;
-            isGameLoaded = false;
             isLoadingGame = false;
             isStartingGame = false;
             isUnloadingGame = false;
-            startedMatchId = null;
-            queuedPregameMatchId = null;
-            currentMatchId = null;
-            matchStateService.EndMatch();
+            FinalizeSoccerTeardown("soccer_emergency_teardown");
         }
         finally
         {
             isTearingDown = false;
+        }
+    }
+
+    private void FinalizeSoccerTeardown(string reason)
+    {
+        var hadLiveMatchState = isGameLoaded || isSceneLoaded || !string.IsNullOrWhiteSpace(currentMatchId);
+
+        ClearBroadcastCamera();
+        RestoreHostMainCameras();
+
+        if (VideoCallUIManager.Instance != null)
+            VideoCallUIManager.Instance.ShareScreenOff();
+
+        SceneLoader.PreserveHostScene = false;
+        isSceneLoaded = false;
+        isGameLoaded = false;
+        startedMatchId = null;
+        queuedPregameMatchId = null;
+        currentMatchId = null;
+        matchStateService.EndMatch();
+        announcerService?.EndMatch();
+
+        if (hadLiveMatchState)
+        {
+            OperatorTelemetry.CaptureMemorySnapshot(reason);
+            OnMatchEnd?.Invoke();
         }
     }
 

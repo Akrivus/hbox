@@ -24,8 +24,6 @@ public class PropTagger : MonoBehaviour, ISubGenerator
 
     private string[] GetItemSet(Chat chat)
     {
-        return Resources.LoadAll($"{chat.ManagerContext.Name}/Props", typeof(Texture2D))
-                .Select(t => t.name)
-                .ToArray();
+        return RuntimeAssetCache.GetContextAssetNames<Texture2D>(chat.ManagerContext.Name, "Props");
     }
 }

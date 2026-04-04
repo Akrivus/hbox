@@ -44,7 +44,8 @@ public class FlagController : AutoActor, ISubActor
 
     private Texture2D LoadTexture(string name)
     {
-        flagTexture = Resources.Load<Texture2D>($"{ChatManagerContext.Current.Name}/Flags/{name}");
+        var ownerKey = RuntimeAssetCache.BuildContextOwnerKey(ChatManagerContext.Current?.Key);
+        flagTexture = RuntimeAssetCache.LoadContextTexture(ChatManagerContext.Current?.Name, "Flags", name, ownerKey);
         return flagTexture;
     }
 

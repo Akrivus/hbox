@@ -139,6 +139,7 @@
 				justify-content: space-between;
 				gap: 10px;
 				font-weight: 600;
+				color: white;
 			}
 
 			.channel-meta {
@@ -590,6 +591,14 @@
 								<span class="muted">Embeddings</span>
 								<strong id="memory-embeddings">-</strong>
 							</div>
+							<div>
+								<span class="muted">Cached Assets</span>
+								<strong id="memory-cached-assets">-</strong>
+							</div>
+							<div>
+								<span class="muted">Cache Owners</span>
+								<strong id="memory-cache-owners">-</strong>
+							</div>
 						</div>
 						<div id="memory-summary" class="feed"></div>
 					</section>
@@ -636,6 +645,8 @@
 			const memoryManagedHeap = document.getElementById('memory-managed-heap');
 			const memoryAudioPayload = document.getElementById('memory-audio-payload');
 			const memoryEmbeddings = document.getElementById('memory-embeddings');
+			const memoryCachedAssets = document.getElementById('memory-cached-assets');
+			const memoryCacheOwners = document.getElementById('memory-cache-owners');
 			const memorySummary = document.getElementById('memory-summary');
 			const memoryChart = document.getElementById('memory-chart');
 			const memoryHistoryFeed = document.getElementById('memory-history-feed');
@@ -871,6 +882,8 @@
 					memoryManagedHeap.textContent = '-';
 					memoryAudioPayload.textContent = '-';
 					memoryEmbeddings.textContent = '-';
+					memoryCachedAssets.textContent = '-';
+					memoryCacheOwners.textContent = '-';
 					memorySummary.innerHTML = '<div class="feed-item"><div class="feed-copy">No memory snapshot available yet.</div></div>';
 					return;
 				}
@@ -880,6 +893,8 @@
 				memoryManagedHeap.textContent = formatBytes(snapshot.process?.managedHeapBytes);
 				memoryAudioPayload.textContent = formatBytes(snapshot.chat?.totalAudioDataChars || 0);
 				memoryEmbeddings.textContent = formatBytes(snapshot.memoryBuckets?.estimatedEmbeddingBytes || 0);
+				memoryCachedAssets.textContent = `${snapshot.resources?.totalCachedAssetCount ?? 0}`;
+				memoryCacheOwners.textContent = `${snapshot.resources?.assetCacheOwnerCount ?? 0}`;
 
 				const runtime = snapshot.runtime || {};
 				const chat = snapshot.chat || {};
@@ -915,6 +930,13 @@
 							<span>${soccer.isGameLoaded ? 'live' : 'idle'}</span>
 						</div>
 						<div class="feed-copy"><strong>Scenes:</strong> ${soccer.addedSceneCount ?? 0} | <strong>Announcer cache:</strong> ${soccer.announcerClipCacheCount ?? 0} | <strong>Queue:</strong> ${soccer.announcerQueueCount ?? 0}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>asset cache</span>
+							<span>${resources.totalCachedAssetCount ?? 0} live</span>
+						</div>
+						<div class="feed-copy"><strong>Owners:</strong> ${resources.assetCacheOwnerCount ?? 0} | <strong>Backgrounds:</strong> ${resources.liveBackgroundCount ?? 0} | <strong>Flags:</strong> ${resources.liveFlagCount ?? 0} | <strong>Props:</strong> ${resources.livePropCount ?? 0} | <strong>Sound groups:</strong> ${resources.liveSoundGroupCount ?? 0}</div>
 					</div>
 					<div class="feed-item">
 						<div class="feed-head">
@@ -980,7 +1002,7 @@ Managed Heap: ${formatBytes(managed)}`;
 							<span>${formatTime(item.timestamp)}</span>
 						</div>
 						<div class="feed-title">${formatBytes(item.process?.workingSetBytes || 0)} working set | ${formatBytes(item.process?.managedHeapBytes || 0)} managed</div>
-						<div class="feed-copy">${escapeHtml(item.runtime?.currentContextName || item.runtime?.currentContextKey || 'No context')} | Nodes ${item.chat?.totalNodeCount ?? 0} | Audio ${formatBytes(item.chat?.totalAudioDataChars || 0)} | Embeddings ${formatBytes(item.memoryBuckets?.estimatedEmbeddingBytes || 0)}</div>
+						<div class="feed-copy">${escapeHtml(item.runtime?.currentContextName || item.runtime?.currentContextKey || 'No context')} | Nodes ${item.chat?.totalNodeCount ?? 0} | Audio ${formatBytes(item.chat?.totalAudioDataChars || 0)} | Embeddings ${formatBytes(item.memoryBuckets?.estimatedEmbeddingBytes || 0)} | Cache ${item.resources?.totalCachedAssetCount ?? 0}</div>
 					`;
 					memoryHistoryFeed.appendChild(row);
 				}
@@ -1146,4 +1168,3 @@ Managed Heap: ${formatBytes(managed)}`;
 		</script>
 	</body>
 </html>
-

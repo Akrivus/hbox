@@ -50,8 +50,18 @@ public class VideoCallUIController : MonoBehaviour
 
     private void ReleaseRenderTexture()
     {
-        if (_renderTexture != null)
-            _renderTexture.Release();
+        if (_camera != null && _camera.targetTexture == _renderTexture)
+            _camera.targetTexture = null;
+
+        if (_videoScreen != null && _videoScreen.texture == _renderTexture)
+            _videoScreen.texture = null;
+
+        if (_renderTexture == null)
+            return;
+
+        _renderTexture.Release();
+        Destroy(_renderTexture);
+        _renderTexture = null;
     }
 
     private void CreateRenderTexture()

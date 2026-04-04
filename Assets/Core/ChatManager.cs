@@ -113,9 +113,13 @@ public class ChatManager : MonoBehaviour
         if (chat != NowPlaying || StopPlaying(chat))
             return false;
 
-        var injected = nodes
-            .Where(node => node != null)
-            .ToList();
+        var injected = new List<ChatNode>();
+        foreach (var node in nodes)
+        {
+            if (node != null)
+                injected.Add(node);
+        }
+
         if (injected.Count == 0)
             return false;
 
@@ -306,24 +310,44 @@ public class ChatManager : MonoBehaviour
 
         var chatActors = chat.Actors ?? Array.Empty<ActorContext>();
         var fallbackSpawnPoints = GetValidFallbackSpawnPoints(chat.ManagerContext);
-        var incoming = chatActors
-            .Where(a => a?.Reference != null)
-            .Where(a => !actors.Select(ac => ac.Actor).Contains(a.Reference));
-
-        foreach (var actor in incoming)
+        var activeActorReferences = new HashSet<Actor>();
+        foreach (var actorController in actors)
         {
-            yield return AddActor(actor, fallbackSpawnPoints.FirstOrDefault(t => t != null && t.childCount == 0));
+            if (actorController?.Actor != null)
+                activeActorReferences.Add(actorController.Actor);
+        }
+
+        foreach (var actor in chatActors)
+        {
+            if (actor?.Reference == null || activeActorReferences.Contains(actor.Reference))
+                continue;
+
+            yield return AddActor(actor, GetFirstAvailableFallbackSpawnPoint(fallbackSpawnPoints));
             if (!IsPlaybackCurrent(chat, expectedKey, generation))
                 yield break;
         }
 
+        var sentimentsByActor = new Dictionary<Actor, Sentiment>();
+        foreach (var chatActor in chatActors)
+        {
+            if (chatActor?.Reference != null)
+                sentimentsByActor[chatActor.Reference] = chatActor.Sentiment;
+        }
+
         foreach (var ac in actors)
-            if (chatActors.Select(a => a.Reference).Contains(ac.Actor))
-                ac.Sentiment = chatActors.Get(ac.Actor)?.Sentiment ?? ac.Sentiment;
+        {
+            if (ac?.Actor != null && sentimentsByActor.TryGetValue(ac.Actor, out var sentiment) && sentiment != null)
+                ac.Sentiment = sentiment;
+        }
 
         if (chat.IsLocked)
-            foreach (var node in chat.Nodes ?? Enumerable.Empty<ChatNode>())
-                node.New = true;
+        {
+            var nodes = chat.Nodes;
+            if (nodes != null)
+                for (var i = 0; i < nodes.Count; i++)
+                    if (nodes[i] != null)
+                        nodes[i].New = true;
+        }
 
         SafeInvoke(AfterIntermission, chat, nameof(AfterIntermission));
     }
@@ -342,7 +366,7 @@ public class ChatManager : MonoBehaviour
 
         var actor = actors.Get(node.Actor);
         if (actor == null)
-            actor = actors.FirstOrDefault();
+            actor = actors.Count > 0 ? actors[0] : null;
         if (actor == null)
         {
             Debug.LogWarning($"ChatManager.Activate skipped because no actor controller is available for '{node.Actor?.Name ?? "unknown"}'.");
@@ -362,16 +386,21 @@ public class ChatManager : MonoBehaviour
         var reactions = node.Reactions ?? Array.Empty<ChatNode.Reaction>();
         try
         {
-            var parsedReactions = reactions
-                .Where(c => c?.Actor != null)
-                .Select(c => actors.FirstOrDefault(a => a.Actor == c.Actor))
-                .Where(a => a != null)
-                .ToDictionary(a => a, a => reactions
-                .FirstOrDefault(r => r?.Actor == a.Actor)?.Sentiment);
-            foreach (var reaction in parsedReactions)
+            var sentimentsByController = new Dictionary<ActorController, Sentiment>();
+            foreach (var reaction in reactions)
             {
-                if (reaction.Value == null)
+                if (reaction?.Actor == null)
                     continue;
+
+                var controller = actors.Get(reaction.Actor);
+                if (controller == null || reaction.Sentiment == null)
+                    continue;
+
+                sentimentsByController[controller] = reaction.Sentiment;
+            }
+
+            foreach (var reaction in sentimentsByController)
+            {
                 reaction.Key.Sentiment = reaction.Value;
                 reaction.Key.LookTarget = actor.LookObject;
             }
@@ -392,11 +421,22 @@ public class ChatManager : MonoBehaviour
             yield break;
 
         var chance = UnityEngine.Random.Range(0f, maxChance);
-        var reaction = reactions
-            .Where(r => r?.Sentiment != null)
-            .GroupBy(r => r.Sentiment)
-            .FirstOrDefault(r => r.Count() >= r.Key.MinReactions && chance <= r.Key.ReactionChance)
-            ?.First()?.Sentiment;
+        var reactionCounts = new Dictionary<Sentiment, int>();
+        Sentiment reaction = null;
+        for (var i = 0; i < reactions.Length; i++)
+        {
+            var sentiment = reactions[i]?.Sentiment;
+            if (sentiment == null)
+                continue;
+
+            reactionCounts.TryGetValue(sentiment, out var count);
+            count++;
+            reactionCounts[sentiment] = count;
+
+            if (reaction == null && count >= sentiment.MinReactions && chance <= sentiment.ReactionChance)
+                reaction = sentiment;
+        }
+
         if (reaction == null)
             yield break;
         var clip = reaction.Sound;
@@ -460,7 +500,24 @@ public class ChatManager : MonoBehaviour
         if (chat?.Actors == null)
             yield break;
 
-        var outgoing = actors.Except(chat.Actors.Select(ac => actors.Get(ac.Reference))).ToList();
+        var retainedActors = new HashSet<ActorController>();
+        foreach (var actorContext in chat.Actors)
+        {
+            if (actorContext?.Reference == null)
+                continue;
+
+            var actorController = actors.Get(actorContext.Reference);
+            if (actorController != null)
+                retainedActors.Add(actorController);
+        }
+
+        var outgoing = new List<ActorController>();
+        foreach (var actor in actors)
+        {
+            if (actor != null && !retainedActors.Contains(actor))
+                outgoing.Add(actor);
+        }
+
         foreach (var actor in outgoing)
             yield return RemoveActor(actor);
     }
@@ -483,6 +540,7 @@ public class ChatManager : MonoBehaviour
     {
         if (context == null)
             return false;
+        var previousContextKey = CurrentContext?.Key;
         if (contexts.TryGetValue(context.Key, out var staleContext) && staleContext != null)
             if (context != staleContext)
                 staleContext.MarkForDeath();
@@ -490,9 +548,23 @@ public class ChatManager : MonoBehaviour
         CurrentContext = context;
         InvalidatePlaybackGeneration();
         DontDestroyOnLoad(context.gameObject);
+        if (!string.IsNullOrWhiteSpace(previousContextKey) && !string.Equals(previousContextKey, context.Key, StringComparison.OrdinalIgnoreCase))
+            RuntimeAssetCache.ReleaseOwner(RuntimeAssetCache.BuildContextOwnerKey(previousContextKey));
         OperatorTelemetry.CaptureMemorySnapshot("context_changed");
         SafeInvoke(OnContextChanged, context, nameof(OnContextChanged));
         return true;
+    }
+
+    public void UnregisterContext(ChatManagerContext context)
+    {
+        if (context == null || string.IsNullOrWhiteSpace(context.Key))
+            return;
+
+        if (contexts.TryGetValue(context.Key, out var existing) && existing == context)
+            contexts.Remove(context.Key);
+
+        if (CurrentContext == context)
+            CurrentContext = null;
     }
 
     public void SwitchCurrentContextAndScene(ChatManagerContext context, Action callback = null)
@@ -701,16 +773,45 @@ public class ChatManager : MonoBehaviour
 
     private SpawnPointManager[] GetReadySpawnPointManagers(ChatManagerContext context)
     {
-        return (context?.ActiveSpawnPoints ?? Array.Empty<SpawnPointManager>())
-            .Where(s => s != null && s.IsReady)
-            .ToArray();
+        var activeSpawnPoints = context?.ActiveSpawnPoints ?? Array.Empty<SpawnPointManager>();
+        var readySpawnPoints = new List<SpawnPointManager>(activeSpawnPoints.Length);
+        for (var i = 0; i < activeSpawnPoints.Length; i++)
+        {
+            var spawnPoint = activeSpawnPoints[i];
+            if (spawnPoint != null && spawnPoint.IsReady)
+                readySpawnPoints.Add(spawnPoint);
+        }
+
+        return readySpawnPoints.ToArray();
     }
 
     private Transform[] GetValidFallbackSpawnPoints(ChatManagerContext context)
     {
-        return (context?.ActiveFallbackSpawnPoints ?? Array.Empty<Transform>())
-            .Where(t => t != null && t.gameObject != null && t.gameObject.scene.IsValid() && t.gameObject.scene.isLoaded)
-            .ToArray();
+        var fallbackSpawnPoints = context?.ActiveFallbackSpawnPoints ?? Array.Empty<Transform>();
+        var validFallbacks = new List<Transform>(fallbackSpawnPoints.Length);
+        for (var i = 0; i < fallbackSpawnPoints.Length; i++)
+        {
+            var fallback = fallbackSpawnPoints[i];
+            if (fallback != null && fallback.gameObject != null && fallback.gameObject.scene.IsValid() && fallback.gameObject.scene.isLoaded)
+                validFallbacks.Add(fallback);
+        }
+
+        return validFallbacks.ToArray();
+    }
+
+    private static Transform GetFirstAvailableFallbackSpawnPoint(Transform[] fallbackSpawnPoints)
+    {
+        if (fallbackSpawnPoints == null)
+            return null;
+
+        for (var i = 0; i < fallbackSpawnPoints.Length; i++)
+        {
+            var fallback = fallbackSpawnPoints[i];
+            if (fallback != null && fallback.childCount == 0)
+                return fallback;
+        }
+
+        return null;
     }
 
     private IEnumerator RecoverLiveContext(Chat chat, string expectedKey, int generation, float timeoutSeconds = 1f)

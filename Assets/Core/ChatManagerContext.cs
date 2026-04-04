@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections;
-using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class ChatManagerContext : MonoBehaviour
@@ -68,8 +68,8 @@ public sealed class ChatManagerContext : MonoBehaviour
     public Sentiment.SearchableList SentimentsSearch { get; private set; }
     public bool IsActive => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context == this;
 
-    public SpawnPointManager[] ActiveSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.SpawnPoints.FirstOrDefault() != null ? context.SpawnPoints : SpawnPoints;
-    public Transform[] ActiveFallbackSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.FallbackSpawnPoints.FirstOrDefault() != null ? context.FallbackSpawnPoints : FallbackSpawnPoints;
+    public SpawnPointManager[] ActiveSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.SpawnPoints != null && context.SpawnPoints.Length > 0 ? context.SpawnPoints : SpawnPoints;
+    public Transform[] ActiveFallbackSpawnPoints => ChatManager.Instance.Contexts.TryGetValue(Key, out var context) && context.FallbackSpawnPoints != null && context.FallbackSpawnPoints.Length > 0 ? context.FallbackSpawnPoints : FallbackSpawnPoints;
 
     [SerializeField]
     private string key;
@@ -91,12 +91,46 @@ public sealed class ChatManagerContext : MonoBehaviour
 
     private void Awake()
     {
-        ActorsSearch = new Actor.SearchableList(Actors.ToList());
-        SentimentsSearch = new Sentiment.SearchableList(Sentiments.ToList());
-        Locations = SpawnPoints.Select(s => s.name).ToArray();
+        var actorList = new List<Actor>(Actors?.Length ?? 0);
+        if (Actors != null)
+        {
+            for (var i = 0; i < Actors.Length; i++)
+                if (Actors[i] != null)
+                    actorList.Add(Actors[i]);
+        }
 
-        foreach (var actor in Actors)
-            actor.ManagerContext = this;
+        var sentimentList = new List<Sentiment>(Sentiments?.Length ?? 0);
+        if (Sentiments != null)
+        {
+            for (var i = 0; i < Sentiments.Length; i++)
+                if (Sentiments[i] != null)
+                    sentimentList.Add(Sentiments[i]);
+        }
+
+        var locations = new List<string>(SpawnPoints?.Length ?? 0);
+        if (SpawnPoints != null)
+        {
+            for (var i = 0; i < SpawnPoints.Length; i++)
+            {
+                var spawnPoint = SpawnPoints[i];
+                if (spawnPoint != null)
+                    locations.Add(spawnPoint.name);
+            }
+        }
+
+        ActorsSearch = new Actor.SearchableList(actorList);
+        SentimentsSearch = new Sentiment.SearchableList(sentimentList);
+        Locations = locations.ToArray();
+
+        if (Actors == null)
+            return;
+
+        for (var i = 0; i < Actors.Length; i++)
+        {
+            var actor = Actors[i];
+            if (actor != null)
+                actor.ManagerContext = this;
+        }
     }
 
     private void Start()
@@ -131,6 +165,8 @@ public sealed class ChatManagerContext : MonoBehaviour
         if (Dead) return;
         Dead = true;
         Bindings.Dispose();
-        AudioSource.Stop();
+        ChatManager.Instance?.UnregisterContext(this);
+        if (AudioSource != null)
+            AudioSource.Stop();
     }
 }

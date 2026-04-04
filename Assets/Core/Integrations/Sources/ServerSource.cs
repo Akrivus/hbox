@@ -871,6 +871,7 @@ public static class OperatorTelemetry
 
         var soccer = SoccerGameSource.Instance;
         var announcer = soccer?.AnnouncerDiagnostics;
+        var assetCache = RuntimeAssetCache.GetDiagnostics();
 
         lock (sync)
         {
@@ -932,6 +933,12 @@ public static class OperatorTelemetry
                 },
                 resources = new ResourceTouchRecord
                 {
+                    assetCacheOwnerCount = assetCache.ownerCount,
+                    totalCachedAssetCount = assetCache.totalCachedAssetCount,
+                    liveBackgroundCount = assetCache.liveBackgroundCount,
+                    liveFlagCount = assetCache.liveFlagCount,
+                    livePropCount = assetCache.livePropCount,
+                    liveSoundGroupCount = assetCache.liveSoundGroupCount,
                     touchedBackgroundCount = touchedBackgroundKeys.Count,
                     touchedPropCount = touchedPropKeys.Count,
                     touchedSoundGroupCount = touchedSoundGroupKeys.Count,
@@ -968,6 +975,12 @@ public static class OperatorTelemetry
             soccer = new SoccerMemoryRecord(),
             resources = new ResourceTouchRecord
             {
+                assetCacheOwnerCount = 0,
+                totalCachedAssetCount = 0,
+                liveBackgroundCount = 0,
+                liveFlagCount = 0,
+                livePropCount = 0,
+                liveSoundGroupCount = 0,
                 recentBackgrounds = new List<string>(),
                 recentProps = new List<string>(),
                 recentSoundGroups = new List<string>()
@@ -1147,6 +1160,12 @@ public sealed class SoccerMemoryRecord
 [Serializable]
 public sealed class ResourceTouchRecord
 {
+    public int assetCacheOwnerCount;
+    public int totalCachedAssetCount;
+    public int liveBackgroundCount;
+    public int liveFlagCount;
+    public int livePropCount;
+    public int liveSoundGroupCount;
     public int touchedBackgroundCount;
     public int touchedPropCount;
     public int touchedSoundGroupCount;
