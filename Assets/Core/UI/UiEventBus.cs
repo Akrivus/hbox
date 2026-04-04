@@ -35,7 +35,11 @@ public static class UiEventBus
 
     public static void Publish(ChatManagerContext context, DateTime countdown, float lifetimeSeconds = 0)
     {
-        OperatorTelemetry.RecordEvent("countdown", $"Countdown updated for {context?.Name ?? context?.Key ?? "channel"}.", context);
+        OperatorTelemetry.RecordEvent(
+            "countdown",
+            $"Countdown updated for {context?.Name ?? context?.Key ?? "channel"}.",
+            context,
+            countdownAt: new DateTimeOffset(countdown));
         OnEvent?.Invoke(new UiEvent
         {
             ChannelCode = context.Key,

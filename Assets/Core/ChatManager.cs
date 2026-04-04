@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 public class ChatManager : MonoBehaviour
 {
     public static ChatManager Instance { get; private set; }
+    private const float MemorySnapshotHeartbeatSeconds = 15f;
 
     public static bool IsPaused
     {
@@ -85,7 +86,9 @@ public class ChatManager : MonoBehaviour
 
     private void Start()
     {
+        OperatorTelemetry.CaptureMemorySnapshot("chat_manager_started");
         StartCoroutine(UpdatePlayList());
+        StartCoroutine(CaptureMemorySnapshotHeartbeat());
     }
 
     private void OnDestroy()
@@ -98,6 +101,7 @@ public class ChatManager : MonoBehaviour
     {
         playList.Enqueue(chat);
         OperatorTelemetry.RecordEpisodeQueued(chat);
+        OperatorTelemetry.CaptureMemorySnapshot("episode_queued");
         SafeInvoke(OnChatQueueAdded, chat, nameof(OnChatQueueAdded));
         readyToPlay = false;
     }
@@ -149,6 +153,15 @@ public class ChatManager : MonoBehaviour
                 readyToPlay = false;
             }
             yield return new WaitUntil(() => !IsPaused);
+        }
+    }
+
+    private IEnumerator CaptureMemorySnapshotHeartbeat()
+    {
+        while (this != null)
+        {
+            yield return new WaitForSecondsRealtime(MemorySnapshotHeartbeatSeconds);
+            OperatorTelemetry.CaptureMemorySnapshot("heartbeat");
         }
     }
 
@@ -205,6 +218,8 @@ public class ChatManager : MonoBehaviour
         {
             SkipToEnd = false;
             lastPlayInterrupted = !completed;
+            ReleaseActorVoiceClips();
+            chat?.ReleaseRuntimeAudio();
             if (NowPlaying == chat)
                 NowPlaying = null;
 
@@ -267,6 +282,7 @@ public class ChatManager : MonoBehaviour
             yield break;
 
         NowPlaying = chat;
+        OperatorTelemetry.CaptureMemorySnapshot("episode_started");
 
         var activeSpawnPoints = GetReadySpawnPointManagers(context);
         if (!string.IsNullOrEmpty(chat.Location))
@@ -474,6 +490,7 @@ public class ChatManager : MonoBehaviour
         CurrentContext = context;
         InvalidatePlaybackGeneration();
         DontDestroyOnLoad(context.gameObject);
+        OperatorTelemetry.CaptureMemorySnapshot("context_changed");
         SafeInvoke(OnContextChanged, context, nameof(OnContextChanged));
         return true;
     }
@@ -524,11 +541,24 @@ public class ChatManager : MonoBehaviour
             if (systems && systems != primaryEventSystem)
                 Destroy(systems.gameObject);
         }
+        OperatorTelemetry.CaptureMemorySnapshot("scene_loaded");
     }
 
     private bool StopPlaying(Chat chat)
     {
         return chat.ManagerContext == null || chat.ManagerContext.Key != CurrentContext?.Key;
+    }
+
+    private void ReleaseActorVoiceClips()
+    {
+        foreach (var actor in actors)
+        {
+            if (actor?.Voice == null)
+                continue;
+
+            actor.Voice.Stop();
+            actor.Voice.clip = null;
+        }
     }
 
     private bool ContextReady(string expectedKey, ChatManagerContext previousContext)

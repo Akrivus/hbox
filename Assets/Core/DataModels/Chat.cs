@@ -111,6 +111,15 @@ public class Chat
             }
     }
 
+    public void ReleaseRuntimeAudio()
+    {
+        if (Nodes == null)
+            return;
+
+        foreach (var node in Nodes)
+            node?.ReleaseRuntimeAudio();
+    }
+
     public static async Task<Chat> Load(string folder, string slug)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

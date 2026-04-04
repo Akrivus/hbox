@@ -7,8 +7,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DiagnosticsProcess = System.Diagnostics.Process;
 using Newtonsoft.Json;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class ServerSource : MonoBehaviour
 {
@@ -44,6 +46,8 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/", context => ProcessFileRequest(context, "index.html"));
         AddApiRoute("GET", "/api/health", GetHealthAsync);
         AddApiRoute("GET", "/api/channels", GetChannelsAsync);
+        AddApiRoute("GET", "/api/diagnostics/memory", GetMemoryDiagnosticsAsync);
+        AddRoute("GET", "/api/diagnostics/memory/history", GetMemoryDiagnosticsHistoryAsync);
         AddRoute("GET", "/api/events", GetEventsAsync);
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
@@ -226,6 +230,18 @@ public class ServerSource : MonoBehaviour
                 .ToList();
             return Task.FromResult((IReadOnlyList<GeneratorRuntimeInfo>)snapshot);
         }
+    }
+
+    private Task<MemoryDiagnosticsSnapshot> GetMemoryDiagnosticsAsync()
+    {
+        return Task.FromResult(OperatorTelemetry.GetLatestMemorySnapshot());
+    }
+
+    private Task GetMemoryDiagnosticsHistoryAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 20);
+        return WriteJsonAsync(context.Response, OperatorTelemetry.GetRecentMemorySnapshots(limit));
     }
 
     private Task GetEventsAsync(HttpListenerContext context)
@@ -472,11 +488,22 @@ public static class OperatorTelemetry
     private static readonly object sync = new object();
     private static readonly List<OperatorEventRecord> events = new List<OperatorEventRecord>();
     private static readonly Dictionary<string, EpisodeRecord> episodes = new Dictionary<string, EpisodeRecord>(StringComparer.OrdinalIgnoreCase);
+    private static readonly List<MemoryDiagnosticsSnapshot> memorySnapshots = new List<MemoryDiagnosticsSnapshot>();
+    private static readonly LinkedList<string> touchedBackgrounds = new LinkedList<string>();
+    private static readonly LinkedList<string> touchedProps = new LinkedList<string>();
+    private static readonly LinkedList<string> touchedSoundGroups = new LinkedList<string>();
+    private static readonly HashSet<string> touchedBackgroundKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> touchedPropKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> touchedSoundGroupKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     private const int MaxEvents = 300;
     private const int MaxEpisodes = 150;
+    private const int MaxMemorySnapshots = 50;
+    private const int MaxRecentTouchedAssets = 20;
 
-    public static void RecordEvent(string type, string message, ChatManagerContext context = null, string channelKey = null, string episodeSlug = null)
+    private static MemoryDiagnosticsSnapshot latestMemorySnapshot;
+
+    public static void RecordEvent(string type, string message, ChatManagerContext context = null, string channelKey = null, string episodeSlug = null, DateTimeOffset? countdownAt = null)
     {
         if (string.IsNullOrWhiteSpace(type))
             type = "info";
@@ -488,7 +515,8 @@ public static class OperatorTelemetry
             channelKey = channelKey ?? context?.Key ?? string.Empty,
             context = context?.Name ?? string.Empty,
             episodeSlug = episodeSlug ?? string.Empty,
-            timestamp = DateTimeOffset.Now.ToString("O")
+            timestamp = DateTimeOffset.Now.ToString("O"),
+            countdownAt = countdownAt?.ToString("O") ?? string.Empty
         };
 
         lock (sync)
@@ -692,6 +720,56 @@ public static class OperatorTelemetry
         }
     }
 
+    public static MemoryDiagnosticsSnapshot CaptureMemorySnapshot(string reason = null)
+    {
+        var snapshot = BuildMemorySnapshot(reason);
+
+        lock (sync)
+        {
+            latestMemorySnapshot = snapshot;
+            memorySnapshots.Add(snapshot);
+            TrimMemorySnapshotsUnsafe();
+            return snapshot;
+        }
+    }
+
+    public static MemoryDiagnosticsSnapshot GetLatestMemorySnapshot()
+    {
+        lock (sync)
+        {
+            if (latestMemorySnapshot != null)
+                return latestMemorySnapshot;
+        }
+
+        return BuildFallbackMemorySnapshot();
+    }
+
+    public static IReadOnlyList<MemoryDiagnosticsSnapshot> GetRecentMemorySnapshots(int limit = 20)
+    {
+        lock (sync)
+        {
+            return memorySnapshots
+                .OrderByDescending(s => s.timestamp)
+                .Take(NormalizeLimit(limit, 100))
+                .ToList();
+        }
+    }
+
+    public static void RecordTouchedBackground(string key)
+    {
+        RecordTouchedAsset(key, touchedBackgroundKeys, touchedBackgrounds);
+    }
+
+    public static void RecordTouchedProp(string key)
+    {
+        RecordTouchedAsset(key, touchedPropKeys, touchedProps);
+    }
+
+    public static void RecordTouchedSoundGroup(string key)
+    {
+        RecordTouchedAsset(key, touchedSoundGroupKeys, touchedSoundGroups);
+    }
+
     private static void UpsertEpisodeUnsafe(EpisodeRecord incoming)
     {
         if (incoming == null || string.IsNullOrWhiteSpace(incoming.slug))
@@ -739,6 +817,188 @@ public static class OperatorTelemetry
             episodes.Remove(key);
     }
 
+    private static void TrimMemorySnapshotsUnsafe()
+    {
+        if (memorySnapshots.Count <= MaxMemorySnapshots)
+            return;
+
+        memorySnapshots.RemoveRange(0, memorySnapshots.Count - MaxMemorySnapshots);
+    }
+
+    private static void RecordTouchedAsset(string key, HashSet<string> keys, LinkedList<string> recent)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        lock (sync)
+        {
+            keys.Add(key);
+            recent.AddFirst(key);
+            while (recent.Count > MaxRecentTouchedAssets)
+                recent.RemoveLast();
+        }
+    }
+
+    private static MemoryDiagnosticsSnapshot BuildMemorySnapshot(string reason)
+    {
+        var process = DiagnosticsProcess.GetCurrentProcess();
+        var manager = ChatManager.Instance;
+        var nowPlaying = manager?.NowPlaying;
+        var nodes = nowPlaying?.Nodes ?? new List<ChatNode>();
+        var currentScene = SceneManager.GetActiveScene();
+        var bucketEntries = MemoryBucket.Buckets
+            .Select(kvp => new MemoryBucketSummaryRecord
+            {
+                key = kvp.Key,
+                memoryCount = kvp.Value?.Memories?.Count ?? 0,
+                estimatedEmbeddingBytes = EstimateEmbeddingBytes(kvp.Value)
+            })
+            .OrderByDescending(entry => entry.estimatedEmbeddingBytes)
+            .ThenByDescending(entry => entry.memoryCount)
+            .Take(5)
+            .ToList();
+
+        long totalEmbeddingBytes = 0;
+        int totalMemoryCount = 0;
+        foreach (var bucket in MemoryBucket.Buckets.Values)
+        {
+            if (bucket?.Memories == null)
+                continue;
+
+            totalMemoryCount += bucket.Memories.Count;
+            totalEmbeddingBytes += EstimateEmbeddingBytes(bucket);
+        }
+
+        var soccer = SoccerGameSource.Instance;
+        var announcer = soccer?.AnnouncerDiagnostics;
+
+        lock (sync)
+        {
+            return new MemoryDiagnosticsSnapshot
+            {
+                timestamp = DateTimeOffset.Now.ToString("O"),
+                reason = string.IsNullOrWhiteSpace(reason) ? "unspecified" : reason,
+                process = new ProcessMemoryRecord
+                {
+                    workingSetBytes = GetBestWorkingSetBytes(process),
+                    privateMemoryBytes = process.PrivateMemorySize64,
+                    managedHeapBytes = GC.GetTotalMemory(false),
+                    gcGen0Collections = GC.CollectionCount(0),
+                    gcGen1Collections = GC.CollectionCount(1),
+                    gcGen2Collections = GC.CollectionCount(2)
+                },
+                runtime = new RuntimeMemoryRecord
+                {
+                    currentContextKey = manager?.CurrentContext?.Key ?? string.Empty,
+                    currentContextName = manager?.CurrentContext?.Name ?? string.Empty,
+                    currentSceneName = currentScene.name ?? string.Empty,
+                    trackedContextCount = manager?.Contexts?.Count ?? 0,
+                    actorsInSceneCount = manager?.ActorsInScene?.Count ?? 0,
+                    playlistDepth = manager?.PlayList?.Count ?? 0,
+                    readyForAction = manager?.ReadyForAction ?? false,
+                    isPaused = ChatManager.IsPaused
+                },
+                chat = new ChatMemoryRecord
+                {
+                    episodeSlug = nowPlaying?.FileName ?? string.Empty,
+                    episodeTitle = nowPlaying?.Title ?? string.Empty,
+                    totalNodeCount = nodes.Count,
+                    newNodeCount = nodes.Count(node => node?.New == true),
+                    nodesWithAudioData = nodes.Count(node => !string.IsNullOrEmpty(node?.AudioData)),
+                    nodesWithHydratedRuntimeAudio = nodes.Count(node => node?.HasRuntimeAudioClip == true),
+                    totalAudioDataChars = nodes
+                        .Where(node => !string.IsNullOrEmpty(node?.AudioData))
+                        .Sum(node => (long)node.AudioData.Length),
+                    nodesWithTextureData = string.IsNullOrEmpty(nowPlaying?.TextureData) ? 0 : 1,
+                    totalTextureDataChars = nowPlaying?.TextureData?.Length ?? 0
+                },
+                memoryBuckets = new MemoryBucketDiagnosticsRecord
+                {
+                    bucketCount = MemoryBucket.Buckets.Count,
+                    totalMemoryCount = totalMemoryCount,
+                    estimatedEmbeddingBytes = totalEmbeddingBytes,
+                    largestBuckets = bucketEntries
+                },
+                soccer = new SoccerMemoryRecord
+                {
+                    available = soccer != null,
+                    isSceneLoaded = soccer?.IsSceneLoaded ?? false,
+                    isGameLoaded = soccer?.IsGameLoaded ?? false,
+                    addedSceneCount = soccer?.AddedSceneCount ?? 0,
+                    announcerQueueCount = announcer?.QueueCount ?? 0,
+                    announcerClipCacheCount = announcer?.ClipCacheCount ?? 0,
+                    announcerMatchActive = announcer?.MatchActive ?? false,
+                    currentMatchId = soccer?.CurrentMatchId ?? string.Empty
+                },
+                resources = new ResourceTouchRecord
+                {
+                    touchedBackgroundCount = touchedBackgroundKeys.Count,
+                    touchedPropCount = touchedPropKeys.Count,
+                    touchedSoundGroupCount = touchedSoundGroupKeys.Count,
+                    recentBackgrounds = touchedBackgrounds.Take(MaxRecentTouchedAssets).ToList(),
+                    recentProps = touchedProps.Take(MaxRecentTouchedAssets).ToList(),
+                    recentSoundGroups = touchedSoundGroups.Take(MaxRecentTouchedAssets).ToList()
+                }
+            };
+        }
+    }
+
+    private static MemoryDiagnosticsSnapshot BuildFallbackMemorySnapshot()
+    {
+        var process = DiagnosticsProcess.GetCurrentProcess();
+        return new MemoryDiagnosticsSnapshot
+        {
+            timestamp = DateTimeOffset.Now.ToString("O"),
+            reason = "snapshot_unavailable",
+            process = new ProcessMemoryRecord
+            {
+                workingSetBytes = GetBestWorkingSetBytes(process),
+                privateMemoryBytes = process.PrivateMemorySize64,
+                managedHeapBytes = GC.GetTotalMemory(false),
+                gcGen0Collections = GC.CollectionCount(0),
+                gcGen1Collections = GC.CollectionCount(1),
+                gcGen2Collections = GC.CollectionCount(2)
+            },
+            runtime = new RuntimeMemoryRecord(),
+            chat = new ChatMemoryRecord(),
+            memoryBuckets = new MemoryBucketDiagnosticsRecord
+            {
+                largestBuckets = new List<MemoryBucketSummaryRecord>()
+            },
+            soccer = new SoccerMemoryRecord(),
+            resources = new ResourceTouchRecord
+            {
+                recentBackgrounds = new List<string>(),
+                recentProps = new List<string>(),
+                recentSoundGroups = new List<string>()
+            }
+        };
+    }
+
+    private static long EstimateEmbeddingBytes(MemoryBucket bucket)
+    {
+        if (bucket?.Memories == null)
+            return 0;
+
+        long bytes = 0;
+        foreach (var memory in bucket.Memories)
+            bytes += (long)(memory?.Embeddings?.Length ?? 0) * sizeof(double);
+        return bytes;
+    }
+
+    private static long GetBestWorkingSetBytes(DiagnosticsProcess process)
+    {
+        var workingSet = process?.WorkingSet64 ?? 0;
+        if (workingSet > 0)
+            return workingSet;
+
+        workingSet = Environment.WorkingSet;
+        if (workingSet > 0)
+            return workingSet;
+
+        return process?.PrivateMemorySize64 ?? 0;
+    }
+
     private static int NormalizeLimit(int requested, int max)
     {
         if (requested < 1)
@@ -784,6 +1044,7 @@ public sealed class OperatorEventRecord
     public string channelKey;
     public string context;
     public string episodeSlug;
+    public string countdownAt;
 }
 
 [Serializable]
@@ -800,4 +1061,96 @@ public sealed class EpisodeRecord
     public string queuedAt;
     public string playedAt;
     public string status;
+}
+
+[Serializable]
+public sealed class MemoryDiagnosticsSnapshot
+{
+    public string timestamp;
+    public string reason;
+    public ProcessMemoryRecord process;
+    public RuntimeMemoryRecord runtime;
+    public ChatMemoryRecord chat;
+    public MemoryBucketDiagnosticsRecord memoryBuckets;
+    public SoccerMemoryRecord soccer;
+    public ResourceTouchRecord resources;
+}
+
+[Serializable]
+public sealed class ProcessMemoryRecord
+{
+    public long workingSetBytes;
+    public long privateMemoryBytes;
+    public long managedHeapBytes;
+    public int gcGen0Collections;
+    public int gcGen1Collections;
+    public int gcGen2Collections;
+}
+
+[Serializable]
+public sealed class RuntimeMemoryRecord
+{
+    public string currentContextKey;
+    public string currentContextName;
+    public string currentSceneName;
+    public int trackedContextCount;
+    public int actorsInSceneCount;
+    public int playlistDepth;
+    public bool readyForAction;
+    public bool isPaused;
+}
+
+[Serializable]
+public sealed class ChatMemoryRecord
+{
+    public string episodeSlug;
+    public string episodeTitle;
+    public int totalNodeCount;
+    public int newNodeCount;
+    public int nodesWithAudioData;
+    public int nodesWithHydratedRuntimeAudio;
+    public long totalAudioDataChars;
+    public int nodesWithTextureData;
+    public long totalTextureDataChars;
+}
+
+[Serializable]
+public sealed class MemoryBucketDiagnosticsRecord
+{
+    public int bucketCount;
+    public int totalMemoryCount;
+    public long estimatedEmbeddingBytes;
+    public List<MemoryBucketSummaryRecord> largestBuckets;
+}
+
+[Serializable]
+public sealed class MemoryBucketSummaryRecord
+{
+    public string key;
+    public int memoryCount;
+    public long estimatedEmbeddingBytes;
+}
+
+[Serializable]
+public sealed class SoccerMemoryRecord
+{
+    public bool available;
+    public bool isSceneLoaded;
+    public bool isGameLoaded;
+    public int addedSceneCount;
+    public int announcerQueueCount;
+    public int announcerClipCacheCount;
+    public bool announcerMatchActive;
+    public string currentMatchId;
+}
+
+[Serializable]
+public sealed class ResourceTouchRecord
+{
+    public int touchedBackgroundCount;
+    public int touchedPropCount;
+    public int touchedSoundGroupCount;
+    public List<string> recentBackgrounds;
+    public List<string> recentProps;
+    public List<string> recentSoundGroups;
 }

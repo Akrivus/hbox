@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 public class ChatNode
 {
@@ -27,9 +28,24 @@ public class ChatNode
     [JsonIgnore]
     public AudioClip AudioClip
     {
-        get => AudioData.ToAudioClip(Frequency);
-        set => AudioData = value
-            .ToBase64();
+        get
+        {
+            if (_audioClip != null)
+                return _audioClip;
+            if (string.IsNullOrEmpty(AudioData))
+                return null;
+
+            _audioClip = AudioData.ToAudioClip(Frequency);
+            return _audioClip;
+        }
+        set
+        {
+            if (_audioClip != null && _audioClip != value)
+                DestroyRuntimeAudioClip();
+
+            _audioClip = value;
+            AudioData = value?.ToBase64();
+        }
     }
 
     [JsonIgnore]
@@ -37,6 +53,12 @@ public class ChatNode
 
     [JsonIgnore]
     public float Energy => Reactions.Sum((reaction) => reaction.Sentiment.Score) / Reactions.Length;
+
+    [JsonIgnore]
+    public bool HasRuntimeAudioClip => _audioClip != null;
+
+    [JsonIgnore]
+    private AudioClip _audioClip;
 
     public ChatNode()
     {
@@ -81,7 +103,25 @@ public class ChatNode
         return this;
     }
 
+    public void ReleaseRuntimeAudio()
+    {
+        DestroyRuntimeAudioClip();
+    }
+
     public bool ShouldSerializeItem() => !string.IsNullOrEmpty(Item);
+
+    private void DestroyRuntimeAudioClip()
+    {
+        if (_audioClip == null)
+            return;
+
+        if (Application.isPlaying)
+            Object.Destroy(_audioClip);
+        else
+            Object.DestroyImmediate(_audioClip);
+
+        _audioClip = null;
+    }
 
     public class Reaction
     {

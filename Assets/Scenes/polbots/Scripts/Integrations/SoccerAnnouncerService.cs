@@ -1,11 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
 public sealed class SoccerAnnouncerService
 {
+    private const int MaxCachedClips = 24;
+
+    public int QueueCount => queue.Count;
+    public int ClipCacheCount => clipCache.Count;
+    public bool MatchActive => matchActive;
+
     private readonly TextToSpeechGenerator ttsGenerator;
     private readonly Queue<string> queue = new Queue<string>();
     private readonly Dictionary<string, AudioClip> clipCache = new Dictionary<string, AudioClip>();
@@ -42,6 +49,7 @@ public sealed class SoccerAnnouncerService
         generationVersion++;
         matchActive = true;
         queue.Clear();
+        clipCache.Clear();
         pendingClipTask = null;
 
         if (audioSource != null)
@@ -53,6 +61,7 @@ public sealed class SoccerAnnouncerService
         generationVersion++;
         matchActive = false;
         queue.Clear();
+        clipCache.Clear();
         pendingClipTask = null;
 
         if (audioSource != null)
@@ -135,7 +144,16 @@ public sealed class SoccerAnnouncerService
 
         var clip = node.AudioClip;
         if (clip != null)
+        {
+            while (clipCache.Count >= MaxCachedClips)
+            {
+                var oldestKey = clipCache.Keys.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(oldestKey))
+                    break;
+                clipCache.Remove(oldestKey);
+            }
             clipCache[line] = clip;
+        }
 
         return clip;
     }

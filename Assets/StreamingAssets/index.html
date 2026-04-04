@@ -32,11 +32,10 @@
 			}
 
 			main {
-				width: min(1100px, calc(100% - 32px));
-				margin: 24px auto;
+				width: min(1180px, calc(100% - 24px));
+				margin: 16px auto 28px;
 				display: grid;
-				grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-				gap: 20px;
+				gap: 18px;
 			}
 
 			.panel {
@@ -47,19 +46,31 @@
 				backdrop-filter: blur(12px);
 			}
 
-			.sidebar {
+			.surface {
 				padding: 18px;
 			}
 
-			.content {
-				padding: 18px;
+			.stack {
 				display: grid;
 				gap: 16px;
 			}
 
-			.grid-two {
+			.top-layout {
+				display: grid;
+				grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+				gap: 16px;
+				align-items: start;
+			}
+
+			.card-grid {
 				display: grid;
 				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 16px;
+			}
+
+			.bottom-grid {
+				display: grid;
+				grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
 				gap: 16px;
 			}
 
@@ -70,7 +81,22 @@
 			.header {
 				display: grid;
 				gap: 6px;
-				margin-bottom: 16px;
+			}
+
+			.top-header {
+				margin-bottom: 2px;
+			}
+
+			.header-copy {
+				display: grid;
+				gap: 4px;
+			}
+
+			.section-label {
+				font-size: 0.76rem;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				color: var(--accent-2);
 			}
 
 			.subtitle {
@@ -81,9 +107,13 @@
 			.channel-list {
 				display: grid;
 				gap: 10px;
+				max-height: 109px;
+				overflow: auto;
 			}
 
 			.channel {
+				width: 100%;
+				text-align: left;
 				border: 1px solid transparent;
 				border-radius: 14px;
 				padding: 12px 14px;
@@ -143,11 +173,29 @@
 				gap: 12px;
 			}
 
+			.hero-card {
+				padding: 18px;
+				gap: 14px;
+			}
+
+			.hero-layout {
+				display: grid;
+				grid-template-columns: minmax(0, 1.2fr) minmax(250px, 0.8fr);
+				gap: 16px;
+				align-items: start;
+			}
+
+			.hero-copy {
+				display: grid;
+				gap: 8px;
+			}
+
 			.card-head {
 				display: flex;
 				align-items: baseline;
 				justify-content: space-between;
 				gap: 12px;
+				flex-wrap: wrap;
 			}
 
 			.muted {
@@ -156,7 +204,7 @@
 
 			textarea {
 				width: 100%;
-				min-height: 280px;
+				min-height: 200px;
 				padding: 14px;
 				border: 1px solid var(--line);
 				border-radius: 14px;
@@ -221,8 +269,12 @@
 			.feed {
 				display: grid;
 				gap: 10px;
-				max-height: 360px;
+				max-height: 340px;
 				overflow: auto;
+			}
+
+			.feed.tall {
+				max-height: 420px;
 			}
 
 			.feed-item {
@@ -257,52 +309,217 @@
 				white-space: pre-wrap;
 			}
 
-			@media (max-width: 900px) {
-				main {
-					grid-template-columns: 1fr;
-				}
+			.feed-copy strong {
+				color: var(--ink);
+			}
 
+			.countdown-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+				gap: 10px;
+			}
+
+			.countdown-tile {
+				padding: 14px;
+				border-radius: 14px;
+				background: rgba(255, 255, 255, 0.03);
+				border: 1px solid rgba(255, 255, 255, 0.05);
+				display: grid;
+				gap: 8px;
+			}
+
+			.countdown-time {
+				font-size: clamp(1.25rem, 4vw, 1.75rem);
+				font-weight: 700;
+				letter-spacing: 0.03em;
+			}
+
+			.countdown-meta {
+				color: var(--muted);
+				font-size: 0.88rem;
+				line-height: 1.35;
+			}
+
+			.memory-grid {
+				display: grid;
+				grid-template-columns: repeat(4, minmax(0, 1fr));
+				gap: 10px;
+			}
+
+			.memory-grid div {
+				padding: 12px;
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.03);
+				border: 1px solid rgba(255, 255, 255, 0.04);
+			}
+
+			.memory-grid strong {
+				display: block;
+				font-size: 1.05rem;
+			}
+
+			.mini-chart {
+				display: grid;
+				grid-template-columns: repeat(12, minmax(0, 1fr));
+				align-items: end;
+				gap: 8px;
+				min-height: 128px;
+			}
+
+			.mini-group {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				align-items: end;
+				gap: 4px;
+				height: 100%;
+			}
+
+			.mini-bar {
+				min-height: 24px;
+				border-radius: 12px 12px 6px 6px;
+				background: linear-gradient(180deg, rgba(245, 166, 35, 0.95), rgba(255, 210, 105, 0.7));
+				border: 1px solid rgba(255, 255, 255, 0.08);
+			}
+
+			.mini-bar.managed {
+				background: linear-gradient(180deg, rgba(102, 212, 192, 0.95), rgba(68, 133, 125, 0.72));
+			}
+
+			.chart-legend {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				color: var(--muted);
+				font-size: 0.82rem;
+			}
+
+			.legend-chip {
+				display: inline-flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.legend-chip::before {
+				content: '';
+				width: 10px;
+				height: 10px;
+				border-radius: 999px;
+				background: currentColor;
+			}
+
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+
+			::-webkit-scrollbar-thumb {
+				background: rgba(102, 212, 192, 0.28);
+				border-radius: 999px;
+			}
+
+			::-webkit-scrollbar-track {
+				background: rgba(255, 255, 255, 0.04);
+				border-radius: 999px;
+			}
+
+			@media (max-width: 900px) {
+				.top-layout,
+				.card-grid,
+				.bottom-grid,
+				.hero-layout,
 				.kv {
 					grid-template-columns: 1fr;
 				}
 
-				.grid-two {
-					grid-template-columns: 1fr;
+				.memory-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+			}
+
+			@media (max-width: 640px) {
+				main {
+					width: min(100%, calc(100% - 16px));
+					margin: 8px auto 20px;
+					gap: 12px;
+				}
+
+				.surface,
+				.card,
+				.hero-card {
+					padding: 14px;
+				}
+
+				.stack,
+				.top-layout,
+				.card-grid,
+				.bottom-grid {
+					gap: 12px;
+				}
+
+				.channel-list {
+					max-height: 300px;
+				}
+
+				textarea {
+					min-height: 160px;
+				}
+
+				.feed,
+				.feed.tall {
+					max-height: 280px;
+				}
+
+				.mini-chart {
+					gap: 6px;
+					min-height: 108px;
 				}
 			}
 		</style>
 	</head>
 	<body>
 		<main>
-			<section class="panel sidebar">
-				<div class="header">
-					<h1>HBOX Control</h1>
-					<p class="subtitle">Internal operator panel for idea routing.</p>
-				</div>
-				<div id="channel-list" class="channel-list"></div>
-			</section>
+			<section class="panel surface stack">
+				<div class="top-layout">
+					<section class="card">
+						<div class="header">
+							<h2>Generator Channels</h2>
+							<p class="subtitle">Pick the active stream before routing a new idea.</p>
+						</div>
+						<div id="channel-list" class="channel-list"></div>
+					</section>
 
-			<section class="panel content">
-				<div class="card">
-					<div class="card-head">
-						<h2 id="selected-title">Select a channel</h2>
-						<span id="selected-state" class="badge idle">Idle</span>
-					</div>
-					<p id="selected-context" class="muted">Waiting for live generators.</p>
-					<div class="kv">
-						<div>
-							<span class="muted">Queue Depth</span>
-							<strong id="queue-depth">0</strong>
+					<section class="card hero-card">
+						<div class="header top-header">
+							<div class="section-label">Operator Panel</div>
+							<div class="header-copy">
+								<h1>HBOX Control</h1>
+								<p class="subtitle">Internal operator panel for idea routing, live activity, and runtime diagnostics.</p>
+							</div>
 						</div>
-						<div>
-							<span class="muted">Generating</span>
-							<strong id="is-generating">No</strong>
+						<div class="hero-layout">
+							<div class="hero-copy">
+								<div class="card-head">
+									<h2 id="selected-title">Select a channel</h2>
+									<span id="selected-state" class="badge idle">Idle</span>
+								</div>
+								<p id="selected-context" class="muted">Waiting for live generators.</p>
+								<div id="status" class="status"></div>
+							</div>
+							<div class="kv">
+								<div>
+									<span class="muted">Queue Depth</span>
+									<strong id="queue-depth">0</strong>
+								</div>
+								<div>
+									<span class="muted">Generating</span>
+									<strong id="is-generating">No</strong>
+								</div>
+								<div>
+									<span class="muted">Channel Key</span>
+									<strong id="channel-key">-</strong>
+								</div>
+							</div>
 						</div>
-						<div>
-							<span class="muted">Channel Key</span>
-							<strong id="channel-key">-</strong>
-						</div>
-					</div>
+					</section>
 				</div>
 
 				<form id="idea-form" class="card">
@@ -313,11 +530,18 @@
 					<textarea id="input" placeholder="Write your idea here..."></textarea>
 					<div class="actions">
 						<button id="submit-button" type="submit" disabled>Send To Channel</button>
-						<div id="status" class="status"></div>
 					</div>
 				</form>
 
-				<div class="grid-two">
+				<div class="card-grid">
+					<section class="card">
+						<div class="card-head">
+							<h2>Countdown States</h2>
+							<span class="muted">Latest waiting state per context</span>
+						</div>
+						<div id="countdown-feed" class="countdown-grid"></div>
+					</section>
+
 					<section class="card">
 						<div class="card-head">
 							<h2>Runtime Log</h2>
@@ -331,15 +555,60 @@
 							<h2>Recent Episodes</h2>
 							<span class="muted">Generated and queued history</span>
 						</div>
-						<div id="episode-feed" class="feed"></div>
+						<div id="episode-feed" class="feed tall"></div>
 					</section>
 
 					<section class="card">
 						<div class="card-head">
-							<h2>Replay Scheduler</h2>
+							<h2>Replay History</h2>
 							<span class="muted">Eligibility and rerun cadence</span>
 						</div>
-						<div id="replay-feed" class="feed"></div>
+						<div id="replay-feed" class="feed tall"></div>
+					</section>
+				</div>
+
+				<div class="bottom-grid">
+					<section class="card">
+						<div class="card-head">
+							<h2>Memory Snapshot</h2>
+							<span id="memory-reason" class="muted">Waiting for diagnostics</span>
+						</div>
+						<div class="memory-grid">
+							<div>
+								<span class="muted">Working Set</span>
+								<strong id="memory-working-set">-</strong>
+							</div>
+							<div>
+								<span class="muted">Managed Heap</span>
+								<strong id="memory-managed-heap">-</strong>
+							</div>
+							<div>
+								<span class="muted">Audio Payload</span>
+								<strong id="memory-audio-payload">-</strong>
+							</div>
+							<div>
+								<span class="muted">Embeddings</span>
+								<strong id="memory-embeddings">-</strong>
+							</div>
+						</div>
+						<div id="memory-summary" class="feed"></div>
+					</section>
+
+					<section class="card stack">
+						<div class="card-head">
+							<h2>Memory Trend</h2>
+							<span class="muted">Working set and managed heap</span>
+						</div>
+						<div id="memory-chart" class="mini-chart"></div>
+						<div class="chart-legend">
+							<span class="legend-chip" style="color: var(--accent);">Working Set</span>
+							<span class="legend-chip" style="color: var(--accent-2);">Managed Heap</span>
+						</div>
+						<div class="card-head">
+							<h2>Memory History</h2>
+							<span class="muted">Recent capture trail</span>
+						</div>
+						<div id="memory-history-feed" class="feed"></div>
 					</section>
 				</div>
 			</section>
@@ -358,12 +627,22 @@
 			const isGenerating = document.getElementById('is-generating');
 			const channelKey = document.getElementById('channel-key');
 			const endpointLabel = document.getElementById('endpoint-label');
+			const countdownFeed = document.getElementById('countdown-feed');
 			const eventFeed = document.getElementById('event-feed');
 			const episodeFeed = document.getElementById('episode-feed');
 			const replayFeed = document.getElementById('replay-feed');
+			const memoryReason = document.getElementById('memory-reason');
+			const memoryWorkingSet = document.getElementById('memory-working-set');
+			const memoryManagedHeap = document.getElementById('memory-managed-heap');
+			const memoryAudioPayload = document.getElementById('memory-audio-payload');
+			const memoryEmbeddings = document.getElementById('memory-embeddings');
+			const memorySummary = document.getElementById('memory-summary');
+			const memoryChart = document.getElementById('memory-chart');
+			const memoryHistoryFeed = document.getElementById('memory-history-feed');
 
 			let channels = [];
 			let selectedSlug = null;
+			let countdownState = [];
 
 			function setStatus(message, isError = false) {
 				status.textContent = message || '';
@@ -440,6 +719,36 @@
 				return date.toLocaleString();
 			}
 
+			function formatRelativeDuration(ms) {
+				const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+				const hours = Math.floor(totalSeconds / 3600);
+				const minutes = Math.floor((totalSeconds % 3600) / 60);
+				const seconds = totalSeconds % 60;
+
+				if (hours > 0)
+					return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+				return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+			}
+
+			function formatBytes(value) {
+				const bytes = Number(value) || 0;
+				if (bytes <= 0) return '0 B';
+				const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+				const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+				const size = bytes / 1024 ** exponent;
+				return `${size.toFixed(size >= 10 || exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+			}
+
+			function escapeHtml(value) {
+				return String(value ?? '')
+					.replaceAll('&', '&amp;')
+					.replaceAll('<', '&lt;')
+					.replaceAll('>', '&gt;')
+					.replaceAll('"', '&quot;')
+					.replaceAll("'", '&#39;');
+			}
+
 			function renderEvents(items) {
 				eventFeed.innerHTML = '';
 
@@ -463,6 +772,52 @@
 				}
 			}
 
+			function getLatestCountdowns(items) {
+				const latestByContext = new Map();
+
+				for (const item of items) {
+					if (item.type !== 'countdown' || !item.countdownAt)
+						continue;
+
+					const key = item.channelKey || item.context || 'runtime';
+					const countdownAt = new Date(item.countdownAt);
+					if (Number.isNaN(countdownAt.getTime()))
+						continue;
+
+					const current = latestByContext.get(key);
+					const currentTime = current ? new Date(current.countdownAt).getTime() : -Infinity;
+					if (countdownAt.getTime() >= currentTime)
+						latestByContext.set(key, item);
+				}
+
+				return Array.from(latestByContext.values()).sort((a, b) => new Date(a.countdownAt) - new Date(b.countdownAt));
+			}
+
+			function renderCountdowns(items) {
+				countdownFeed.innerHTML = '';
+
+				if (!items.length) {
+					countdownFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No active countdown states yet.</div></div>';
+					return;
+				}
+
+				for (const item of items) {
+					const countdownAt = new Date(item.countdownAt);
+					const remaining = countdownAt.getTime() - Date.now();
+					const row = document.createElement('div');
+					row.className = 'countdown-tile';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${escapeHtml(item.context || item.channelKey || 'Runtime')}</span>
+							<span>${remaining > 0 ? 'waiting' : 'ready'}</span>
+						</div>
+						<div class="countdown-time">${formatRelativeDuration(remaining)}</div>
+						<div class="countdown-meta">${escapeHtml(item.channelKey || 'No channel key')}<br>${formatTime(item.countdownAt)}</div>
+					`;
+					countdownFeed.appendChild(row);
+				}
+			}
+
 			function renderEpisodes(items) {
 				episodeFeed.innerHTML = '';
 
@@ -480,7 +835,7 @@
 							<span>${formatTime(item.playedAt || item.queuedAt || item.generatedAt)}</span>
 						</div>
 						<div class="feed-title">${item.title || item.slug || 'Untitled Episode'}</div>
-						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'}${item.source ? ` • ${item.source}` : ''}</div>
+						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'}${item.source ? ` | ${item.source}` : ''}</div>
 					`;
 					episodeFeed.appendChild(row);
 				}
@@ -503,9 +858,131 @@
 							<span>${formatTime(item.replayEligibleAt)}</span>
 						</div>
 						<div class="feed-title">${item.title || item.slug || 'Replay'}</div>
-						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'} • Replays: ${item.timesReplayed ?? 0}${item.lastPlayedAt ? ` • Last played ${formatTime(item.lastPlayedAt)}` : ''}</div>
+						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'} | Replays: ${item.timesReplayed ?? 0}${item.lastPlayedAt ? ` | Last played ${formatTime(item.lastPlayedAt)}` : ''}</div>
 					`;
 					replayFeed.appendChild(row);
+				}
+			}
+
+			function renderMemory(snapshot) {
+				if (!snapshot) {
+					memoryReason.textContent = 'Waiting for diagnostics';
+					memoryWorkingSet.textContent = '-';
+					memoryManagedHeap.textContent = '-';
+					memoryAudioPayload.textContent = '-';
+					memoryEmbeddings.textContent = '-';
+					memorySummary.innerHTML = '<div class="feed-item"><div class="feed-copy">No memory snapshot available yet.</div></div>';
+					return;
+				}
+
+				memoryReason.textContent = `${snapshot.reason || 'snapshot'} | ${formatTime(snapshot.timestamp)}`;
+				memoryWorkingSet.textContent = formatBytes(snapshot.process?.workingSetBytes);
+				memoryManagedHeap.textContent = formatBytes(snapshot.process?.managedHeapBytes);
+				memoryAudioPayload.textContent = formatBytes(snapshot.chat?.totalAudioDataChars || 0);
+				memoryEmbeddings.textContent = formatBytes(snapshot.memoryBuckets?.estimatedEmbeddingBytes || 0);
+
+				const runtime = snapshot.runtime || {};
+				const chat = snapshot.chat || {};
+				const buckets = snapshot.memoryBuckets || {};
+				const soccer = snapshot.soccer || {};
+				const resources = snapshot.resources || {};
+
+				memorySummary.innerHTML = `
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>runtime</span>
+							<span>${escapeHtml(runtime.currentSceneName || 'unknown scene')}</span>
+						</div>
+						<div class="feed-copy"><strong>Context:</strong> ${escapeHtml(runtime.currentContextName || runtime.currentContextKey || 'none')} | <strong>Actors:</strong> ${runtime.actorsInSceneCount ?? 0} | <strong>Playlist:</strong> ${runtime.playlistDepth ?? 0} | <strong>Contexts:</strong> ${runtime.trackedContextCount ?? 0}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>chat</span>
+							<span>${escapeHtml(chat.episodeSlug || 'no episode')}</span>
+						</div>
+						<div class="feed-copy"><strong>Nodes:</strong> ${chat.totalNodeCount ?? 0} total, ${chat.newNodeCount ?? 0} new | <strong>Audio:</strong> ${chat.nodesWithAudioData ?? 0} nodes / ${formatBytes(chat.totalAudioDataChars || 0)} | <strong>Texture:</strong> ${formatBytes(chat.totalTextureDataChars || 0)}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>buckets</span>
+							<span>${buckets.bucketCount ?? 0} loaded</span>
+						</div>
+						<div class="feed-copy"><strong>Memories:</strong> ${buckets.totalMemoryCount ?? 0} | <strong>Embedding payload:</strong> ${formatBytes(buckets.estimatedEmbeddingBytes || 0)}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>soccer</span>
+							<span>${soccer.isGameLoaded ? 'live' : 'idle'}</span>
+						</div>
+						<div class="feed-copy"><strong>Scenes:</strong> ${soccer.addedSceneCount ?? 0} | <strong>Announcer cache:</strong> ${soccer.announcerClipCacheCount ?? 0} | <strong>Queue:</strong> ${soccer.announcerQueueCount ?? 0}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>touched assets</span>
+							<span>${(resources.touchedBackgroundCount ?? 0) + (resources.touchedPropCount ?? 0) + (resources.touchedSoundGroupCount ?? 0)} tracked</span>
+						</div>
+						<div class="feed-copy"><strong>Backgrounds:</strong> ${resources.touchedBackgroundCount ?? 0} | <strong>Props:</strong> ${resources.touchedPropCount ?? 0} | <strong>Sound groups:</strong> ${resources.touchedSoundGroupCount ?? 0}</div>
+					</div>
+				`;
+			}
+
+			function renderMemoryChart(items) {
+				memoryChart.innerHTML = '';
+
+				if (!items.length) {
+					memoryChart.innerHTML = '<div class="feed-item"><div class="feed-copy">No memory trend available yet.</div></div>';
+					return;
+				}
+
+				const trimmed = items.slice(0, 12).reverse();
+				const workingValues = trimmed.map(item => Number(item.process?.workingSetBytes) || 0);
+				const managedValues = trimmed.map(item => Number(item.process?.managedHeapBytes) || 0);
+				const maxValue = Math.max(...workingValues, ...managedValues, 1);
+
+				for (let index = 0; index < trimmed.length; index++) {
+					const item = trimmed[index];
+					const working = workingValues[index];
+					const managed = managedValues[index];
+					const group = document.createElement('div');
+					group.className = 'mini-group';
+					group.title = `${formatTime(item.timestamp)}
+Working Set: ${formatBytes(working)}
+Managed Heap: ${formatBytes(managed)}`;
+
+					const workingBar = document.createElement('div');
+					workingBar.className = 'mini-bar';
+					workingBar.style.height = `${Math.max(20, Math.round((working / maxValue) * 100))}%`;
+
+					const managedBar = document.createElement('div');
+					managedBar.className = 'mini-bar managed';
+					managedBar.style.height = `${Math.max(20, Math.round((managed / maxValue) * 100))}%`;
+
+					group.appendChild(workingBar);
+					group.appendChild(managedBar);
+					memoryChart.appendChild(group);
+				}
+			}
+
+			function renderMemoryHistory(items) {
+				memoryHistoryFeed.innerHTML = '';
+
+				if (!items.length) {
+					memoryHistoryFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No memory history yet.</div></div>';
+					return;
+				}
+
+				for (const item of items) {
+					const row = document.createElement('div');
+					row.className = 'feed-item';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${escapeHtml(item.reason || 'snapshot')}</span>
+							<span>${formatTime(item.timestamp)}</span>
+						</div>
+						<div class="feed-title">${formatBytes(item.process?.workingSetBytes || 0)} working set | ${formatBytes(item.process?.managedHeapBytes || 0)} managed</div>
+						<div class="feed-copy">${escapeHtml(item.runtime?.currentContextName || item.runtime?.currentContextKey || 'No context')} | Nodes ${item.chat?.totalNodeCount ?? 0} | Audio ${formatBytes(item.chat?.totalAudioDataChars || 0)} | Embeddings ${formatBytes(item.memoryBuckets?.estimatedEmbeddingBytes || 0)}</div>
+					`;
+					memoryHistoryFeed.appendChild(row);
 				}
 			}
 
@@ -528,7 +1005,7 @@
 			}
 
 			async function loadEvents() {
-				const res = await fetch('/api/events?limit=20', {
+				const res = await fetch('/api/events?limit=30', {
 					method: 'GET',
 					headers: { Accept: 'application/json' },
 					cache: 'no-store'
@@ -541,6 +1018,8 @@
 				if (!Array.isArray(data))
 					throw new Error('Expected array');
 
+				countdownState = getLatestCountdowns(data);
+				renderCountdowns(countdownState);
 				renderEvents(data);
 			}
 
@@ -578,6 +1057,34 @@
 				renderReplays(data);
 			}
 
+			async function loadMemory() {
+				const [snapshotRes, historyRes] = await Promise.all([
+					fetch('/api/diagnostics/memory', {
+						method: 'GET',
+						headers: { Accept: 'application/json' },
+						cache: 'no-store'
+					}),
+					fetch('/api/diagnostics/memory/history?limit=12', {
+						method: 'GET',
+						headers: { Accept: 'application/json' },
+						cache: 'no-store'
+					})
+				]);
+
+				if (!snapshotRes.ok)
+					throw new Error(`Snapshot HTTP ${snapshotRes.status}`);
+				if (!historyRes.ok)
+					throw new Error(`History HTTP ${historyRes.status}`);
+
+				const snapshot = await snapshotRes.json();
+				const history = await historyRes.json();
+				const historyItems = Array.isArray(history) ? history : [];
+
+				renderMemory(snapshot);
+				renderMemoryChart(historyItems);
+				renderMemoryHistory(historyItems);
+			}
+
 			async function refreshChannels(silent = false) {
 				try {
 					await loadChannels();
@@ -591,7 +1098,7 @@
 
 			async function refreshTelemetry(silent = false) {
 				try {
-					await Promise.all([loadEvents(), loadEpisodes(), loadReplays()]);
+					await Promise.all([loadEvents(), loadEpisodes(), loadReplays(), loadMemory()]);
 				} catch (err) {
 					if (!silent)
 						setStatus(`Telemetry refresh failed: ${err.message}`, true);
@@ -635,6 +1142,8 @@
 			refreshTelemetry(true).catch(() => {});
 			setInterval(() => refreshChannels(true), 5000);
 			setInterval(() => refreshTelemetry(true), 5000);
+			setInterval(() => renderCountdowns(countdownState), 1000);
 		</script>
 	</body>
 </html>
+

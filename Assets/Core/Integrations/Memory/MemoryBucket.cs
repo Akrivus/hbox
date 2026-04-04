@@ -7,17 +7,22 @@ using Newtonsoft.Json;
 
 public class MemoryBucket
 {
+    private const int MaxLoadedBuckets = 24;
+
     public static Dictionary<string, MemoryBucket> Buckets = new Dictionary<string, MemoryBucket>();
 
     public string Context { get; private set; }
     public string Name { get; private set; }
     public List<Memory> Memories { get; private set; }
+    public bool IsDirty { get; private set; }
+    public DateTime LastAccessedUtc { get; private set; }
 
     public MemoryBucket(string context, string name)
     {
         Context = context;
         Name = name;
         Memories = new List<Memory>();
+        Touch();
     }
 
     public async Task Add(PromptResolver prompt)
@@ -26,6 +31,8 @@ public class MemoryBucket
         if (prompt.IsBlank)
             return;
         Memories.Add(new Memory(prompt, await Embed(prompt.Text)));
+        IsDirty = true;
+        Touch();
     }
 
     public async Task Save()
@@ -42,6 +49,8 @@ public class MemoryBucket
             try
             {
                 await File.WriteAllTextAsync(path, json);
+                IsDirty = false;
+                Touch();
                 Buckets.Remove(GetBucketKey(Context, Name));
             }
             catch (Exception e)
@@ -69,6 +78,7 @@ public class MemoryBucket
             {
                 var json = await File.ReadAllTextAsync(path);
                 Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
+                Touch();
             }
             catch (Exception e)
             {
@@ -83,6 +93,7 @@ public class MemoryBucket
 
     public async Task<string> Recall(string text)
     {
+        Touch();
         var embeddings = await LLM.EmbedAsync(text);
         var memory = Memories.OrderBy(x => CosineSimilarity(x.Embeddings, embeddings)).First();
         return memory.Text;
@@ -90,6 +101,7 @@ public class MemoryBucket
 
     public string Get(int length = 2048, bool exact = false)
     {
+        Touch();
         var memory = Memories
             .OrderBy(x => x.Created)
             .Reverse()
@@ -128,12 +140,16 @@ public class MemoryBucket
     {
         var key = GetBucketKey(context.Key, name);
         if (Buckets.ContainsKey(key))
+        {
+            Buckets[key].Touch();
             return Buckets[key];
+        }
 
         var bucket = new MemoryBucket(context.Key, name);
         await bucket.Load();
 
         Buckets[key] = bucket;
+        await EvictIfNeeded(bucket);
         return bucket;
     }
 
@@ -154,6 +170,34 @@ public class MemoryBucket
     private static string GetBucketKey(string context, string name)
     {
         return $"{context}:{name}";
+    }
+
+    private static async Task EvictIfNeeded(MemoryBucket keepAlive = null)
+    {
+        while (Buckets.Count > MaxLoadedBuckets)
+        {
+            var evictionCandidate = Buckets.Values
+                .Where(bucket => bucket != null && bucket != keepAlive)
+                .OrderBy(bucket => bucket.LastAccessedUtc)
+                .FirstOrDefault();
+
+            if (evictionCandidate == null)
+                return;
+
+            var key = GetBucketKey(evictionCandidate.Context, evictionCandidate.Name);
+            if (evictionCandidate.IsDirty)
+            {
+                await evictionCandidate.Save();
+                continue;
+            }
+
+            Buckets.Remove(key);
+        }
+    }
+
+    private void Touch()
+    {
+        LastAccessedUtc = DateTime.UtcNow;
     }
 }
 

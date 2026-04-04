@@ -23,6 +23,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     private void SetSoundGroup(Chat chat, string name)
     {
+        OperatorTelemetry.RecordTouchedSoundGroup($"{chat?.ManagerContext?.Name ?? ChatManagerContext.Current?.Name}/SoundGroups/{name}");
         var group = Resources.Load<SoundGroup>($"{chat.ManagerContext.Name}/SoundGroups/{name}");
         if (group == null)
             soundGroup = Resources.Load<SoundGroup>($"{ChatManagerContext.Current.Name}/SoundGroups/Silent");
@@ -48,6 +49,7 @@ public class BackgroundNoiseController : AutoActor, ISubChats, ISubNode, ISubAct
 
     public void UpdateActor(ActorContext context)
     {
+        OperatorTelemetry.RecordTouchedBackground($"{ChatManagerContext.Current?.Name}/Backgrounds/{Actor.Name}");
         var background = Resources.Load<Texture2D>($"{ChatManagerContext.Current.Name}/Backgrounds/{Actor.Name}");
         if (background != null)
             bgRenderer.material.mainTexture = background;

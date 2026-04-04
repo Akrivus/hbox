@@ -24,6 +24,11 @@ using Object = UnityEngine.Object;
 public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 {
     public static SoccerGameSource Instance;
+    public bool IsSceneLoaded => isSceneLoaded;
+    public bool IsGameLoaded => isGameLoaded;
+    public int AddedSceneCount => addedScenes.Count;
+    public string CurrentMatchId => currentMatchId;
+    public SoccerAnnouncerService AnnouncerDiagnostics => announcerService;
 
     private const string GameScene = "3rdParty/FootballSimulator/_StartingScene";
 
@@ -269,6 +274,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
         matchStateService.BeginMatch(currentMatchId, homeActor, awayActor);
+        OperatorTelemetry.CaptureMemorySnapshot("soccer_load_started");
 
         try
         {
@@ -335,6 +341,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             isGameLoaded = true;
             isBroadcastSignalHealthy = true;
             lastBroadcastWatchdogTime = Time.unscaledTime;
+            OperatorTelemetry.CaptureMemorySnapshot("soccer_started");
             OnMatchStart?.Invoke();
 
             EventManager.Trigger(new CloseAllPanelsEvent());
@@ -423,6 +430,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         matchStateService.EndMatch();
         announcerService?.EndMatch();
+        OperatorTelemetry.CaptureMemorySnapshot("soccer_unloaded");
         OnMatchEnd?.Invoke();
 
         currentMatchId = null;
