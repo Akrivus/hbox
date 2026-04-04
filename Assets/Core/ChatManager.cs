@@ -97,6 +97,7 @@ public class ChatManager : MonoBehaviour
     public void AddToPlayList(Chat chat)
     {
         playList.Enqueue(chat);
+        OperatorTelemetry.RecordEpisodeQueued(chat);
         SafeInvoke(OnChatQueueAdded, chat, nameof(OnChatQueueAdded));
         readyToPlay = false;
     }
@@ -284,6 +285,7 @@ public class ChatManager : MonoBehaviour
         if (!IsPlaybackCurrent(chat, expectedKey, generation))
             yield break;
 
+        OperatorTelemetry.RecordEpisodePlaying(chat);
         SafeInvoke(OnChatLoaded, chat, nameof(OnChatLoaded));
 
         var chatActors = chat.Actors ?? Array.Empty<ActorContext>();

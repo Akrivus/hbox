@@ -3,133 +3,516 @@
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>HBOX</title>
+		<title>HBOX Control</title>
 		<style>
-			body {
-				font-family: Arial, sans-serif;
-				margin: 0;
-				padding: 0;
-				display: flex;
-				flex-direction: column;
-				align-items: center;
-				justify-content: center;
-				min-height: 100vh;
-				background-color: #090909;
+			:root {
+				--bg: #081218;
+				--panel: #10212a;
+				--panel-2: #17313c;
+				--ink: #ecf5ef;
+				--muted: #9ab3ad;
+				--line: #29505d;
+				--accent: #f5a623;
+				--accent-2: #66d4c0;
+				--danger: #ff8f7a;
 			}
-			
-			form {
-				height: 90vh;
-				width: 90%;
-				position: relative;
-			}
-			
-			textarea {
-				width: 100%; height: 90vh;
-				padding: 10px;
-				font-family: Arial, sans-serif;
-				font-size: 1em;
-				border: 2px solid #222222;
-				border-radius: 5px;
-				resize: none;
+
+			* {
 				box-sizing: border-box;
-				color: #cccccc;
-				background-color: #292929;
-			}
-			
-			.inputbox {
-				position: absolute; bottom: 10px; right: 10px;
-				z-index: 1;
 			}
 
-			select {
-				padding: 10px;
-				font-size: 1em;
-				color: white;
-				background-color: #333333;
-				border: 2px solid #111111;
-				border-radius: 5px;
+			body {
+				margin: 0;
+				min-height: 100vh;
+				font-family: "Segoe UI", sans-serif;
+				color: var(--ink);
+				background:
+					radial-gradient(circle at top, rgba(102, 212, 192, 0.16), transparent 35%),
+					linear-gradient(160deg, #050b10 0%, var(--bg) 55%, #0e1d25 100%);
 			}
 
-			select:hover {
-				background-color: #111111;
+			main {
+				width: min(1100px, calc(100% - 32px));
+				margin: 24px auto;
+				display: grid;
+				grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+				gap: 20px;
+			}
+
+			.panel {
+				background: rgba(16, 33, 42, 0.9);
+				border: 1px solid var(--line);
+				border-radius: 18px;
+				box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+				backdrop-filter: blur(12px);
+			}
+
+			.sidebar {
+				padding: 18px;
+			}
+
+			.content {
+				padding: 18px;
+				display: grid;
+				gap: 16px;
+			}
+
+			.grid-two {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 16px;
+			}
+
+			h1, h2, p {
+				margin: 0;
+			}
+
+			.header {
+				display: grid;
+				gap: 6px;
+				margin-bottom: 16px;
+			}
+
+			.subtitle {
+				color: var(--muted);
+				font-size: 0.95rem;
+			}
+
+			.channel-list {
+				display: grid;
+				gap: 10px;
+			}
+
+			.channel {
+				border: 1px solid transparent;
+				border-radius: 14px;
+				padding: 12px 14px;
+				background: rgba(255, 255, 255, 0.02);
+				cursor: pointer;
+				transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+			}
+
+			.channel:hover {
+				transform: translateY(-1px);
+				border-color: var(--line);
+				background: rgba(255, 255, 255, 0.04);
+			}
+
+			.channel.active {
+				border-color: var(--accent);
+				background: rgba(245, 166, 35, 0.1);
+			}
+
+			.channel-title {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 10px;
+				font-weight: 600;
+			}
+
+			.channel-meta {
+				margin-top: 6px;
+				color: var(--muted);
+				font-size: 0.88rem;
+				display: grid;
+				gap: 3px;
+			}
+
+			.badge {
+				padding: 3px 8px;
+				border-radius: 999px;
+				font-size: 0.76rem;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				background: rgba(102, 212, 192, 0.14);
+				color: var(--accent-2);
+			}
+
+			.badge.idle {
+				background: rgba(255, 255, 255, 0.08);
+				color: var(--muted);
+			}
+
+			.card {
+				padding: 16px;
+				border: 1px solid var(--line);
+				border-radius: 16px;
+				background: rgba(6, 16, 22, 0.4);
+				display: grid;
+				gap: 12px;
+			}
+
+			.card-head {
+				display: flex;
+				align-items: baseline;
+				justify-content: space-between;
+				gap: 12px;
+			}
+
+			.muted {
+				color: var(--muted);
+			}
+
+			textarea {
+				width: 100%;
+				min-height: 280px;
+				padding: 14px;
+				border: 1px solid var(--line);
+				border-radius: 14px;
+				background: rgba(0, 0, 0, 0.22);
+				color: var(--ink);
+				font: inherit;
+				resize: vertical;
 			}
 
 			button {
-				padding: 10px 20px;
-				font-size: 1em;
-				color: white;
-				background-color: #333333;
-				border: 2px solid #111111;
-				border-radius: 5px;
+				border: 0;
+				border-radius: 999px;
+				padding: 12px 18px;
+				font: inherit;
+				font-weight: 600;
 				cursor: pointer;
-			}
-			
-			button:hover {
-				background-color: #111111;
+				color: #091218;
+				background: linear-gradient(135deg, var(--accent), #ffd269);
 			}
 
-			#status {
-				margin-top: 8px;
-				color: #777777;
-				font-size: 12px;
+			button:disabled {
+				cursor: not-allowed;
+				opacity: 0.6;
+			}
+
+			.actions {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				flex-wrap: wrap;
+			}
+
+			.status {
+				min-height: 1.2em;
+				color: var(--muted);
+				font-size: 0.92rem;
+			}
+
+			.status.error {
+				color: var(--danger);
+			}
+
+			.kv {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 10px;
+			}
+
+			.kv div {
+				padding: 12px;
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.03);
+				border: 1px solid rgba(255, 255, 255, 0.04);
+			}
+
+			.kv strong {
+				display: block;
+				font-size: 1.05rem;
+			}
+
+			.feed {
+				display: grid;
+				gap: 10px;
+				max-height: 360px;
+				overflow: auto;
+			}
+
+			.feed-item {
+				padding: 12px;
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.03);
+				border: 1px solid rgba(255, 255, 255, 0.05);
+				display: grid;
+				gap: 6px;
+			}
+
+			.feed-head {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 10px;
+				font-size: 0.8rem;
+				color: var(--muted);
+				text-transform: uppercase;
+				letter-spacing: 0.05em;
+			}
+
+			.feed-title {
+				font-weight: 600;
+				color: var(--ink);
+			}
+
+			.feed-copy {
+				color: var(--muted);
+				font-size: 0.92rem;
+				line-height: 1.35;
+				white-space: pre-wrap;
+			}
+
+			@media (max-width: 900px) {
+				main {
+					grid-template-columns: 1fr;
+				}
+
+				.kv {
+					grid-template-columns: 1fr;
+				}
+
+				.grid-two {
+					grid-template-columns: 1fr;
+				}
 			}
 		</style>
 	</head>
 	<body>
-		<form id="form">
-			<div class="inputbox">
-				<button type="submit">Suggest</button>
-				<select id="options"></select>
-				<div id="status"></div>
-			</div>
-			<textarea id="input" placeholder="Write your idea here..."></textarea>
-		</form>
+		<main>
+			<section class="panel sidebar">
+				<div class="header">
+					<h1>HBOX Control</h1>
+					<p class="subtitle">Internal operator panel for idea routing.</p>
+				</div>
+				<div id="channel-list" class="channel-list"></div>
+			</section>
+
+			<section class="panel content">
+				<div class="card">
+					<div class="card-head">
+						<h2 id="selected-title">Select a channel</h2>
+						<span id="selected-state" class="badge idle">Idle</span>
+					</div>
+					<p id="selected-context" class="muted">Waiting for live generators.</p>
+					<div class="kv">
+						<div>
+							<span class="muted">Queue Depth</span>
+							<strong id="queue-depth">0</strong>
+						</div>
+						<div>
+							<span class="muted">Generating</span>
+							<strong id="is-generating">No</strong>
+						</div>
+						<div>
+							<span class="muted">Channel Key</span>
+							<strong id="channel-key">-</strong>
+						</div>
+					</div>
+				</div>
+
+				<form id="idea-form" class="card">
+					<div class="card-head">
+						<h2>Submit Idea</h2>
+						<span class="muted" id="endpoint-label">No endpoint selected</span>
+					</div>
+					<textarea id="input" placeholder="Write your idea here..."></textarea>
+					<div class="actions">
+						<button id="submit-button" type="submit" disabled>Send To Channel</button>
+						<div id="status" class="status"></div>
+					</div>
+				</form>
+
+				<div class="grid-two">
+					<section class="card">
+						<div class="card-head">
+							<h2>Runtime Log</h2>
+							<span class="muted">Recent internal events</span>
+						</div>
+						<div id="event-feed" class="feed"></div>
+					</section>
+
+					<section class="card">
+						<div class="card-head">
+							<h2>Recent Episodes</h2>
+							<span class="muted">Generated and queued history</span>
+						</div>
+						<div id="episode-feed" class="feed"></div>
+					</section>
+
+					<section class="card">
+						<div class="card-head">
+							<h2>Replay Scheduler</h2>
+							<span class="muted">Eligibility and rerun cadence</span>
+						</div>
+						<div id="replay-feed" class="feed"></div>
+					</section>
+				</div>
+			</section>
+		</main>
+
 		<script>
-			const form = document.getElementById('form');
+			const channelList = document.getElementById('channel-list');
+			const form = document.getElementById('idea-form');
 			const input = document.getElementById('input');
-			const options = document.getElementById('options');
+			const status = document.getElementById('status');
+			const submitButton = document.getElementById('submit-button');
+			const selectedTitle = document.getElementById('selected-title');
+			const selectedContext = document.getElementById('selected-context');
+			const selectedState = document.getElementById('selected-state');
+			const queueDepth = document.getElementById('queue-depth');
+			const isGenerating = document.getElementById('is-generating');
+			const channelKey = document.getElementById('channel-key');
+			const endpointLabel = document.getElementById('endpoint-label');
+			const eventFeed = document.getElementById('event-feed');
+			const episodeFeed = document.getElementById('episode-feed');
+			const replayFeed = document.getElementById('replay-feed');
 
-			function groupByContext(items) {
-				const map = new Map();
-				for (const it of items) {
-					const key = (it.context || 'other').toString();
-					if (!map.has(key)) map.set(key, []);
-					map.get(key).push(it);
-				}
-				return map;
+			let channels = [];
+			let selectedSlug = null;
+
+			function setStatus(message, isError = false) {
+				status.textContent = message || '';
+				status.classList.toggle('error', Boolean(isError));
 			}
 
-			function populateSelect(items) {
-				options.innerHTML = '';
+			function stateLabel(channel) {
+				if (!channel) return 'Idle';
+				if (channel.isGenerating) return 'Generating';
+				if (channel.active) return 'Live';
+				return 'Idle';
+			}
 
-				const groups = groupByContext(items);
-				const contexts = Array.from(groups.keys()).sort((a,b) => a.localeCompare(b));
+			function renderSelected() {
+				const channel = channels.find(c => c.slug === selectedSlug) || null;
+				const label = stateLabel(channel);
 
-				for (const ctx of contexts) {
-					const og = document.createElement('optgroup');
-					og.label = ctx;
+				selectedTitle.textContent = channel ? channel.name : 'Select a channel';
+				selectedContext.textContent = channel ? `${channel.context || 'Unknown context'}` : 'Waiting for live generators.';
+				selectedState.textContent = label;
+				selectedState.className = `badge ${label === 'Idle' ? 'idle' : ''}`.trim();
+				queueDepth.textContent = channel ? channel.queueDepth ?? 0 : '0';
+				isGenerating.textContent = channel && channel.isGenerating ? 'Yes' : 'No';
+				channelKey.textContent = channel ? channel.channelKey || '-' : '-';
+				endpointLabel.textContent = channel ? channel.ideasHref : 'No endpoint selected';
+				submitButton.disabled = !channel;
+			}
 
-					const gens = groups.get(ctx)
-						.slice()
-						.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+			function renderChannels() {
+				channelList.innerHTML = '';
 
-					for (const g of gens) {
-						if (!g.href) continue;
+				if (!channels.length) {
+					const empty = document.createElement('div');
+					empty.className = 'channel';
+					empty.innerHTML = '<div class="channel-title">No live channels</div><div class="channel-meta">Start the app contexts and they will appear here.</div>';
+					channelList.appendChild(empty);
+					renderSelected();
+					return;
+				}
 
-						const opt = document.createElement('option');
-						opt.value = g.href;
-						opt.textContent = g.name || g.href;
-						og.appendChild(opt);
-					}
+				if (!channels.some(c => c.slug === selectedSlug))
+					selectedSlug = channels[0].slug;
 
-					options.appendChild(og);
+				for (const channel of channels) {
+					const item = document.createElement('button');
+					item.type = 'button';
+					item.className = `channel ${channel.slug === selectedSlug ? 'active' : ''}`.trim();
+					item.innerHTML = `
+						<div class="channel-title">
+							<span>${channel.name}</span>
+							<span class="badge ${stateLabel(channel) === 'Idle' ? 'idle' : ''}">${stateLabel(channel)}</span>
+						</div>
+						<div class="channel-meta">
+							<span>${channel.context || 'Unknown context'}</span>
+							<span>Queue: ${channel.queueDepth ?? 0}</span>
+						</div>
+					`;
+
+					item.addEventListener('click', () => {
+						selectedSlug = channel.slug;
+						renderChannels();
+					});
+
+					channelList.appendChild(item);
+				}
+
+				renderSelected();
+			}
+
+			function formatTime(value) {
+				if (!value) return '';
+				const date = new Date(value);
+				if (Number.isNaN(date.getTime())) return '';
+				return date.toLocaleString();
+			}
+
+			function renderEvents(items) {
+				eventFeed.innerHTML = '';
+
+				if (!items.length) {
+					eventFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No events yet.</div></div>';
+					return;
+				}
+
+				for (const item of items) {
+					const row = document.createElement('div');
+					row.className = 'feed-item';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${item.type || 'event'}</span>
+							<span>${formatTime(item.timestamp)}</span>
+						</div>
+						<div class="feed-title">${item.context || item.channelKey || 'Runtime'}</div>
+						<div class="feed-copy">${item.message || ''}</div>
+					`;
+					eventFeed.appendChild(row);
 				}
 			}
 
-			async function loadGenerators() {
-				const res = await fetch('/generate', {
+			function renderEpisodes(items) {
+				episodeFeed.innerHTML = '';
+
+				if (!items.length) {
+					episodeFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No recent episodes yet.</div></div>';
+					return;
+				}
+
+				for (const item of items) {
+					const row = document.createElement('div');
+					row.className = 'feed-item';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${item.status || 'episode'}</span>
+							<span>${formatTime(item.playedAt || item.queuedAt || item.generatedAt)}</span>
+						</div>
+						<div class="feed-title">${item.title || item.slug || 'Untitled Episode'}</div>
+						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'}${item.source ? ` • ${item.source}` : ''}</div>
+					`;
+					episodeFeed.appendChild(row);
+				}
+			}
+
+			function renderReplays(items) {
+				replayFeed.innerHTML = '';
+
+				if (!items.length) {
+					replayFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No replay metadata yet.</div></div>';
+					return;
+				}
+
+				for (const item of items) {
+					const row = document.createElement('div');
+					row.className = 'feed-item';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${item.eligibleNow ? 'eligible' : 'cooldown'}</span>
+							<span>${formatTime(item.replayEligibleAt)}</span>
+						</div>
+						<div class="feed-title">${item.title || item.slug || 'Replay'}</div>
+						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'} • Replays: ${item.timesReplayed ?? 0}${item.lastPlayedAt ? ` • Last played ${formatTime(item.lastPlayedAt)}` : ''}</div>
+					`;
+					replayFeed.appendChild(row);
+				}
+			}
+
+			async function loadChannels() {
+				const res = await fetch('/api/channels', {
 					method: 'GET',
-					headers: { 'Accept': 'application/json' },
+					headers: { Accept: 'application/json' },
 					cache: 'no-store'
 				});
 
@@ -140,27 +523,118 @@
 				if (!Array.isArray(data))
 					throw new Error('Expected array');
 
-				populateSelect(data);
+				channels = data;
+				renderChannels();
 			}
 
-			loadGenerators().catch(err => console.warn('Failed to load generators:', err));
+			async function loadEvents() {
+				const res = await fetch('/api/events?limit=20', {
+					method: 'GET',
+					headers: { Accept: 'application/json' },
+					cache: 'no-store'
+				});
+
+				if (!res.ok)
+					throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!Array.isArray(data))
+					throw new Error('Expected array');
+
+				renderEvents(data);
+			}
+
+			async function loadEpisodes() {
+				const res = await fetch('/api/episodes/recent?limit=12', {
+					method: 'GET',
+					headers: { Accept: 'application/json' },
+					cache: 'no-store'
+				});
+
+				if (!res.ok)
+					throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!Array.isArray(data))
+					throw new Error('Expected array');
+
+				renderEpisodes(data);
+			}
+
+			async function loadReplays() {
+				const res = await fetch('/api/replays?limit=12', {
+					method: 'GET',
+					headers: { Accept: 'application/json' },
+					cache: 'no-store'
+				});
+
+				if (!res.ok)
+					throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!Array.isArray(data))
+					throw new Error('Expected array');
+
+				renderReplays(data);
+			}
+
+			async function refreshChannels(silent = false) {
+				try {
+					await loadChannels();
+					if (!silent && !status.textContent)
+						setStatus('Channels updated.');
+				} catch (err) {
+					if (!silent)
+						setStatus(`Failed to load channels: ${err.message}`, true);
+				}
+			}
+
+			async function refreshTelemetry(silent = false) {
+				try {
+					await Promise.all([loadEvents(), loadEpisodes(), loadReplays()]);
+				} catch (err) {
+					if (!silent)
+						setStatus(`Telemetry refresh failed: ${err.message}`, true);
+				}
+			}
 
 			form.addEventListener('submit', async (e) => {
 				e.preventDefault();
 
-				const url = options.value;
-				const content = input.value;
+				const channel = channels.find(c => c.slug === selectedSlug);
+				const content = input.value.trim();
 
-				if (!url) return;
+				if (!channel || !content)
+					return;
 
-				const res = await fetch(url, {
-					method: 'POST',
-					headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-					body: content
-				});
+				submitButton.disabled = true;
+				setStatus(`Sending to ${channel.name}...`);
 
-				if (res.ok) input.value = '';
+				try {
+					const res = await fetch(channel.ideasHref, {
+						method: 'POST',
+						headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+						body: content
+					});
+
+					if (!res.ok)
+						throw new Error(`HTTP ${res.status}`);
+
+					input.value = '';
+					setStatus(`Idea queued for ${channel.name}.`);
+					await refreshChannels(true);
+					await refreshTelemetry(true);
+				} catch (err) {
+					setStatus(`Failed to submit idea: ${err.message}`, true);
+				} finally {
+					renderSelected();
+				}
 			});
+
+			refreshChannels().catch(err => setStatus(`Failed to load channels: ${err.message}`, true));
+			refreshTelemetry(true).catch(() => {});
+			setInterval(() => refreshChannels(true), 5000);
+			setInterval(() => refreshTelemetry(true), 5000);
 		</script>
 	</body>
 </html>

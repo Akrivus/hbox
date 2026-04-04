@@ -23,6 +23,7 @@ public static class UiEventBus
 
     public static void Publish(ChatManagerContext context, string message, float lifetimeSeconds = 10)
     {
+        OperatorTelemetry.RecordEvent("ui_event", message, context);
         OnEvent?.Invoke(new UiEvent
         {
             ChannelCode = context.Key,
@@ -34,6 +35,7 @@ public static class UiEventBus
 
     public static void Publish(ChatManagerContext context, DateTime countdown, float lifetimeSeconds = 0)
     {
+        OperatorTelemetry.RecordEvent("countdown", $"Countdown updated for {context?.Name ?? context?.Key ?? "channel"}.", context);
         OnEvent?.Invoke(new UiEvent
         {
             ChannelCode = context.Key,
@@ -46,6 +48,7 @@ public static class UiEventBus
 
     public static void PublishError(ChatManagerContext context, string message, float lifetimeSeconds = 10)
     {
+        OperatorTelemetry.RecordEvent("error", message, context);
         OnEvent?.Invoke(new UiEvent
         {
             ChannelCode = $"<color=red>{context.Key}</color>",

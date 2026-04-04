@@ -11,6 +11,8 @@ public class ChatGenerator : MonoBehaviour
     public ChatManagerContext ManagerContext => chatManagerContext;
 
     public bool IsActive { get; private set; }
+    public bool IsGenerating { get; private set; }
+    public int QueueDepth => ideaQueue.Count;
 
     [SerializeField]
     private bool save = true;
@@ -28,13 +30,13 @@ public class ChatGenerator : MonoBehaviour
     private void Start()
     {
         chatManagerContext = ChatManagerContext.Current;
-        ServerSource.AddRoute("POST", href, (_) => ServerSource.ProcessBodyString(_, AddPromptToQueue));
-        ServerSource.Instance.AddGenerator(this);
+        ServerSource.Instance?.RegisterGenerator(this);
         StartCoroutine(UpdateQueue());
     }
 
     private void OnDestroy()
     {
+        ServerSource.Instance?.UnregisterGenerator(this);
         StopAllCoroutines();
     }
 
@@ -61,15 +63,25 @@ public class ChatGenerator : MonoBehaviour
 
     public void AddPromptToQueue(string prompt)
     {
+        OperatorTelemetry.RecordIdeaReceived(this, prompt);
         AddIdeaToQueue(new Idea(prompt));
     }
 
     public async Task GenerateAndPlay(Idea idea)
     {
-        var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
-        await resolver.SaveOutput(idea.Prompt);
-        var chat = await GenerateAndSave(idea);
-        ChatManager.Instance.AddToPlayList(chat);
+        IsGenerating = true;
+        try
+        {
+            OperatorTelemetry.RecordGenerationStarted(this, idea);
+            var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
+            await resolver.SaveOutput(idea.Prompt);
+            var chat = await GenerateAndSave(idea);
+            ChatManager.Instance.AddToPlayList(chat);
+        }
+        finally
+        {
+            IsGenerating = false;
+        }
     }
 
     private async Task<Chat> GenerateAndSave(Idea idea)
@@ -88,8 +100,11 @@ public class ChatGenerator : MonoBehaviour
         }
         catch (Exception e)
         {
+            OperatorTelemetry.RecordGenerationFailed(this, idea, e);
             Debug.LogError(e);
         }
+        if (chat != null && chat.IsLocked)
+            OperatorTelemetry.RecordGenerationCompleted(chat);
         return chat;
     }
 
