@@ -33388,6 +33388,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 92e4bd412ef7cd84db8541588d92f962, type: 2}
   - {fileID: 11400000, guid: ae174ed034c923c4cae68424e1e27849, type: 2}
   - {fileID: 11400000, guid: d037e7294d35c6741941745b2ceb853a, type: 2}
+  PostMemories: 0
   RemoveActorsOnCompletion: 1
   DisableSoundEffects: 0
 --- !u!114 &498174611
@@ -37452,7 +37453,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RedditSource
   generator: {fileID: 1383510782}
   MaxPostAgeInHours: 24
-  BatchMax: 20
+  BatchSize: 20
+  BatchSizeLimit: 20
   BatchIterations: 1
   BatchPeriodOffset: 00:00
   BatchPeriodInMinutes: 60
@@ -59041,14 +59043,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 895538501}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.9, b: 0.75, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -88663,7 +88665,7 @@ GameObject:
   - component: {fileID: 1383510785}
   - component: {fileID: 1383510795}
   m_Layer: 0
-  m_Name: Open
+  m_Name: Appy Days
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -97464,14 +97466,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1528374156}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 0.5
   m_Range: 3.66
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -101600,14 +101602,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1577488463}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.50735295, g: 0.8980729, b: 1, a: 1}
   m_Intensity: 0.1
   m_Range: 1.34
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -104336,14 +104338,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1618644320}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 0.5
   m_Range: 3.66
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -105407,8 +105409,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1633286627}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0000000012668547, y: 0.98931885, z: -0.000000008598088, w: -0.14576767}
-  m_LocalPosition: {x: 0.28842142, y: 0.000000017381833, z: 1.4575036}
+  m_LocalRotation: {x: -0.0000000037268593, y: 0.99240464, z: -0.000000030065365, w: -0.12301705}
+  m_LocalPosition: {x: 0.2441652, y: 0.000000060590935, z: 1.4697336}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -112112,14 +112114,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1743619612}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.26399603, b: 0.09558821, a: 1}
   m_Intensity: 0.68
   m_Range: 1.77
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -118010,14 +118012,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1842117776}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 0.5633874, b: 0.09558821, a: 1}
   m_Intensity: 0.68
   m_Range: 0.77
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -128106,6 +128108,7 @@ GameObject:
   - component: {fileID: 2022353396}
   - component: {fileID: 2022353394}
   - component: {fileID: 2022353393}
+  - component: {fileID: 2022353400}
   - component: {fileID: 2022353399}
   - component: {fileID: 2022353392}
   - component: {fileID: 2022353398}
@@ -128228,6 +128231,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TTS
   source: {fileID: 0}
+--- !u!114 &2022353400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2022353389}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05064d7b2aaae1c42a0e1d8247c96d8c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DiscordBotService
 --- !u!4 &2022448891 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4631730319309726, guid: 5a2b2aefafe7a2f4bb79271e2b6b2e62, type: 3}
@@ -131699,14 +131714,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2076412557}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.16419885, g: 1, b: 0.09558821, a: 1}
   m_Intensity: 0.5
   m_Range: 0.77
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1

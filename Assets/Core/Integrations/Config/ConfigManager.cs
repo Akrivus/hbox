@@ -12,8 +12,9 @@ public class ConfigManager : MonoBehaviour
     public string ConfigPath = "config.json";
 
     private Dictionary<string, Type> casters = new Dictionary<string, Type>();
-    private Dictionary<string, Action<object>> handlers = new Dictionary<string, Action<object>>();
+    private Dictionary<string, List<Action<object>>> handlers = new Dictionary<string, List<Action<object>>>();
     private List<object> configs = new List<object>();
+    private Dictionary<object, string> configTypes = new Dictionary<object, string>();
 
     private void Start()
     {
@@ -29,7 +30,27 @@ public class ConfigManager : MonoBehaviour
     public void RegisterConfig(Type cast, string type, Action<object> handler)
     {
         casters[type] = cast;
-        handlers[type] = handler;
+
+        if (!handlers.TryGetValue(type, out var handlerList))
+        {
+            handlerList = new List<Action<object>>();
+            handlers[type] = handlerList;
+        }
+
+        if (!handlerList.Contains(handler))
+            handlerList.Add(handler);
+
+        foreach (var config in configs)
+        {
+            if (config == null)
+                continue;
+            if (!configTypes.TryGetValue(config, out var configType))
+                continue;
+            if (!string.Equals(configType, type, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            handler(config);
+        }
     }
 
     public void LoadConfigs()
@@ -45,10 +66,11 @@ public class ConfigManager : MonoBehaviour
             var type = i["Type"].Value<string>();
             if (!handlers.ContainsKey(type))
                 continue;
-            var handler = handlers[type];
             var obj = JsonConvert.DeserializeObject(i.ToString(), casters[type]);
-            handler(obj);
+            foreach (var handler in handlers[type])
+                handler(obj);
             configs.Add(obj);
+            configTypes[obj] = type;
         }
     }
 

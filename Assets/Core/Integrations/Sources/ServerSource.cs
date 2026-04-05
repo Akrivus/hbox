@@ -51,6 +51,7 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/api/events", GetEventsAsync);
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
+        AddApiRoute<ReplayVoteRequest, ReplayStatusRecord>("POST", "/api/replays/vote", VoteOnReplayAsync);
     }
 
     private void Start()
@@ -209,6 +210,36 @@ public class ServerSource : MonoBehaviour
         RemoveRoute("POST", $"/api/channels/{generator.slug}/ideas");
     }
 
+    public static IReadOnlyList<GeneratorRuntimeInfo> GetChannelSnapshot()
+    {
+        if (Instance == null)
+            return Array.Empty<GeneratorRuntimeInfo>();
+
+        lock (Instance.generatorLock)
+        {
+            return Instance.generators.Values
+                .OrderBy(g => g.context)
+                .ThenBy(g => g.name)
+                .Select(g => g.WithRuntime())
+                .ToList();
+        }
+    }
+
+    public static bool QueueIdea(string slug, string prompt)
+    {
+        if (Instance == null || string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
+            return false;
+
+        lock (Instance.generatorLock)
+        {
+            if (!Instance.generators.TryGetValue(slug, out var info) || info.generator == null)
+                return false;
+
+            info.generator.AddPromptToQueue(prompt);
+            return true;
+        }
+    }
+
     private Task<HealthResponse> GetHealthAsync()
     {
         return Task.FromResult(new HealthResponse
@@ -264,6 +295,32 @@ public class ServerSource : MonoBehaviour
         var limit = ParseLimit(query, 50);
         query.TryGetValue("channelKey", out var channelKey);
         return WriteJsonAsync(context.Response, FolderSource.GetReplayStatus(channelKey, limit));
+    }
+
+    private Task<ReplayStatusRecord> VoteOnReplayAsync(ReplayVoteRequest request)
+    {
+        if (request == null)
+            throw new ArgumentException("Replay vote payload is required.");
+        if (string.IsNullOrWhiteSpace(request.channelKey))
+            throw new ArgumentException("Replay vote requires a channelKey.");
+        if (string.IsNullOrWhiteSpace(request.slug))
+            throw new ArgumentException("Replay vote requires a slug.");
+
+        var upDelta = request.upDelta;
+        var downDelta = request.downDelta;
+        if (upDelta == 0 && downDelta == 0 && request.delta != 0)
+        {
+            upDelta = request.delta > 0 ? request.delta : 0;
+            downDelta = request.delta < 0 ? -request.delta : 0;
+        }
+        if (upDelta == 0 && downDelta == 0)
+            throw new ArgumentException("Replay vote requires a non-zero upDelta, downDelta, or delta.");
+
+        var updated = FolderSource.ApplyVote(request.channelKey, request.slug, upDelta, downDelta, request.source, request.messageId);
+        if (updated == null)
+            throw new ArgumentException($"Replay '{request.slug}' was not found for channel '{request.channelKey}'.");
+
+        return Task.FromResult(updated);
     }
 
     public static Task ProcessFileRequest(HttpListenerContext context, string path)
@@ -444,7 +501,7 @@ public class ServerSource : MonoBehaviour
 [Serializable]
 public sealed class GeneratorRuntimeInfo
 {
-    [NonSerialized] private ChatGenerator generator;
+    [NonSerialized] internal ChatGenerator generator;
 
     public string context;
     public string channelKey;

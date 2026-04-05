@@ -14,7 +14,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
     public static Dictionary<string, DiscordWebhook> Webhooks => webhooks;
     private static Dictionary<string, DiscordWebhook> webhooks;
 
-    private static Queue<KeyValuePair<DiscordWebhook, DiscordWebhookMessage>> Q = new Queue<KeyValuePair<DiscordWebhook, DiscordWebhookMessage>>();
+    private static Queue<DiscordWebhookQueueItem> Q = new Queue<DiscordWebhookQueueItem>();
 
     public Dictionary<string, string> WebhookURLs { get; private set; }
 
@@ -46,8 +46,13 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         {
             yield return new WaitUntilTimer(() => Q.Count > 0, 30);
 
-            if (Q.TryDequeue(out var m))
-                yield return m.Key.SendAsync(m.Value);
+            if (Q.TryDequeue(out var item))
+            {
+                if (item.Webhook == null)
+                    continue;
+
+                yield return item.Webhook.SendAsync(item.Message, item.WaitForResponse, item.OnPosted);
+            }
         } while (this != null);
     }
 
@@ -79,8 +84,18 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public static void PutInQueue(string channel, DiscordWebhookMessage message)
     {
+        PutInQueue(channel, message, false, null);
+    }
+
+    public static void PutInQueue(string channel, DiscordWebhookMessage message, Action<DiscordPostedMessage> onPosted)
+    {
+        PutInQueue(channel, message, true, onPosted);
+    }
+
+    public static void PutInQueue(string channel, DiscordWebhookMessage message, bool waitForResponse, Action<DiscordPostedMessage> onPosted)
+    {
         var webhook = Webhooks.FirstOrDefault(w => w.Key == channel).Value;
-        Q.Enqueue(new KeyValuePair<DiscordWebhook, DiscordWebhookMessage>(webhook, message));
+        Q.Enqueue(new DiscordWebhookQueueItem(webhook, message, waitForResponse, onPosted));
     }
 }
 
@@ -227,17 +242,47 @@ public class DiscordWebhook
         rateLimitTimer.Start();
     }
 
-    public IEnumerator SendAsync(DiscordWebhookMessage message)
+    public IEnumerator SendAsync(DiscordWebhookMessage message, bool waitForResponse = false, Action<DiscordPostedMessage> onPosted = null)
     {
-        if (rateLimitTimer.Elapsed.Seconds > 2 || requestsRemaining <= 0)
+        if (rateLimitTimer.Elapsed.TotalSeconds > 2 || requestsRemaining <= 0)
             yield return RateLimit();
 
         Client = new WebClient();
         Client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
-        Client.UploadStringAsync(new Uri(URL), JsonConvert.SerializeObject(message));
+        UploadStringCompletedEventArgs result = null;
+        UploadStringCompletedEventHandler handler = (_, args) => result = args;
+        Client.UploadStringCompleted += handler;
+
+        var targetUrl = waitForResponse
+            ? $"{URL}{(URL.Contains("?") ? "&" : "?")}wait=true"
+            : URL;
+        Client.UploadStringAsync(new Uri(targetUrl), "POST", JsonConvert.SerializeObject(message));
         requestsRemaining--;
 
-        yield return new WaitUntil(() => !Client.IsBusy);
+        yield return new WaitUntil(() => result != null);
+        Client.UploadStringCompleted -= handler;
+
+        if (result.Error != null)
+        {
+            UnityEngine.Debug.LogError(result.Error);
+            yield break;
+        }
+
+        if (waitForResponse && !string.IsNullOrWhiteSpace(result.Result))
+        {
+            DiscordPostedMessage postedMessage = null;
+
+            try
+            {
+                postedMessage = JsonConvert.DeserializeObject<DiscordPostedMessage>(result.Result);
+            }
+            catch (JsonException e)
+            {
+                UnityEngine.Debug.LogWarning($"DiscordWebhook.SendAsync failed to parse webhook response: {e.Message}");
+            }
+
+            onPosted?.Invoke(postedMessage);
+        }
     }
 
     private IEnumerator RateLimit()
@@ -246,4 +291,29 @@ public class DiscordWebhook
         rateLimitTimer.Restart();
         requestsRemaining = 5;
     }
+}
+
+public sealed class DiscordPostedMessage
+{
+    [JsonProperty("id")]
+    public string id { get; set; }
+
+    [JsonProperty("channel_id")]
+    public string channel_id { get; set; }
+}
+
+public sealed class DiscordWebhookQueueItem
+{
+    public DiscordWebhookQueueItem(DiscordWebhook webhook, DiscordWebhookMessage message, bool waitForResponse, Action<DiscordPostedMessage> onPosted)
+    {
+        Webhook = webhook;
+        Message = message;
+        WaitForResponse = waitForResponse;
+        OnPosted = onPosted;
+    }
+
+    public DiscordWebhook Webhook { get; }
+    public DiscordWebhookMessage Message { get; }
+    public bool WaitForResponse { get; }
+    public Action<DiscordPostedMessage> OnPosted { get; }
 }

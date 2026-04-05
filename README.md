@@ -87,11 +87,18 @@ Example:
   },
   {
     "Type": "discord",
+    "AvatarURL": "https://...",
     "WebhookURLs": {
-      "#stream": "YOUR_STREAM_WEBHOOK_URL",
-      "#sports": "YOUR_SPORTS_WEBHOOK_URL"
+      "#stream": "YOUR_STREAM_WEBHOOK_URL"
     },
-    "AvatarURL": "https://example.com/avatar.png"
+    "EnableBot": true,
+    "BotToken": "YOUR_BOT_TOKEN",
+    "ApplicationId": "YOUR_APP_ID",
+    "SlashCommandGuildIds": ["YOUR_TEST_GUILD_ID"],
+    "EnableIdeaCommand": true,
+    "DefaultDailyIdeaLimit": 3,
+    "BoosterDailyIdeaLimit": 10,
+    "BoosterRoleIds": ["BOOSTER_ROLE_ID"]
   },
   {
     "Type": "folder",

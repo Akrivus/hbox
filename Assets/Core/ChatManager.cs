@@ -924,12 +924,25 @@ public class ChatManager : MonoBehaviour
     {
         if (chat == null || StopPlaying(chat) || string.IsNullOrEmpty(chat.Title))
             return;
-        DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
+
+        var message = new DiscordWebhookMessage(
             "# :clapper: Now Streaming!", null, null,
             new DiscordEmbed
             {
                 Title = chat.Title,
                 Description = chat.Synopsis
-            }));
+            });
+
+        if (!chat.NewEpisode)
+        {
+            DiscordManager.PutInQueue("#stream", message, posted =>
+            {
+                FolderSource.RecordDiscordMessage(chat.Key, chat.FileName, posted);
+                DiscordBotService.Instance?.AddDefaultReplayReactions(posted);
+            });
+            return;
+        }
+
+        DiscordManager.PutInQueue("#stream", message);
     }
 }
