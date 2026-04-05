@@ -392,7 +392,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private ReplayManifest LoadManifest()
     {
-        manifestPath = Path.Combine(GetReplayDirectoryPath(), ".hbox-replays.json");
+        manifestPath = Path.Combine(GetReplayDirectoryPath(), ".hbox-replays");
 
         try
         {
