@@ -88665,7 +88665,7 @@ GameObject:
   - component: {fileID: 1383510785}
   - component: {fileID: 1383510795}
   m_Layer: 0
-  m_Name: Appy Days
+  m_Name: Default
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -88683,6 +88683,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b55a15852493164fb010aa38d5f4aea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  isApiAccessible: 1
   save: 1
 --- !u!114 &1383510784
 MonoBehaviour:
@@ -105409,8 +105410,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1633286627}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0000000037268593, y: 0.99240464, z: -0.000000030065365, w: -0.12301705}
-  m_LocalPosition: {x: 0.2441652, y: 0.000000060590935, z: 1.4697336}
+  m_LocalRotation: {x: 1.09325826e-10, y: 0.9882652, z: 7.073285e-10, w: -0.15274788}
+  m_LocalPosition: {x: 0.30191082, y: -0.0000000014314548, z: 1.4533362}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

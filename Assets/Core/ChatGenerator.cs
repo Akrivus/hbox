@@ -15,9 +15,12 @@ public class ChatGenerator : MonoBehaviour
     public int QueueDepth => ideaQueue.Count;
 
     [SerializeField]
+    private bool isApiAccessible = true;
+
+    [SerializeField]
     private bool save = true;
 
-    public string slug => name.Replace(' ', '-').ToLower();
+    public string slug => $"{ManagerContext.Key}-{name.Replace(' ', '-').ToLower()}";
     public string href => $"/generate/{slug}";
 
     private ISubGenerator[] generators => _generators ?? (_generators = GetComponents<ISubGenerator>());
@@ -30,13 +33,15 @@ public class ChatGenerator : MonoBehaviour
     private void Start()
     {
         chatManagerContext = ChatManagerContext.Current;
-        ServerSource.Instance?.RegisterGenerator(this);
+        if (isApiAccessible)
+            ServerSource.Instance?.RegisterGenerator(this);
         StartCoroutine(UpdateQueue());
     }
 
     private void OnDestroy()
     {
-        ServerSource.Instance?.UnregisterGenerator(this);
+        if (isApiAccessible)
+            ServerSource.Instance?.UnregisterGenerator(this);
         StopAllCoroutines();
     }
 
