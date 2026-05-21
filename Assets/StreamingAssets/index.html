@@ -314,6 +314,109 @@
 				color: var(--ink);
 			}
 
+			.replay-item {
+				gap: 10px;
+			}
+
+			.replay-topline {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) auto auto;
+				gap: 10px;
+				align-items: start;
+			}
+
+			.replay-score {
+				min-width: 58px;
+				padding: 8px 10px;
+				border-radius: 12px;
+				background: rgba(102, 212, 192, 0.12);
+				border: 1px solid rgba(102, 212, 192, 0.22);
+				text-align: center;
+			}
+
+			.replay-score strong {
+				display: block;
+				color: var(--ink);
+				font-size: 1.15rem;
+				line-height: 1;
+			}
+
+			.replay-score span {
+				display: block;
+				margin-top: 4px;
+				color: var(--muted);
+				font-size: 0.68rem;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+			}
+
+			.replay-score.priority {
+				background: rgba(245, 166, 35, 0.1);
+				border-color: rgba(245, 166, 35, 0.22);
+			}
+
+			.replay-meta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+			}
+
+			.replay-chip {
+				padding: 5px 8px;
+				border-radius: 999px;
+				background: rgba(255, 255, 255, 0.05);
+				color: var(--muted);
+				font-size: 0.78rem;
+				line-height: 1.1;
+			}
+
+			.replay-chip.ready {
+				background: rgba(102, 212, 192, 0.14);
+				color: var(--accent-2);
+			}
+
+			.replay-chip.waiting {
+				background: rgba(245, 166, 35, 0.12);
+				color: #ffd269;
+			}
+
+			.replay-chip.next {
+				background: rgba(255, 255, 255, 0.1);
+				color: var(--ink);
+			}
+
+			.replay-votes {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 8px;
+			}
+
+			.replay-vote {
+				min-height: 42px;
+				padding: 9px 10px;
+				border-radius: 12px;
+				background: rgba(255, 255, 255, 0.06);
+				border: 1px solid rgba(255, 255, 255, 0.08);
+				color: var(--ink);
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				gap: 8px;
+			}
+
+			.replay-vote.up {
+				background: rgba(102, 212, 192, 0.14);
+			}
+
+			.replay-vote.down {
+				background: rgba(255, 143, 122, 0.12);
+			}
+
+			.replay-vote small {
+				color: var(--muted);
+				font-size: 0.82em;
+			}
+
 			.countdown-grid {
 				display: grid;
 				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -469,6 +572,21 @@
 					max-height: 280px;
 				}
 
+				.replay-topline {
+					grid-template-columns: 1fr;
+				}
+
+				.replay-score {
+					display: flex;
+					align-items: baseline;
+					justify-content: space-between;
+					text-align: left;
+				}
+
+				.replay-score span {
+					margin-top: 0;
+				}
+
 				.mini-chart {
 					gap: 6px;
 					min-height: 108px;
@@ -562,7 +680,7 @@
 					<section class="card">
 						<div class="card-head">
 							<h2>Replay History</h2>
-							<span class="muted">Eligibility and rerun cadence</span>
+							<span class="muted">Next replay order</span>
 						</div>
 						<div id="replay-feed" class="feed tall"></div>
 					</section>
@@ -654,6 +772,9 @@
 			let channels = [];
 			let selectedSlug = null;
 			let countdownState = [];
+			let replayState = [];
+			let replayRequestId = 0;
+			const votingReplays = new Set();
 
 			function setStatus(message, isError = false) {
 				status.textContent = message || '';
@@ -667,8 +788,24 @@
 				return 'Idle';
 			}
 
+			function getSelectedChannel() {
+				return channels.find(c => c.slug === selectedSlug) || null;
+			}
+
+			function getSelectedChannelKey() {
+				const channel = getSelectedChannel();
+				return channel?.channelKey || '';
+			}
+
+			function clearReplayState() {
+				replayRequestId++;
+				replayState = [];
+				votingReplays.clear();
+				renderReplays(replayState);
+			}
+
 			function renderSelected() {
-				const channel = channels.find(c => c.slug === selectedSlug) || null;
+				const channel = getSelectedChannel();
 				const label = stateLabel(channel);
 
 				selectedTitle.textContent = channel ? channel.name : 'Select a channel';
@@ -694,9 +831,6 @@
 					return;
 				}
 
-				if (!channels.some(c => c.slug === selectedSlug))
-					selectedSlug = channels[0].slug;
-
 				for (const channel of channels) {
 					const item = document.createElement('button');
 					item.type = 'button';
@@ -713,8 +847,12 @@
 					`;
 
 					item.addEventListener('click', () => {
+						if (selectedSlug === channel.slug)
+							return;
 						selectedSlug = channel.slug;
+						clearReplayState();
 						renderChannels();
+						loadReplays().catch(err => setStatus(`Failed to load replays: ${err.message}`, true));
 					});
 
 					channelList.appendChild(item);
@@ -740,6 +878,72 @@
 					return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
 				return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+			}
+
+			function formatReplayCooldown(item) {
+				if (item.eligibleNow)
+					return 'Ready now';
+
+				const eligibleAt = new Date(item.replayEligibleAt);
+				if (Number.isNaN(eligibleAt.getTime()))
+					return 'Cooldown pending';
+
+				const remaining = eligibleAt.getTime() - Date.now();
+				if (remaining <= 0)
+					return 'Ready now';
+
+				return `Cooldown ${formatRelativeDuration(remaining)}`;
+			}
+
+			function formatVoteScore(value) {
+				const score = Number(value) || 0;
+				return score > 0 ? `+${score}` : `${score}`;
+			}
+
+			function formatPriorityScore(value) {
+				const score = Number(value);
+				if (!Number.isFinite(score))
+					return '0.0';
+				return score.toFixed(1);
+			}
+
+			function getTimeValue(value, fallback = 0) {
+				const date = new Date(value);
+				const time = date.getTime();
+				return Number.isNaN(time) ? fallback : time;
+			}
+
+			function rankReplayItemsForDisplay(items) {
+				return [...items].sort((a, b) => {
+					const orderA = Number(a.nextPlayOrder) || 0;
+					const orderB = Number(b.nextPlayOrder) || 0;
+					if (!a.optimisticVote && !b.optimisticVote && orderA > 0 && orderB > 0 && orderA !== orderB)
+						return orderA - orderB;
+
+					const eligibleA = a.eligibleNow ? 0 : 1;
+					const eligibleB = b.eligibleNow ? 0 : 1;
+					if (eligibleA !== eligibleB)
+						return eligibleA - eligibleB;
+
+					const priorityA = Number(a.priorityScore) || 0;
+					const priorityB = Number(b.priorityScore) || 0;
+					if (priorityA !== priorityB)
+						return priorityB - priorityA;
+
+					const eligibleAt = getTimeValue(a.replayEligibleAt, Number.MAX_SAFE_INTEGER) - getTimeValue(b.replayEligibleAt, Number.MAX_SAFE_INTEGER);
+					if (eligibleAt !== 0)
+						return eligibleAt;
+
+					const replayCount = (Number(a.timesReplayed) || 0) - (Number(b.timesReplayed) || 0);
+					if (replayCount !== 0)
+						return replayCount;
+
+					const lastPlayed = getTimeValue(a.lastPlayedAt, 0) - getTimeValue(b.lastPlayedAt, 0);
+					if (lastPlayed !== 0)
+						return lastPlayed;
+
+					return getTimeValue(b.generatedAt, 0) - getTimeValue(a.generatedAt, 0);
+				}).map((item, index) => ({ ...item, displayOrder: index + 1 }));
 			}
 
 			function formatBytes(value) {
@@ -854,24 +1058,149 @@
 
 			function renderReplays(items) {
 				replayFeed.innerHTML = '';
+				const selectedChannel = getSelectedChannel();
+				const selectedKey = selectedChannel?.channelKey || '';
 
-				if (!items.length) {
-					replayFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">No replay metadata yet.</div></div>';
+				if (!selectedKey) {
+					replayFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">Select a channel to inspect its replay queue.</div></div>';
 					return;
 				}
 
-				for (const item of items) {
+				if (!items.length) {
+					replayFeed.innerHTML = `<div class="feed-item"><div class="feed-copy">No replay metadata yet for ${escapeHtml(selectedChannel?.name || selectedKey)}.</div></div>`;
+					return;
+				}
+
+				const rankedItems = rankReplayItemsForDisplay(items);
+				for (let index = 0; index < rankedItems.length; index++) {
+					const item = rankedItems[index];
+					const voteKey = `${item.channelKey || ''}:${item.slug || ''}`;
+					const isVoting = votingReplays.has(voteKey);
+					const cooldownLabel = formatReplayCooldown(item);
+					const statusClass = item.eligibleNow || cooldownLabel === 'Ready now' ? 'ready' : 'waiting';
+					const lastPlayed = item.lastPlayedAt ? formatTime(item.lastPlayedAt) : 'Not played yet';
+					const nextEligible = item.replayEligibleAt ? formatTime(item.replayEligibleAt) : 'Unknown';
+					const lastVote = item.lastVoteAt ? formatTime(item.lastVoteAt) : 'No panel votes yet';
+					const priorityLabel = formatPriorityScore(item.priorityScore);
+					const nextPlayOrder = Number(item.displayOrder) || Number(item.nextPlayOrder) || index + 1;
+					const orderLabel = nextPlayOrder === 1 ? 'Next replay' : `Queue #${nextPlayOrder}`;
 					const row = document.createElement('div');
-					row.className = 'feed-item';
+					row.className = 'feed-item replay-item';
 					row.innerHTML = `
 						<div class="feed-head">
-							<span>${item.eligibleNow ? 'eligible' : 'cooldown'}</span>
-							<span>${formatTime(item.replayEligibleAt)}</span>
+							<span>${escapeHtml(orderLabel)}</span>
+							<span>${escapeHtml(nextEligible)}</span>
 						</div>
-						<div class="feed-title">${item.title || item.slug || 'Replay'}</div>
-						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'} | Replays: ${item.timesReplayed ?? 0}${item.lastPlayedAt ? ` | Last played ${formatTime(item.lastPlayedAt)}` : ''}</div>
+						<div class="replay-topline">
+							<div>
+								<div class="feed-title">${escapeHtml(item.title || item.slug || 'Replay')}</div>
+								<div class="feed-copy">${escapeHtml(item.context || item.channelKey || 'Unknown channel')} | Last played: ${escapeHtml(lastPlayed)}</div>
+							</div>
+							<div class="replay-score">
+								<strong>${escapeHtml(formatVoteScore(item.voteScore))}</strong>
+								<span>score</span>
+							</div>
+							<div class="replay-score priority">
+								<strong>${escapeHtml(priorityLabel)}</strong>
+								<span>priority</span>
+							</div>
+						</div>
+						<div class="replay-meta">
+							<span class="replay-chip next">${escapeHtml(item.eligibleNow ? 'Eligible' : 'Not eligible')}</span>
+							<span class="replay-chip ${statusClass}">${escapeHtml(cooldownLabel)}</span>
+							<span class="replay-chip">Replays ${item.timesReplayed ?? 0}</span>
+							<span class="replay-chip">Up ${item.upVotes ?? 0}</span>
+							<span class="replay-chip">Down ${item.downVotes ?? 0}</span>
+							<span class="replay-chip">Last vote ${escapeHtml(lastVote)}</span>
+						</div>
+						<div class="replay-votes">
+							<button class="replay-vote up" type="button" data-vote="up" data-channel-key="${escapeHtml(item.channelKey || '')}" data-slug="${escapeHtml(item.slug || '')}" ${isVoting ? 'disabled' : ''}>Thumbs up <small>${item.upVotes ?? 0}</small></button>
+							<button class="replay-vote down" type="button" data-vote="down" data-channel-key="${escapeHtml(item.channelKey || '')}" data-slug="${escapeHtml(item.slug || '')}" ${isVoting ? 'disabled' : ''}>Thumbs down <small>${item.downVotes ?? 0}</small></button>
+						</div>
 					`;
 					replayFeed.appendChild(row);
+				}
+			}
+
+			async function voteOnReplay(channelKeyValue, slug, vote) {
+				if (!channelKeyValue || !slug)
+					return;
+				if (channelKeyValue !== getSelectedChannelKey())
+					return;
+
+				const voteKey = `${channelKeyValue}:${slug}`;
+				if (votingReplays.has(voteKey))
+					return;
+
+				const index = replayState.findIndex(item =>
+					item.slug === slug &&
+					String(item.channelKey || '').toLowerCase() === String(channelKeyValue || '').toLowerCase());
+				const previous = index >= 0 ? { ...replayState[index] } : null;
+				const priorityDelta = vote === 'up' ? 10 : -10;
+
+				votingReplays.add(voteKey);
+				if (index >= 0) {
+					const current = replayState[index];
+					const optimistic = {
+						...current,
+						upVotes: Math.max(0, (Number(current.upVotes) || 0) + (vote === 'up' ? 1 : 0)),
+						downVotes: Math.max(0, (Number(current.downVotes) || 0) + (vote === 'down' ? 1 : 0)),
+						lastVoteAt: new Date().toISOString(),
+						optimisticVote: true
+					};
+					optimistic.voteScore = (Number(optimistic.upVotes) || 0) - (Number(optimistic.downVotes) || 0);
+					optimistic.priorityScore = (Number(current.priorityScore) || 0) + priorityDelta;
+					replayState.splice(index, 1, optimistic);
+				}
+				renderReplays(replayState);
+
+				try {
+					const res = await fetch('/api/replays/vote', {
+						method: 'POST',
+						headers: {
+							Accept: 'application/json',
+							'Content-Type': 'application/json'
+						},
+						cache: 'no-store',
+						body: JSON.stringify({
+							channelKey: channelKeyValue,
+							slug,
+							upDelta: vote === 'up' ? 1 : 0,
+							downDelta: vote === 'down' ? 1 : 0,
+							source: 'operator-panel'
+						})
+					});
+
+					if (!res.ok)
+						throw new Error(`HTTP ${res.status}`);
+
+					const updated = await res.json();
+					if (channelKeyValue !== getSelectedChannelKey())
+						return;
+
+					const updatedIndex = replayState.findIndex(item =>
+						item.slug === updated.slug &&
+						String(item.channelKey || '').toLowerCase() === String(updated.channelKey || '').toLowerCase());
+
+					if (updatedIndex >= 0)
+						replayState.splice(updatedIndex, 1, updated);
+					else
+						replayState.unshift(updated);
+
+					renderReplays(replayState);
+					setStatus(`Replay vote saved for ${updated.title || updated.slug}.`);
+					await loadReplays().catch(err => setStatus(`Replay refresh failed: ${err.message}`, true));
+					if (channelKeyValue !== getSelectedChannelKey())
+						return;
+				} catch (err) {
+					if (previous && index >= 0 && channelKeyValue === getSelectedChannelKey())
+						replayState.splice(index, 1, previous);
+					if (channelKeyValue === getSelectedChannelKey())
+						setStatus(`Replay vote failed: ${err.message}`, true);
+				} finally {
+					votingReplays.delete(voteKey);
+					if (channelKeyValue === getSelectedChannelKey())
+						renderReplays(replayState);
 				}
 			}
 
@@ -1009,6 +1338,7 @@ Managed Heap: ${formatBytes(managed)}`;
 			}
 
 			async function loadChannels() {
+				const previousChannelKey = getSelectedChannelKey();
 				const res = await fetch('/api/channels', {
 					method: 'GET',
 					headers: { Accept: 'application/json' },
@@ -1023,7 +1353,18 @@ Managed Heap: ${formatBytes(managed)}`;
 					throw new Error('Expected array');
 
 				channels = data;
+				if (!channels.length)
+					selectedSlug = null;
+				else if (!channels.some(c => c.slug === selectedSlug))
+					selectedSlug = channels[0].slug;
+
 				renderChannels();
+				const currentChannelKey = getSelectedChannelKey();
+				if (previousChannelKey !== currentChannelKey) {
+					clearReplayState();
+					if (currentChannelKey)
+						loadReplays().catch(err => setStatus(`Failed to load replays: ${err.message}`, true));
+				}
 			}
 
 			async function loadEvents() {
@@ -1063,7 +1404,18 @@ Managed Heap: ${formatBytes(managed)}`;
 			}
 
 			async function loadReplays() {
-				const res = await fetch('/api/replays?limit=12', {
+				const channelKeyValue = getSelectedChannelKey();
+				if (!channelKeyValue) {
+					clearReplayState();
+					return;
+				}
+
+				const requestId = ++replayRequestId;
+				const query = new URLSearchParams({
+					limit: '12',
+					channelKey: channelKeyValue
+				});
+				const res = await fetch(`/api/replays?${query.toString()}`, {
 					method: 'GET',
 					headers: { Accept: 'application/json' },
 					cache: 'no-store'
@@ -1076,7 +1428,12 @@ Managed Heap: ${formatBytes(managed)}`;
 				if (!Array.isArray(data))
 					throw new Error('Expected array');
 
-				renderReplays(data);
+				if (requestId !== replayRequestId || channelKeyValue !== getSelectedChannelKey())
+					return;
+
+				replayState = data.filter(item =>
+					String(item.channelKey || '').toLowerCase() === String(channelKeyValue).toLowerCase());
+				renderReplays(replayState);
 			}
 
 			async function loadMemory() {
@@ -1158,6 +1515,14 @@ Managed Heap: ${formatBytes(managed)}`;
 				} finally {
 					renderSelected();
 				}
+			});
+
+			replayFeed.addEventListener('click', (e) => {
+				const button = e.target.closest('[data-vote]');
+				if (!button)
+					return;
+
+				voteOnReplay(button.dataset.channelKey, button.dataset.slug, button.dataset.vote);
 			});
 
 			refreshChannels().catch(err => setStatus(`Failed to load channels: ${err.message}`, true));

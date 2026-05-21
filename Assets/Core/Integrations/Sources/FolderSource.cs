@@ -141,14 +141,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             if (!CanFeedPlayback())
                 return;
 
-            var recentHistory = replays.Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var ranked = RankReplayCandidates(allEntries).ToList();
-            var unplayed = ranked
-                .Where(entry => !recentHistory.Contains(entry.slug))
-                .ToList();
-            if (unplayed.Count < ReplayRate)
-                unplayed = ranked;
-            var selected = unplayed
+            var selected = GetNextReplayCandidates(allEntries)
                 .Take(count)
                 .Select(entry => LogThenLoad(entry.slug))
                 .ToList();
@@ -510,6 +503,17 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         return ranked;
     }
 
+    private IReadOnlyList<ReplayManifestEntry> GetNextReplayCandidates(IEnumerable<ReplayManifestEntry> entries)
+    {
+        var ranked = RankReplayCandidates(entries).ToList();
+        var recentHistory = replays.Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var unplayed = ranked
+            .Where(entry => !recentHistory.Contains(entry.slug))
+            .ToList();
+
+        return unplayed.Count < ReplayRate ? ranked : unplayed;
+    }
+
     private void UpsertManifestEntry(string slug, Action<ReplayManifestEntry> apply)
     {
         if (string.IsNullOrWhiteSpace(slug))
@@ -556,27 +560,15 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         if (boundContext == null)
             return;
 
-        var snapshot = manifest.entries
-            .OrderBy(e => ParseTimestamp(e.replayEligibleAt))
-            .ThenBy(e => e.timesReplayed)
-            .Select(e => new ReplayStatusRecord
+        var path = GetReplayDirectoryPath();
+        var now = DateTimeOffset.Now;
+        var snapshot = GetNextReplayCandidates(GetCandidateEntries(path))
+            .Select(e => BuildReplayStatusRecord(e, now))
+            .Where(r => r != null)
+            .Select((record, index) =>
             {
-                slug = e.slug,
-                title = e.title,
-                channelKey = boundContext.Key,
-                context = boundContext.Name,
-                generatedAt = e.generatedAt,
-                lastPlayedAt = e.lastPlayedAt,
-                replayEligibleAt = e.replayEligibleAt,
-                timesReplayed = e.timesReplayed,
-                upVotes = e.upVotes,
-                downVotes = e.downVotes,
-                voteScore = e.voteScore,
-                lastVoteAt = e.lastVoteAt,
-                discordMessageId = e.discordMessageId,
-                discordChannelId = e.discordChannelId,
-                priorityScore = ComputePriorityScore(e, DateTimeOffset.Now, MaxReplayAgeInMinutes / 60f),
-                eligibleNow = ParseTimestamp(e.replayEligibleAt) <= DateTimeOffset.Now
+                record.nextPlayOrder = index + 1;
+                return record;
             })
             .ToList();
 
@@ -632,6 +624,11 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private ReplayStatusRecord BuildReplayStatusRecord(ReplayManifestEntry entry)
     {
+        return BuildReplayStatusRecord(entry, DateTimeOffset.Now);
+    }
+
+    private ReplayStatusRecord BuildReplayStatusRecord(ReplayManifestEntry entry, DateTimeOffset now)
+    {
         if (entry == null || boundContext == null)
             return null;
 
@@ -651,8 +648,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             lastVoteAt = entry.lastVoteAt,
             discordMessageId = entry.discordMessageId,
             discordChannelId = entry.discordChannelId,
-            priorityScore = ComputePriorityScore(entry, DateTimeOffset.Now, MaxReplayAgeInMinutes / 60f),
-            eligibleNow = ParseTimestamp(entry.replayEligibleAt) <= DateTimeOffset.Now
+            priorityScore = ComputePriorityScore(entry, now, MaxReplayAgeInMinutes / 60f),
+            eligibleNow = ParseTimestamp(entry.replayEligibleAt) <= now
         };
     }
 
@@ -699,32 +696,41 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             IEnumerable<ReplayStatusRecord> rows = replaySnapshots.Values.SelectMany(v => v);
             if (!string.IsNullOrWhiteSpace(channelKey))
                 rows = rows.Where(r => string.Equals(r.channelKey, channelKey, StringComparison.OrdinalIgnoreCase));
+            else
+                rows = rows
+                    .OrderBy(r => r.nextPlayOrder)
+                    .ThenBy(r => r.context)
+                    .ThenBy(r => r.channelKey);
 
             return rows
-                .OrderBy(r => r.eligibleNow ? 0 : 1)
-                .ThenBy(r => ParseTimestamp(r.replayEligibleAt))
                 .Take(Mathf.Clamp(limit, 1, 200))
-                .Select(r => new ReplayStatusRecord
-                {
-                    slug = r.slug,
-                    title = r.title,
-                    channelKey = r.channelKey,
-                    context = r.context,
-                    generatedAt = r.generatedAt,
-                    lastPlayedAt = r.lastPlayedAt,
-                    replayEligibleAt = r.replayEligibleAt,
-                    timesReplayed = r.timesReplayed,
-                    upVotes = r.upVotes,
-                    downVotes = r.downVotes,
-                    voteScore = r.voteScore,
-                    lastVoteAt = r.lastVoteAt,
-                    discordMessageId = r.discordMessageId,
-                    discordChannelId = r.discordChannelId,
-                    priorityScore = r.priorityScore,
-                    eligibleNow = r.eligibleNow
-                })
+                .Select(CloneReplayStatusRecord)
                 .ToList();
         }
+    }
+
+    private static ReplayStatusRecord CloneReplayStatusRecord(ReplayStatusRecord record)
+    {
+        return new ReplayStatusRecord
+        {
+            slug = record.slug,
+            title = record.title,
+            channelKey = record.channelKey,
+            context = record.context,
+            generatedAt = record.generatedAt,
+            lastPlayedAt = record.lastPlayedAt,
+            replayEligibleAt = record.replayEligibleAt,
+            timesReplayed = record.timesReplayed,
+            upVotes = record.upVotes,
+            downVotes = record.downVotes,
+            voteScore = record.voteScore,
+            lastVoteAt = record.lastVoteAt,
+            discordMessageId = record.discordMessageId,
+            discordChannelId = record.discordChannelId,
+            priorityScore = record.priorityScore,
+            eligibleNow = record.eligibleNow,
+            nextPlayOrder = record.nextPlayOrder
+        };
     }
 
     public static ReplayStatusRecord RecordDiscordMessage(string channelKey, string slug, DiscordPostedMessage message)
@@ -846,4 +852,5 @@ public sealed class ReplayStatusRecord
     public string discordChannelId;
     public float priorityScore;
     public bool eligibleNow;
+    public int nextPlayOrder;
 }
