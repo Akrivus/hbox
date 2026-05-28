@@ -68,6 +68,7 @@ public class ChatManager : MonoBehaviour
 
     private bool readyToPlay = false;
     private int playbackGeneration = 0;
+    private DiscordPostedMessage nowPlayingDiscordMessage;
     private bool lastPlayInterrupted = false;
 
     [SerializeField]
@@ -224,6 +225,7 @@ public class ChatManager : MonoBehaviour
             lastPlayInterrupted = !completed;
             ReleaseActorVoiceClips();
             chat?.ReleaseRuntimeAudio();
+            UnpinNowPlayingMessage(chat);
             if (NowPlaying == chat)
                 NowPlaying = null;
 
@@ -937,12 +939,31 @@ public class ChatManager : MonoBehaviour
         {
             DiscordManager.PutInQueue("#stream", message, posted =>
             {
+                RecordNowPlayingMessage(chat, posted);
                 FolderSource.RecordDiscordMessage(chat.Key, chat.FileName, posted);
                 DiscordBotService.Instance?.AddDefaultReplayReactions(posted);
             });
             return;
         }
 
-        DiscordManager.PutInQueue("#stream", message);
+        DiscordManager.PutInQueue("#stream", message, posted => RecordNowPlayingMessage(chat, posted));
+    }
+
+    private void RecordNowPlayingMessage(Chat chat, DiscordPostedMessage message)
+    {
+        if (chat == null || message == null || StopPlaying(chat))
+            return;
+
+        nowPlayingDiscordMessage = message;
+        DiscordBotService.Instance?.PinNowPlayingMessage(message);
+    }
+
+    private void UnpinNowPlayingMessage(Chat chat)
+    {
+        if (chat == null || nowPlayingDiscordMessage == null)
+            return;
+
+        DiscordBotService.Instance?.UnpinNowPlayingMessage(nowPlayingDiscordMessage);
+        nowPlayingDiscordMessage = null;
     }
 }

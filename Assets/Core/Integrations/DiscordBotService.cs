@@ -134,6 +134,26 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         _ = PinPitchMessageAsync(message, previousPitchMessages);
     }
 
+    public void PinNowPlayingMessage(DiscordPostedMessage message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.id) || string.IsNullOrWhiteSpace(message.channel_id))
+            return;
+        if (!enableBot || string.IsNullOrWhiteSpace(botToken))
+            return;
+
+        _ = PinNowPlayingMessageAsync(message);
+    }
+
+    public void UnpinNowPlayingMessage(DiscordPostedMessage message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.id) || string.IsNullOrWhiteSpace(message.channel_id))
+            return;
+        if (!enableBot || string.IsNullOrWhiteSpace(botToken))
+            return;
+
+        _ = UnpinNowPlayingMessageAsync(message);
+    }
+
     private void StartBot()
     {
         StopBot();
@@ -382,6 +402,30 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         catch (Exception e)
         {
             Debug.LogWarning($"Discord bot failed to pin pitch message: {e.Message}");
+        }
+    }
+
+    private async Task PinNowPlayingMessageAsync(DiscordPostedMessage message)
+    {
+        try
+        {
+            await PinMessageAsync(message.channel_id, message.id);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Discord bot failed to pin now playing message: {e.Message}");
+        }
+    }
+
+    private async Task UnpinNowPlayingMessageAsync(DiscordPostedMessage message)
+    {
+        try
+        {
+            await UnpinMessageAsync(message.channel_id, message.id);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Discord bot failed to unpin now playing message: {e.Message}");
         }
     }
 

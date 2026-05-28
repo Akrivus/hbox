@@ -103,10 +103,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public IEnumerator Drop()
     {
         OnBatchStart?.Invoke();
-        if (EnablePitchGate)
+        var canAutoApprove = IsInActiveWindow(DateTime.Now);
+        if (EnablePitchGate && canAutoApprove)
             pitchStore?.ResolveFinishedVotes(PitchMinimumVotesToQueue);
 
-        yield return FetchIdeas().AsCoroutine();
+        yield return FetchIdeas(canAutoApprove).AsCoroutine();
 
         while (ideas.TryDequeue(out var idea))
             yield return generator.GenerateAndPlay(idea).AsCoroutine();
@@ -119,11 +120,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         StartCoroutine(Drop());
     }
 
-    public async Task FetchIdeas()
+    public async Task FetchIdeas(bool canAutoApprove = true)
     {
         var promptTemplate = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
         var postedPitches = 0;
-        var autoApprovalsRemaining = EnablePitchGate ? PitchAutoApprovalBatchSize : 0;
+        var autoApprovalsRemaining = EnablePitchGate && canAutoApprove ? PitchAutoApprovalBatchSize : 0;
 
         for (var iteration = 0; iteration < BatchIterations; iteration++)
             for (var iterations = 0; iterations < BatchSize; iterations++)
@@ -512,24 +513,18 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         var now = DateTime.Now;
 
         var offset = TimeSpan.Parse(BatchPeriodOffset);
-        var windowStart = TimeSpan.Parse(ActiveWindowStart);
-        var windowEnd = TimeSpan.Parse(ActiveWindowEnd);
-
         var nextRun = new DateTime(now.Year, now.Month, now.Day, offset.Hours, offset.Minutes, offset.Seconds);
         while (nextRun <= now) nextRun = nextRun.AddMinutes(BatchPeriodInMinutes);
 
-        if (!IsInWindow(nextRun.TimeOfDay, windowStart, windowEnd))
-        {
-            nextRun = NextWindowStart(now, windowStart, windowEnd);
-            var baseSlot = new DateTime(nextRun.Year, nextRun.Month, nextRun.Day, offset.Hours, offset.Minutes, offset.Seconds);
-            if (baseSlot < nextRun) baseSlot = nextRun;
-            nextRun = baseSlot;
-            while (nextRun <= now)
-                nextRun = nextRun.AddMinutes(BatchPeriodInMinutes);
-            if (!IsInWindow(nextRun.TimeOfDay, windowStart, windowEnd))
-                nextRun = NextWindowStart(nextRun, windowStart, windowEnd);
-        }
         return nextRun;
+    }
+
+    private bool IsInActiveWindow(DateTime now)
+    {
+        return IsInWindow(
+            now.TimeOfDay,
+            TimeSpan.Parse(ActiveWindowStart),
+            TimeSpan.Parse(ActiveWindowEnd));
     }
 
     private static bool IsInWindow(TimeSpan t, TimeSpan start, TimeSpan end)
@@ -539,26 +534,6 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         if (start > end)
             return t >= start || t < end;
         return true;
-    }
-
-    private static DateTime NextWindowStart(DateTime now, TimeSpan start, TimeSpan end)
-    {
-        var todayStart = now.Date + start;
-        var todayEnd = now.Date + end;
-
-        if (start < end)
-        {
-            if (now < todayStart) return todayStart;
-            if (now >= todayEnd) return now.Date.AddDays(1) + start;
-            return now;
-        }
-        else if (start > end)
-        {
-            if (now.TimeOfDay < end) return now;
-            if (now < todayStart) return todayStart;
-            return now;
-        }
-        return now;
     }
 
 }

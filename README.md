@@ -163,6 +163,7 @@ Example:
 - `reddit.SubReddits` is a dictionary, not a simple string array.
 - `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`.
 - `reddit.PitchDiscordChannel` must match a configured Discord webhook key, usually `#stream`.
+- `reddit.BatchPeriodOffset` and `reddit.BatchPeriodInMinutes` control Reddit fetch cadence all day; `reddit.ActiveHoursStart` and `reddit.ActiveHoursEnd` only gate queueing/autoapproval work.
 - Pitch votes resolve after the voting window closes: more thumbs-up than thumbs-down queues the pitch as an `Idea`; more thumbs-down rejects it; ties or too few votes expire.
 - `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
 - `reddit.PitchAutoApprovalBatchSize` is how many top evaluator-approved Reddit pitches can skip Discord voting and queue directly per active Reddit batch slot. Set it to `0` to require voting for every pitch.
