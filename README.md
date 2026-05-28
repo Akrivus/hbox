@@ -122,6 +122,11 @@ Example:
     "BatchPeriodInMinutes": 480,
     "ActiveHoursStart": "00:00",
     "ActiveHoursEnd": "23:59",
+    "EnablePitchGate": true,
+    "PitchDiscordChannel": "#stream",
+    "PitchExpirationMinutes": 180,
+    "PitchAutoApprovalBatchSize": 0,
+    "PitchMinimumVotesToQueue": 1,
     "MaxDepth": 3,
     "TopRoots": 3,
     "TopLevelLimit": 30,
@@ -156,6 +161,17 @@ Example:
 - Remove a config block entirely to disable that integration.
 - `folder` is the active replay loader type registered at runtime.
 - `reddit.SubReddits` is a dictionary, not a simple string array.
+- `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`.
+- `reddit.PitchDiscordChannel` must match a configured Discord webhook key, usually `#stream`.
+- Pitch votes resolve after the voting window closes: more thumbs-up than thumbs-down queues the pitch as an `Idea`; more thumbs-down rejects it; ties or too few votes expire.
+- `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
+- `reddit.PitchAutoApprovalBatchSize` is how many top evaluator-approved Reddit pitches can skip Discord voting and queue directly per active Reddit batch slot. Set it to `0` to require voting for every pitch.
+- `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before an expired positive voted pitch can queue.
+- Autoapproved pitch candidates are sorted by Reddit comment count weighted most heavily, then Reddit karma, then newest post first.
+- Pitch generation uses `Vault/{show}/Prompts/Reddit Source/Pitch Candidate.md`, then `Vault/{show}/Prompts/Reddit Source/Pitch Evaluator.md` to reject weak or overlong pitches before posting.
+- Posted pitch cards surface the pitch, cast, source subreddit, Reddit karma/comment counts, and evaluator approval reason; the approved `Idea` still includes the raw Reddit post text and mined thread material for generation context.
+- In pitch-gate mode, Reddit posts are only written to the local seen history after a pitch is accepted for voting, so evaluator-rejected posts can be reconsidered later.
+- Approved pitch posts are pinned by the Discord bot when bot permissions allow it, and the operator panel reads `/api/pitches` for the current pitch deck.
 - OpenAI text generation and OpenAI TTS are configured separately.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.
 

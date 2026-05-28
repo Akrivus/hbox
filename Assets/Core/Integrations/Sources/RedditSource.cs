@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -28,11 +29,17 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     public string ActiveWindowStart = "00:00";
     public string ActiveWindowEnd = "23:59";
+    public bool EnablePitchGate = false;
+    public string PitchDiscordChannel = "#stream";
+    public int PitchExpirationMinutes = 180;
+    public int PitchAutoApprovalBatchSize = 0;
+    public int PitchMinimumVotesToQueue = 1;
 
     private List<string> history = new List<string>();
     private Dictionary<string, DateTime> fetchTimes = new Dictionary<string, DateTime>();
     private Queue<Idea> ideas = new Queue<Idea>();
     private string fileName;
+    private PitchCandidateStore pitchStore;
 
     private int i = 0;
     private RedditThreadMiner miner;
@@ -50,6 +57,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         BatchPeriodInMinutes = c.BatchPeriodInMinutes;
         ActiveWindowStart = c.ActiveHoursStart;
         ActiveWindowEnd = c.ActiveHoursEnd;
+        EnablePitchGate = c.EnablePitchGate;
+        PitchDiscordChannel = string.IsNullOrWhiteSpace(c.PitchDiscordChannel) ? "#stream" : c.PitchDiscordChannel;
+        PitchExpirationMinutes = Mathf.Max(1, c.PitchExpirationMinutes);
+        PitchAutoApprovalBatchSize = Mathf.Max(0, c.PitchAutoApprovalBatchSize);
+        PitchMinimumVotesToQueue = Mathf.Max(0, c.PitchMinimumVotesToQueue);
 
         i = UnityEngine.Random.Range(0, SubReddits.Count);
 
@@ -91,10 +103,14 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public IEnumerator Drop()
     {
         OnBatchStart?.Invoke();
+        if (EnablePitchGate)
+            pitchStore?.ResolveFinishedVotes(PitchMinimumVotesToQueue);
+
         yield return FetchIdeas().AsCoroutine();
 
         while (ideas.TryDequeue(out var idea))
             yield return generator.GenerateAndPlay(idea).AsCoroutine();
+
         OnBatchEnd?.Invoke();
     }
 
@@ -105,52 +121,312 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     public async Task FetchIdeas()
     {
-        var prompt = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
+        var promptTemplate = await PromptResolver.Read(generator.ManagerContext, "Reddit Source", "{0}");
+        var postedPitches = 0;
+        var autoApprovalsRemaining = EnablePitchGate ? PitchAutoApprovalBatchSize : 0;
+
         for (var iteration = 0; iteration < BatchIterations; iteration++)
             for (var iterations = 0; iterations < BatchSize; iterations++)
             {
                 var subreddit = SubReddits.ElementAt(i);
                 var range = await FetchAsync(subreddit.Key);
                 var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
-                prompt = string.Format(prompt, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                var posts = range.Take(BatchSize)
-                    .Select(post =>
-                    {
-                        history.Add(post.Value<string>("id"));
-                        return post;
-                    }).ToList();
+                var prompt = string.Format(promptTemplate, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                var posts = OrderPostsForPitchGate(range.Take(BatchSize)).ToList();
                 foreach (var post in posts)
-                    PostToIdea(post, prompt);
+                {
+                    var autoApprove = EnablePitchGate && autoApprovalsRemaining > 0;
+                    var accepted = await PostToIdea(post, prompt, autoApprove);
+                    if (accepted)
+                    {
+                        RememberPost(post.Value<string>("id"));
+                        if (autoApprove)
+                            autoApprovalsRemaining--;
+                    }
+                    if (accepted && EnablePitchGate)
+                        postedPitches++;
+                }
+
                 i = ++i % SubReddits.Count;
-                if (ideas.Count >= BatchSizeLimit)
+                if (ideas.Count + postedPitches >= BatchSizeLimit)
                     return;
             }
     }
 
-    private Idea PostToIdea(JToken post, string template)
+    private IEnumerable<JToken> OrderPostsForPitchGate(IEnumerable<JToken> posts)
     {
-        var permalink = post.Value<string>("permalink");
-        var top = miner.Mine(permalink);
-        var topic = post.Value<string>("title") +
-            "\n\n" + post.Value<string>("selftext") +
-            "\n\n" + string.Join("\n\n", top.Select(t => t.DialogueSeed));
+        if (!EnablePitchGate)
+            return posts;
+
+        return posts
+            .OrderByDescending(ScoreRedditPost)
+            .ThenByDescending(post => post.Value<int?>("num_comments") ?? 0)
+            .ThenByDescending(post => post.Value<int?>("score") ?? 0)
+            .ThenByDescending(post => post.Value<long?>("created_utc") ?? 0);
+    }
+
+    private static float ScoreRedditPost(JToken post)
+    {
+        var comments = Mathf.Max(0, post.Value<int?>("num_comments") ?? 0);
+        var score = Mathf.Max(0, post.Value<int?>("score") ?? 0);
+        return (comments * 3f) + Mathf.Sqrt(score);
+    }
+
+    private async Task<bool> PostToIdea(JToken post, string template, bool autoApprove = false)
+    {
+        var source = BuildSource(post);
+        var topic = source.title +
+            "\n\n" + source.selftext +
+            "\n\n" + source.threadContext;
+
+        if (EnablePitchGate)
+        {
+            var candidate = await GeneratePitchCandidate(source, topic);
+            if (candidate == null)
+                return false;
+
+            if (autoApprove)
+            {
+                pitchStore.QueueCandidate(candidate, "pitch_auto_queued");
+                UiEventBus.Publish(chatManagerContext, $"Auto-approved Reddit pitch: {PitchCandidateText.GetTitle(candidate)}");
+                return true;
+            }
+
+            PitchDiscordPublisher.Publish(candidate, pitchStore);
+            UiEventBus.Publish(chatManagerContext, $"Posted Reddit pitch for vote: {PitchCandidateText.GetTitle(candidate)}");
+            return true;
+        }
 
         var idea = new Idea(
             string.Format(template, topic),
-            post.Value<string>("author"),
-            post.Value<string>("subreddit_name_prefixed"),
-            post.Value<string>("id")
+            source.author,
+            source.subreddit,
+            source.id
         );
 
         ideas.Enqueue(idea);
 
-        return idea;
+        return true;
+    }
+
+    private RedditPostSource BuildSource(JToken post)
+    {
+        var permalink = post.Value<string>("permalink");
+        var top = miner.Mine(permalink);
+
+        return new RedditPostSource
+        {
+            id = post.Value<string>("id"),
+            title = post.Value<string>("title"),
+            selftext = post.Value<string>("selftext"),
+            author = post.Value<string>("author"),
+            subreddit = post.Value<string>("subreddit_name_prefixed"),
+            permalink = permalink,
+            url = post.Value<string>("url"),
+            score = post.Value<int?>("score") ?? 0,
+            commentCount = post.Value<int?>("num_comments") ?? 0,
+            threadContext = string.Join("\n\n", top.Select(t => t.DialogueSeed))
+        };
+    }
+
+    private void RememberPost(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id) || history.Contains(id))
+            return;
+
+        history.Add(id);
+    }
+
+    private async Task<PitchCandidate> GeneratePitchCandidate(RedditPostSource source, string topic)
+    {
+        var actors = "- " + string.Join("\n- ", chatManagerContext.Actors.Select(a => a.Name));
+        var memory = await MemoryBucket.GetContext(chatManagerContext, generator.slug);
+        var continuity = BuildEpisodeContinuityContext();
+        var sourceJson = JsonConvert.SerializeObject(source, Formatting.Indented);
+
+        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Candidate");
+        var prompt = await resolver.Resolve(
+            sourceJson,
+            topic,
+            actors,
+            memory,
+            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            continuity);
+
+        var output = await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
+
+        var evaluation = await EvaluatePitchCandidate(output, source, topic, actors, memory, continuity);
+        if (!PitchCandidateEvaluator.IsApproved(evaluation))
+        {
+            OperatorTelemetry.RecordEvent(
+                "pitch_rejected",
+                $"Rejected Reddit pitch for {source.id}: {PitchCandidateEvaluator.GetReason(evaluation)}",
+                chatManagerContext,
+                chatManagerContext.Key);
+            return null;
+        }
+
+        var approvalReason = PitchCandidateEvaluator.GetReason(evaluation);
+        var candidate = PitchCandidateFactory.FromText(
+            output,
+            source,
+            generator.slug,
+            PitchDiscordChannel,
+            PitchExpirationMinutes,
+            approvalReason);
+        candidate.discordColor = ResolvePitchColor(candidate);
+
+        pitchStore.Save(candidate);
+        return candidate;
+    }
+
+    private int ResolvePitchColor(PitchCandidate candidate)
+    {
+        var cast = PitchCandidateText.GetCast(candidate);
+        if (string.IsNullOrWhiteSpace(cast))
+            return 0;
+
+        var names = cast
+            .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(name => name.Trim())
+            .Where(name => !string.IsNullOrWhiteSpace(name));
+
+        foreach (var name in names)
+        {
+            var actor = chatManagerContext.Actors
+                .FirstOrDefault(a => a != null && (
+                    string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase) ||
+                    (a.Aliases?.Any(alias => string.Equals(alias, name, StringComparison.OrdinalIgnoreCase)) ?? false)));
+            if (actor != null)
+                return actor.Color1.ToDiscordColor();
+        }
+
+        return 0;
+    }
+
+    private string BuildEpisodeContinuityContext()
+    {
+        var episodes = new List<EpisodeContinuityItem>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var episode in OperatorTelemetry.GetRecentEpisodes(12))
+        {
+            if (episode == null || string.IsNullOrWhiteSpace(episode.slug) || seen.Contains(episode.slug))
+                continue;
+            if (string.IsNullOrWhiteSpace(episode.title) && string.IsNullOrWhiteSpace(episode.synopsis))
+                continue;
+
+            episodes.Add(new EpisodeContinuityItem
+            {
+                slug = episode.slug,
+                title = episode.title,
+                synopsis = episode.synopsis,
+                status = episode.status
+            });
+            seen.Add(episode.slug);
+        }
+
+        foreach (var episode in LoadSavedEpisodeContinuity(12))
+        {
+            if (episode == null || string.IsNullOrWhiteSpace(episode.slug) || seen.Contains(episode.slug))
+                continue;
+
+            episodes.Add(episode);
+            seen.Add(episode.slug);
+            if (episodes.Count >= 12)
+                break;
+        }
+
+        if (episodes.Count == 0)
+            return "No recent episode continuity found.";
+
+        return string.Join("\n", episodes
+            .Take(12)
+            .Select(episode =>
+            {
+                var title = string.IsNullOrWhiteSpace(episode.title) ? episode.slug : episode.title;
+                var synopsis = string.IsNullOrWhiteSpace(episode.synopsis) ? "No synopsis recorded." : episode.synopsis.Trim();
+                return $"- {title}: {synopsis}";
+            }));
+    }
+
+    private IEnumerable<EpisodeContinuityItem> LoadSavedEpisodeContinuity(int limit)
+    {
+        var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var folder = Path.Combine(docs, chatManagerContext.Name);
+
+        if (!Directory.Exists(folder))
+            yield break;
+
+        IEnumerable<string> files;
+        try
+        {
+            files = Directory.GetFiles(folder, "*.json", SearchOption.TopDirectoryOnly)
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .Take(Mathf.Max(limit, 1) * 2);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"RedditSource.LoadSavedEpisodeContinuity failed to list '{folder}': {e.Message}");
+            yield break;
+        }
+
+        foreach (var file in files)
+        {
+            Chat chat;
+            try
+            {
+                chat = JsonConvert.DeserializeObject<Chat>(File.ReadAllText(file));
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"RedditSource.LoadSavedEpisodeContinuity failed for '{file}': {e.Message}");
+                continue;
+            }
+
+            if (chat == null || string.IsNullOrWhiteSpace(chat.FileName))
+                continue;
+            if (string.IsNullOrWhiteSpace(chat.Title) && string.IsNullOrWhiteSpace(chat.Synopsis))
+                continue;
+
+            yield return new EpisodeContinuityItem
+            {
+                slug = chat.FileName,
+                title = chat.Title,
+                synopsis = chat.Synopsis,
+                status = "saved"
+            };
+        }
+    }
+
+    private async Task<string> EvaluatePitchCandidate(string pitch, RedditPostSource source, string topic, string actors, string memory, string continuity)
+    {
+        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Evaluator");
+        var prompt = await resolver.Resolve(
+            JsonConvert.SerializeObject(source, Formatting.Indented),
+            topic,
+            actors,
+            memory,
+            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            pitch,
+            continuity);
+
+        return await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
+    }
+
+    private sealed class EpisodeContinuityItem
+    {
+        public string slug;
+        public string title;
+        public string synopsis;
+        public string status;
     }
 
     private void Start()
     {
         ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(RedditConfigs), "reddit", (_config) => Configure((RedditConfigs)_config));
         chatManagerContext = ChatManagerContext.Current;
+        pitchStore = new PitchCandidateStore(chatManagerContext, generator);
     }
 
     private void OnDestroy()

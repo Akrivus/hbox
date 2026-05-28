@@ -448,6 +448,76 @@
 				font-size: 0.82em;
 			}
 
+			.pitch-deck-card {
+				grid-column: 1 / -1;
+			}
+
+			.pitch-deck {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+				gap: 10px;
+				max-height: 520px;
+				overflow: auto;
+			}
+
+			.pitch-card {
+				align-content: start;
+				gap: 10px;
+			}
+
+			.pitch-topline {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) auto;
+				gap: 10px;
+				align-items: start;
+			}
+
+			.pitch-score {
+				min-width: 58px;
+				padding: 8px 10px;
+				border-radius: 12px;
+				background: rgba(102, 212, 192, 0.12);
+				border: 1px solid rgba(102, 212, 192, 0.22);
+				text-align: center;
+			}
+
+			.pitch-score strong {
+				display: block;
+				color: var(--ink);
+				font-size: 1.15rem;
+				line-height: 1;
+			}
+
+			.pitch-score span {
+				display: block;
+				margin-top: 4px;
+				color: var(--muted);
+				font-size: 0.68rem;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+			}
+
+			.pitch-body {
+				margin: 0;
+			}
+
+			.pitch-body summary {
+				cursor: pointer;
+				color: var(--accent-2);
+				font-size: 0.86rem;
+				font-weight: 600;
+			}
+
+			.pitch-body pre {
+				margin: 8px 0 0;
+				white-space: pre-wrap;
+				overflow-wrap: anywhere;
+				color: var(--muted);
+				font: inherit;
+				font-size: 0.9rem;
+				line-height: 1.35;
+			}
+
 			.countdown-grid {
 				display: grid;
 				grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -818,6 +888,14 @@
 						<div id="episode-feed" class="feed tall"></div>
 					</section>
 
+					<section class="card pitch-deck-card">
+						<div class="card-head">
+							<h2>Pitch Deck</h2>
+							<span class="muted">Reddit pitches currently waiting, approved, or queued</span>
+						</div>
+						<div id="pitch-feed" class="pitch-deck"></div>
+					</section>
+
 					<section class="card">
 						<div class="card-head">
 							<h2>Replay History</h2>
@@ -899,6 +977,7 @@
 			const countdownFeed = document.getElementById('countdown-feed');
 			const eventFeed = document.getElementById('event-feed');
 			const episodeFeed = document.getElementById('episode-feed');
+			const pitchFeed = document.getElementById('pitch-feed');
 			const replayFeed = document.getElementById('replay-feed');
 			const memoryReason = document.getElementById('memory-reason');
 			const memoryWorkingSet = document.getElementById('memory-working-set');
@@ -915,8 +994,10 @@
 			let channels = [];
 			let selectedSlug = null;
 			let countdownState = [];
+			let pitchState = [];
 			let replayState = [];
 			let replayRequestId = 0;
+			let pitchRequestId = 0;
 			const votingReplays = new Set();
 
 			function setStatus(message, isError = false) {
@@ -945,6 +1026,12 @@
 				replayState = [];
 				votingReplays.clear();
 				renderReplays(replayState);
+			}
+
+			function clearPitchState() {
+				pitchRequestId++;
+				pitchState = [];
+				renderPitches(pitchState);
 			}
 
 			function renderSelected() {
@@ -994,7 +1081,9 @@
 							return;
 						selectedSlug = channel.slug;
 						clearReplayState();
+						clearPitchState();
 						renderChannels();
+						loadPitches().catch(err => setStatus(`Failed to load pitches: ${err.message}`, true));
 						loadReplays().catch(err => setStatus(`Failed to load replays: ${err.message}`, true));
 					});
 
@@ -1041,6 +1130,13 @@
 			function formatVoteScore(value) {
 				const score = Number(value) || 0;
 				return score > 0 ? `+${score}` : `${score}`;
+			}
+
+			function formatInteger(value) {
+				const number = Number(value);
+				if (!Number.isFinite(number))
+					return '0';
+				return Math.max(0, Math.trunc(number)).toLocaleString();
 			}
 
 			function formatPriorityScore(value) {
@@ -1138,6 +1234,75 @@
 					.replaceAll('>', '&gt;')
 					.replaceAll('"', '&quot;')
 					.replaceAll("'", '&#39;');
+			}
+
+			function extractPitchTitle(body, fallback) {
+				const text = String(body || '').trim();
+				const lines = text.split(/\r?\n/);
+
+				for (let i = 0; i < lines.length; i++) {
+					const line = lines[i].trim();
+					const inline = line.match(/^Pitch Title\s*:\s*(.+)$/i) || line.match(/^Title\s*:\s*(.+)$/i);
+					if (inline && inline[1].trim())
+						return inline[1].trim();
+
+					if (/^(Pitch Title|Title)\s*:\s*$/i.test(line)) {
+						for (let next = i + 1; next < lines.length; next++) {
+							const value = lines[next].trim().replace(/^[-*]\s*/, '');
+							if (value)
+								return value;
+						}
+					}
+				}
+
+				const first = lines.map(line => line.trim().replace(/^[-*]\s*/, '')).find(Boolean);
+				return first || fallback || 'Untitled pitch';
+			}
+
+			function extractPitchSection(body, key) {
+				const text = String(body || '').trim();
+				const lines = text.split(/\r?\n/);
+				const header = new RegExp(`^${key}\\s*:\\s*(.*)$`, 'i');
+				const nextHeader = /^[A-Za-z][A-Za-z\s]{1,40}\s*:/;
+
+				for (let i = 0; i < lines.length; i++) {
+					const match = lines[i].trim().match(header);
+					if (!match)
+						continue;
+
+					const values = [];
+					if (match[1].trim())
+						values.push(match[1].trim());
+
+					for (let next = i + 1; next < lines.length; next++) {
+						const value = lines[next].trim();
+						if (nextHeader.test(value))
+							break;
+						if (value)
+							values.push(value.replace(/^[-*]\s*/, ''));
+					}
+
+					return values.join(' ').trim();
+				}
+
+				return '';
+			}
+
+			function getPitchStatusClass(status) {
+				const value = formatPitchStatus(status).toLowerCase();
+				if (value === 'approved' || value === 'queuedasidea')
+					return 'ready';
+				if (value === 'rejected' || value === 'expired')
+					return 'unlinked';
+				return 'waiting';
+			}
+
+			function formatPitchStatus(status) {
+				const labels = ['Draft', 'PostedForVote', 'Approved', 'Rejected', 'Expired', 'QueuedAsIdea'];
+				const numeric = Number(status);
+				if (Number.isInteger(numeric) && numeric >= 0 && numeric < labels.length)
+					return labels[numeric];
+				return String(status || 'Draft');
 			}
 
 			function renderBucketCulprits(buckets) {
@@ -1269,6 +1434,73 @@
 						<div class="feed-copy">${item.context || item.channelKey || 'Unknown channel'}${item.source ? ` | ${item.source}` : ''}</div>
 					`;
 					episodeFeed.appendChild(row);
+				}
+			}
+
+			function renderPitches(items) {
+				pitchFeed.innerHTML = '';
+				const selectedChannel = getSelectedChannel();
+				const selectedKey = selectedChannel?.channelKey || '';
+
+				if (!selectedKey) {
+					pitchFeed.innerHTML = '<div class="feed-item"><div class="feed-copy">Select a channel to inspect its Reddit pitch deck.</div></div>';
+					return;
+				}
+
+				if (!items.length) {
+					pitchFeed.innerHTML = `<div class="feed-item"><div class="feed-copy">No active pitches yet for ${escapeHtml(selectedChannel?.name || selectedKey)}.</div></div>`;
+					return;
+				}
+
+				for (const item of items) {
+					const body = String(item.body || '').trim();
+					const title = extractPitchTitle(body, item.source?.title || item.id);
+					const pitch = extractPitchSection(body, 'Pitch') || body;
+					const cast = extractPitchSection(body, 'Cast');
+					const createdAt = formatTime(item.createdAtUtc);
+					const expiresAt = formatTime(item.expiresAtUtc);
+					const statusLabel = formatPitchStatus(item.status);
+					const statusClass = getPitchStatusClass(item.status);
+					const permalink = String(item.source?.permalink || '');
+					const sourceUrl = permalink.startsWith('http') ? permalink : (permalink ? `https://reddit.com${permalink}` : (item.source?.url || ''));
+					const sourceLabel = item.source?.subreddit || item.source?.author || 'reddit';
+					const sourceStats = `${formatInteger(item.source?.score || 0)} karma | ${formatInteger(item.source?.commentCount || 0)} comments`;
+					const sourceMarkup = sourceUrl
+						? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceLabel)}</a>`
+						: escapeHtml(sourceLabel);
+					const row = document.createElement('div');
+					row.className = 'feed-item pitch-card';
+					row.innerHTML = `
+						<div class="feed-head">
+							<span>${escapeHtml(statusLabel)}</span>
+							<span>${escapeHtml(createdAt)}</span>
+						</div>
+						<div class="pitch-topline">
+							<div>
+								<div class="feed-title">${escapeHtml(title)}</div>
+								<div class="feed-copy">${escapeHtml(item.context || item.channelKey || 'Unknown channel')} | ${sourceMarkup} | ${escapeHtml(sourceStats)}${cast ? ` | Cast: ${escapeHtml(cast)}` : ''}</div>
+							</div>
+							<div class="pitch-score">
+								<strong>${escapeHtml(formatVoteScore(item.voteScore))}</strong>
+								<span>score</span>
+							</div>
+						</div>
+						<div class="feed-copy">${escapeHtml(pitch)}</div>
+						<div class="replay-meta">
+							<span class="replay-chip ${statusClass}">${escapeHtml(statusLabel)}</span>
+							<span class="replay-chip" title="Thumbs up">Up ${item.upVotes ?? 0}</span>
+							<span class="replay-chip" title="Thumbs down">Down ${item.downVotes ?? 0}</span>
+							<span class="replay-chip" title="Voting rule">Net positive at close</span>
+							<span class="replay-chip discord-detail" title="Evaluator approval">${escapeHtml(item.approvalReason || 'No approval reason recorded')}</span>
+							<span class="replay-chip discord-detail" title="Discord message">${item.discordMessageId ? `Discord ${escapeHtml(shortDiscordId(item.discordMessageId))}` : 'Discord pending'}</span>
+							<span class="replay-chip discord-detail" title="Expiration">Expires ${escapeHtml(expiresAt || 'unknown')}</span>
+						</div>
+						<details class="pitch-body">
+							<summary>Pitch card</summary>
+							<pre>${escapeHtml(body || 'No pitch body stored.')}</pre>
+						</details>
+					`;
+					pitchFeed.appendChild(row);
 				}
 			}
 
@@ -1602,8 +1834,11 @@ Managed Heap: ${formatBytes(managed)}`;
 				const currentChannelKey = getSelectedChannelKey();
 				if (previousChannelKey !== currentChannelKey) {
 					clearReplayState();
-					if (currentChannelKey)
+					clearPitchState();
+					if (currentChannelKey) {
+						loadPitches().catch(err => setStatus(`Failed to load pitches: ${err.message}`, true));
 						loadReplays().catch(err => setStatus(`Failed to load replays: ${err.message}`, true));
+					}
 				}
 			}
 
@@ -1676,6 +1911,39 @@ Managed Heap: ${formatBytes(managed)}`;
 				renderReplays(replayState);
 			}
 
+			async function loadPitches() {
+				const channelKeyValue = getSelectedChannelKey();
+				if (!channelKeyValue) {
+					clearPitchState();
+					return;
+				}
+
+				const requestId = ++pitchRequestId;
+				const query = new URLSearchParams({
+					limit: '24',
+					channelKey: channelKeyValue
+				});
+				const res = await fetch(`/api/pitches?${query.toString()}`, {
+					method: 'GET',
+					headers: { Accept: 'application/json' },
+					cache: 'no-store'
+				});
+
+				if (!res.ok)
+					throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				if (!Array.isArray(data))
+					throw new Error('Expected array');
+
+				if (requestId !== pitchRequestId || channelKeyValue !== getSelectedChannelKey())
+					return;
+
+				pitchState = data.filter(item =>
+					String(item.channelKey || '').toLowerCase() === String(channelKeyValue).toLowerCase());
+				renderPitches(pitchState);
+			}
+
 			async function loadMemory() {
 				const [snapshotRes, historyRes] = await Promise.all([
 					fetch('/api/diagnostics/memory', {
@@ -1717,7 +1985,7 @@ Managed Heap: ${formatBytes(managed)}`;
 
 			async function refreshTelemetry(silent = false) {
 				try {
-					await Promise.all([loadEvents(), loadEpisodes(), loadReplays(), loadMemory()]);
+					await Promise.all([loadEvents(), loadEpisodes(), loadPitches(), loadReplays(), loadMemory()]);
 				} catch (err) {
 					if (!silent)
 						setStatus(`Telemetry refresh failed: ${err.message}`, true);

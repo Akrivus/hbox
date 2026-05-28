@@ -80,6 +80,7 @@ context.txt
 reddit-*.txt
 replays-*.txt
 config.json
+reddit-pitches-*.json
 
 # hbox specific
 appydays.json

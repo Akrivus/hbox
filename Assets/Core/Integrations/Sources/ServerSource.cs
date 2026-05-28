@@ -50,6 +50,7 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/api/diagnostics/memory/history", GetMemoryDiagnosticsHistoryAsync);
         AddRoute("GET", "/api/events", GetEventsAsync);
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
+        AddRoute("GET", "/api/pitches", GetPitchStatusAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
         AddApiRoute<ReplayVoteRequest, ReplayStatusRecord>("POST", "/api/replays/vote", VoteOnReplayAsync);
     }
@@ -295,6 +296,14 @@ public class ServerSource : MonoBehaviour
         var limit = ParseLimit(query, 50);
         query.TryGetValue("channelKey", out var channelKey);
         return WriteJsonAsync(context.Response, FolderSource.GetReplayStatus(channelKey, limit));
+    }
+
+    private Task GetPitchStatusAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 50);
+        query.TryGetValue("channelKey", out var channelKey);
+        return WriteJsonAsync(context.Response, PitchCandidateStore.GetPitchStatus(channelKey, limit));
     }
 
     private Task<ReplayStatusRecord> VoteOnReplayAsync(ReplayVoteRequest request)
@@ -618,6 +627,7 @@ public static class OperatorTelemetry
                 source = idea.Source ?? string.Empty,
                 author = idea.Author ?? string.Empty,
                 prompt = idea.Prompt ?? string.Empty,
+                synopsis = string.Empty,
                 generatedAt = string.Empty,
                 queuedAt = string.Empty,
                 playedAt = string.Empty,
@@ -650,6 +660,7 @@ public static class OperatorTelemetry
                 source = chat.Idea?.Source ?? string.Empty,
                 author = chat.Idea?.Author ?? string.Empty,
                 prompt = chat.Idea?.Prompt ?? string.Empty,
+                synopsis = chat.Synopsis ?? string.Empty,
                 generatedAt = DateTimeOffset.Now.ToString("O"),
                 queuedAt = string.Empty,
                 playedAt = string.Empty,
@@ -683,6 +694,7 @@ public static class OperatorTelemetry
                     source = idea.Source ?? string.Empty,
                     author = idea.Author ?? string.Empty,
                     prompt = idea.Prompt ?? string.Empty,
+                    synopsis = string.Empty,
                     generatedAt = string.Empty,
                     queuedAt = string.Empty,
                     playedAt = string.Empty,
@@ -715,6 +727,7 @@ public static class OperatorTelemetry
                 source = chat.Idea?.Source ?? string.Empty,
                 author = chat.Idea?.Author ?? string.Empty,
                 prompt = chat.Idea?.Prompt ?? string.Empty,
+                synopsis = chat.Synopsis ?? string.Empty,
                 generatedAt = string.Empty,
                 queuedAt = DateTimeOffset.Now.ToString("O"),
                 playedAt = string.Empty,
@@ -746,6 +759,7 @@ public static class OperatorTelemetry
                 source = chat.Idea?.Source ?? string.Empty,
                 author = chat.Idea?.Author ?? string.Empty,
                 prompt = chat.Idea?.Prompt ?? string.Empty,
+                synopsis = chat.Synopsis ?? string.Empty,
                 generatedAt = string.Empty,
                 queuedAt = string.Empty,
                 playedAt = DateTimeOffset.Now.ToString("O"),
@@ -845,6 +859,7 @@ public static class OperatorTelemetry
         existing.source = Prefer(incoming.source, existing.source);
         existing.author = Prefer(incoming.author, existing.author);
         existing.prompt = Prefer(incoming.prompt, existing.prompt);
+        existing.synopsis = Prefer(incoming.synopsis, existing.synopsis);
         existing.generatedAt = Prefer(incoming.generatedAt, existing.generatedAt);
         existing.queuedAt = Prefer(incoming.queuedAt, existing.queuedAt);
         existing.playedAt = Prefer(incoming.playedAt, existing.playedAt);
@@ -1097,6 +1112,7 @@ public static class OperatorTelemetry
             source = episode.source,
             author = episode.author,
             prompt = episode.prompt,
+            synopsis = episode.synopsis,
             generatedAt = episode.generatedAt,
             queuedAt = episode.queuedAt,
             playedAt = episode.playedAt,
@@ -1127,6 +1143,7 @@ public sealed class EpisodeRecord
     public string source;
     public string author;
     public string prompt;
+    public string synopsis;
     public string generatedAt;
     public string queuedAt;
     public string playedAt;

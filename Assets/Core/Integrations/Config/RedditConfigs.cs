@@ -19,4 +19,9 @@ public class RedditConfigs : IConfig
     public int MaxDialogueLines { get; set; } = 16;
     public int MaxCharsPerLine { get; set; } = 280;
     public string Sort { get; set; } = "confidence"; // or "top", "new"
+    public bool EnablePitchGate { get; set; } = false;
+    public string PitchDiscordChannel { get; set; } = "#stream";
+    public int PitchExpirationMinutes { get; set; } = 180;
+    public int PitchAutoApprovalBatchSize { get; set; } = 0;
+    public int PitchMinimumVotesToQueue { get; set; } = 1;
 }

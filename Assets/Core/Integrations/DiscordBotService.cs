@@ -114,6 +114,26 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         _ = AddDefaultReplayReactionsAsync(message);
     }
 
+    public void AddDefaultPitchReactions(DiscordPostedMessage message)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.id) || string.IsNullOrWhiteSpace(message.channel_id))
+            return;
+        if (!enableBot || string.IsNullOrWhiteSpace(botToken))
+            return;
+
+        _ = AddDefaultReplayReactionsAsync(message);
+    }
+
+    public void PinPitchMessage(DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previousPitchMessages = null)
+    {
+        if (message == null || string.IsNullOrWhiteSpace(message.id) || string.IsNullOrWhiteSpace(message.channel_id))
+            return;
+        if (!enableBot || string.IsNullOrWhiteSpace(botToken))
+            return;
+
+        _ = PinPitchMessageAsync(message, previousPitchMessages);
+    }
+
     private void StartBot()
     {
         StopBot();
@@ -295,9 +315,6 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         var emojiName = payload?["emoji"]?["name"]?.Value<string>();
 
         var binding = FolderSource.FindReplayByDiscordMessage(messageId, channelId);
-        if (binding == null)
-            return;
-
         var voteKind = GetVoteKind(emojiName);
         if (voteKind == ReplayVoteKind.None)
             return;
@@ -306,9 +323,15 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         var downDelta = voteKind == ReplayVoteKind.Down ? (isAdd ? 1 : -1) : 0;
         var source = isAdd ? "discord-reaction-add" : "discord-reaction-remove";
 
-        var updated = FolderSource.ApplyVote(binding.channelKey, binding.slug, upDelta, downDelta, source, messageId);
-        if (updated != null)
-            Debug.Log($"Discord replay vote updated: {binding.slug} -> up {updated.upVotes}, down {updated.downVotes}, score {updated.voteScore}");
+        if (binding != null)
+        {
+            var updated = FolderSource.ApplyVote(binding.channelKey, binding.slug, upDelta, downDelta, source, messageId);
+            if (updated != null)
+                Debug.Log($"Discord replay vote updated: {binding.slug} -> up {updated.upVotes}, down {updated.downVotes}, score {updated.voteScore}");
+            return;
+        }
+
+        PitchCandidateStore.TryApplyVote(messageId, channelId, upDelta, downDelta, source);
     }
 
     private ReplayVoteKind GetVoteKind(string emojiName)
@@ -336,6 +359,29 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         catch (Exception e)
         {
             Debug.LogWarning($"Discord bot failed to add default replay reactions: {e.Message}");
+        }
+    }
+
+    private async Task PinPitchMessageAsync(DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previousPitchMessages)
+    {
+        try
+        {
+            await PinMessageAsync(message.channel_id, message.id);
+
+            foreach (var previous in previousPitchMessages ?? Enumerable.Empty<DiscordMessageRef>())
+            {
+                if (previous == null || string.IsNullOrWhiteSpace(previous.channelId) || string.IsNullOrWhiteSpace(previous.messageId))
+                    continue;
+                if (string.Equals(previous.channelId, message.channel_id, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(previous.messageId, message.id, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                await UnpinMessageAsync(previous.channelId, previous.messageId);
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Discord bot failed to pin pitch message: {e.Message}");
         }
     }
 
@@ -695,6 +741,16 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
     {
         var encodedEmoji = Uri.EscapeDataString(emoji);
         return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/messages/{messageId}/reactions/{encodedEmoji}/@me", "PUT");
+    }
+
+    private Task PinMessageAsync(string channelId, string messageId)
+    {
+        return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/pins/{messageId}", "PUT");
+    }
+
+    private Task UnpinMessageAsync(string channelId, string messageId)
+    {
+        return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/pins/{messageId}", "DELETE");
     }
 
     private Task PostJsonAsync(string url, object payload)
