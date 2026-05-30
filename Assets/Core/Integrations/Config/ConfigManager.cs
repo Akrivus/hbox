@@ -9,7 +9,14 @@ using UnityEngine;
 
 public class ConfigManager : MonoBehaviour
 {
+    public string SharedConfigPath = "hbox.json";
     public string ConfigPath = "config.json";
+
+    private static readonly JsonMergeSettings ConfigMergeSettings = new JsonMergeSettings
+    {
+        MergeArrayHandling = MergeArrayHandling.Replace,
+        MergeNullValueHandling = MergeNullValueHandling.Merge
+    };
 
     private Dictionary<string, Type> casters = new Dictionary<string, Type>();
     private Dictionary<string, List<Action<object>>> handlers = new Dictionary<string, List<Action<object>>>();
@@ -55,15 +62,15 @@ public class ConfigManager : MonoBehaviour
 
     public void LoadConfigs()
     {
-        if (!File.Exists(ConfigPath))
+        var j = LoadMergedConfigArray();
+        if (j == null)
             return;
-
-        var json = File.ReadAllText(ConfigPath);
-        var j = JArray.Parse(json);
 
         foreach (var i in j)
         {
-            var type = i["Type"].Value<string>();
+            var type = i["Type"]?.Value<string>();
+            if (string.IsNullOrWhiteSpace(type))
+                continue;
             if (!handlers.ContainsKey(type))
                 continue;
             var obj = JsonConvert.DeserializeObject(i.ToString(), casters[type]);
@@ -71,6 +78,60 @@ public class ConfigManager : MonoBehaviour
                 handler(obj);
             configs.Add(obj);
             configTypes[obj] = type;
+        }
+    }
+
+    private JArray LoadMergedConfigArray()
+    {
+        var shared = LoadConfigArray(SharedConfigPath);
+        var specific = LoadConfigArray(ConfigPath);
+
+        if (shared == null)
+            return specific;
+        if (specific == null)
+            return shared;
+
+        var mergedConfigs = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase);
+        var configOrder = new List<string>();
+
+        MergeConfigArrayInto(shared, mergedConfigs, configOrder);
+        MergeConfigArrayInto(specific, mergedConfigs, configOrder);
+
+        var result = new JArray();
+        foreach (var type in configOrder)
+            result.Add(mergedConfigs[type]);
+
+        return result;
+    }
+
+    private static JArray LoadConfigArray(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return null;
+
+        var json = File.ReadAllText(path);
+        return JArray.Parse(json);
+    }
+
+    private static void MergeConfigArrayInto(JArray source, Dictionary<string, JObject> mergedConfigs, List<string> configOrder)
+    {
+        foreach (var token in source)
+        {
+            if (!(token is JObject config))
+                continue;
+
+            var type = config["Type"]?.Value<string>();
+            if (string.IsNullOrWhiteSpace(type))
+                continue;
+
+            if (mergedConfigs.TryGetValue(type, out var existingConfig))
+            {
+                existingConfig.Merge(config, ConfigMergeSettings);
+                continue;
+            }
+
+            mergedConfigs[type] = (JObject)config.DeepClone();
+            configOrder.Add(type);
         }
     }
 

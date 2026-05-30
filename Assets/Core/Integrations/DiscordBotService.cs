@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -387,17 +389,6 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         try
         {
             await PinMessageAsync(message.channel_id, message.id);
-
-            foreach (var previous in previousPitchMessages ?? Enumerable.Empty<DiscordMessageRef>())
-            {
-                if (previous == null || string.IsNullOrWhiteSpace(previous.channelId) || string.IsNullOrWhiteSpace(previous.messageId))
-                    continue;
-                if (string.Equals(previous.channelId, message.channel_id, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(previous.messageId, message.id, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                await UnpinMessageAsync(previous.channelId, previous.messageId);
-            }
         }
         catch (Exception e)
         {
@@ -809,25 +800,70 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private async Task SendRestRequestAsync(string url, string method, object payload = null)
     {
-        var request = (HttpWebRequest)WebRequest.Create(url);
-        request.Method = method;
-        request.ContentType = "application/json";
-        request.UserAgent = "HBOxDiscordBot/1.0";
-        request.Headers[HttpRequestHeader.Authorization] = $"Bot {botToken}";
+        const int maxAttempts = 4;
 
-        if (payload != null)
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            var bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
-            request.ContentLength = bytes.Length;
-            using var stream = await request.GetRequestStreamAsync();
-            await stream.WriteAsync(bytes, 0, bytes.Length);
+            var request = (HttpWebRequest)WebRequest.Create(url);
+            request.Method = method;
+            request.ContentType = "application/json";
+            request.UserAgent = "HBOxDiscordBot/1.0";
+            request.Headers[HttpRequestHeader.Authorization] = $"Bot {botToken}";
+
+            if (payload != null)
+            {
+                var bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(payload));
+                request.ContentLength = bytes.Length;
+                using var stream = await request.GetRequestStreamAsync();
+                await stream.WriteAsync(bytes, 0, bytes.Length);
+            }
+            else
+            {
+                request.ContentLength = 0;
+            }
+
+            try
+            {
+                using var response = (HttpWebResponse)await request.GetResponseAsync();
+                return;
+            }
+            catch (WebException e) when (TryGetRetryDelay(e, out var retryDelay) && attempt < maxAttempts)
+            {
+                Debug.LogWarning($"Discord REST rate-limited; retrying {method} in {retryDelay.TotalSeconds:0.##}s.");
+                await Task.Delay(retryDelay);
+            }
         }
-        else
+    }
+
+    private static bool TryGetRetryDelay(WebException exception, out TimeSpan retryDelay)
+    {
+        retryDelay = TimeSpan.FromSeconds(1);
+        if (exception?.Response is not HttpWebResponse response)
+            return false;
+        if ((int)response.StatusCode != 429)
+            return false;
+
+        if (double.TryParse(response.Headers["Retry-After"], NumberStyles.Float, CultureInfo.InvariantCulture, out var headerDelay))
         {
-            request.ContentLength = 0;
+            retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, headerDelay));
+            return true;
         }
 
-        using var response = (HttpWebResponse)await request.GetResponseAsync();
+        try
+        {
+            using var stream = response.GetResponseStream();
+            using var reader = new StreamReader(stream);
+            var body = reader.ReadToEnd();
+            var retryAfter = JObject.Parse(body).Value<double?>("retry_after");
+            if (retryAfter.HasValue)
+                retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, retryAfter.Value));
+        }
+        catch
+        {
+            retryDelay = TimeSpan.FromSeconds(1);
+        }
+
+        return true;
     }
 
     [Serializable]

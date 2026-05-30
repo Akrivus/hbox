@@ -76,8 +76,42 @@ Example:
     "Type": "openai",
     "ApiUri": "https://api.openai.com",
     "ApiKey": "YOUR_OPENAI_API_KEY",
-    "SlowModel": "gpt-4o",
-    "FastModel": "gpt-4o-mini",
+    "SlowModel": "gpt-5.4",
+    "FastModel": "gpt-5.4-mini",
+    "ModelProfiles": {
+      "Utility": "gpt-5.4-nano",
+      "PostProcess": "gpt-5.4-mini",
+      "Sentiment": "gpt-5.4-nano",
+      "Dialogue": "gpt-5.4",
+      "SceneReasoning": "gpt-5.4"
+    },
+    "ModelPrices": {
+      "gpt-5.4-nano": {
+        "InputPerMillion": 0.20,
+        "CachedInputPerMillion": 0.02,
+        "OutputPerMillion": 1.25
+      },
+      "gpt-5.4-mini": {
+        "InputPerMillion": 0.75,
+        "CachedInputPerMillion": 0.075,
+        "OutputPerMillion": 4.50
+      },
+      "gpt-5.4": {
+        "InputPerMillion": 2.50,
+        "CachedInputPerMillion": 0.25,
+        "OutputPerMillion": 15.00
+      }
+    },
+    "PersistUsage": true,
+    "UsageLogPath": "Logs/llm-usage",
+    "Budgets": {
+      "DailyUsd": 5.0,
+      "PerEpisodeUsd": 0.25,
+      "WarnAtPercent": 80,
+      "EnableUiWarnings": true,
+      "EnableDiscordWarnings": false,
+      "DiscordChannel": "#stream"
+    },
     "UseEmbeddings": false
   },
   {
@@ -133,6 +167,13 @@ Example:
     "PerLevelChildLimit": 20,
     "MaxDialogueLines": 16,
     "MaxCharsPerLine": 280,
+    "RequestSpacingSeconds": 6,
+    "RateLimitCooldownSeconds": 300,
+    "MaxRequestAttempts": 3,
+    "OAuthClientId": "YOUR_REDDIT_APP_CLIENT_ID",
+    "OAuthClientSecret": "YOUR_REDDIT_APP_CLIENT_SECRET",
+    "OAuthDeviceId": "DO_NOT_TRACK_THIS_DEVICE",
+    "OAuthUserAgent": "script:hbox:1.1 (by /u/YOUR_REDDIT_USERNAME)",
     "Sort": "confidence"
   },
   {
@@ -172,9 +213,66 @@ Example:
 - Pitch generation uses `Vault/{show}/Prompts/Reddit Source/Pitch Candidate.md`, then `Vault/{show}/Prompts/Reddit Source/Pitch Evaluator.md` to reject weak or overlong pitches before posting.
 - Posted pitch cards surface the pitch, cast, source subreddit, Reddit karma/comment counts, and evaluator approval reason; the approved `Idea` still includes the raw Reddit post text and mined thread material for generation context.
 - In pitch-gate mode, Reddit posts are only written to the local seen history after a pitch is accepted for voting, so evaluator-rejected posts can be reconsidered later.
+- `reddit.RequestSpacingSeconds` applies a shared delay across Reddit listing and thread-mining requests; `reddit.RateLimitCooldownSeconds` is used before retrying after Reddit returns 429 or a 403 blocked response; `reddit.MaxRequestAttempts` bounds those retries.
+- `reddit.OAuthClientId` enables app-only OAuth for read-only listing and comment requests. Add `OAuthClientSecret` for a confidential/script app, or omit the secret and set `OAuthDeviceId` for an installed-app client. When OAuth is configured, Reddit fetches use `oauth.reddit.com` with a cached bearer token.
+- `reddit.OAuthUserAgent` should identify the app and Reddit username that owns the client, for example `script:hbox:1.1 (by /u/yourname)`.
 - Approved pitch posts are pinned by the Discord bot when bot permissions allow it, and the operator panel reads `/api/pitches` for the current pitch deck.
 - OpenAI text generation and OpenAI TTS are configured separately.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.
+
+### OpenAI model profiles and usage budgets
+
+`SlowModel` and `FastModel` remain the default compatibility models. `ModelProfiles` can override specific LLM call classes without changing older call sites:
+
+- `Slow` and `Fast`: direct replacements for the legacy binary model switch.
+- `Utility`, `PostProcess`, and `Sentiment`: cheap/default profiles for low-reasoning work.
+- `Dialogue` and `SceneReasoning`: higher-capability profiles for chain stages that benefit from stronger reasoning.
+
+`ModelPrices` is keyed by the exact model name returned by the OpenAI response. The values in the example above are illustrative; update them when model pricing changes. Costs are calculated from response usage metadata when available:
+
+- `InputPerMillion`: uncached input token price.
+- `CachedInputPerMillion`: cached input token price.
+- `OutputPerMillion`: output token price.
+
+Current standard API prices for the main text generation models, in USD per 1M tokens:
+
+| Model | InputPerMillion | CachedInputPerMillion | OutputPerMillion | Notes |
+| --- | ---: | ---: | ---: | --- |
+| `gpt-5.5` | 5.00 | 0.50 | 30.00 | Short-context standard price. Long-context pricing is higher. |
+| `gpt-5.5-pro` | 30.00 | 0.00 | 180.00 | No cached input price is listed. Long-context pricing is higher. |
+| `gpt-5.4` | 2.50 | 0.25 | 15.00 | Short-context standard price. Long-context pricing is higher. |
+| `gpt-5.4-mini` | 0.75 | 0.075 | 4.50 | Cost-efficient general model. |
+| `gpt-5.4-nano` | 0.20 | 0.02 | 1.25 | Lowest-cost current GPT-5.4 class model. |
+| `gpt-5.4-pro` | 30.00 | 0.00 | 180.00 | No cached input price is listed. Long-context pricing is higher. |
+| `chat-latest` | 5.00 | 0.50 | 30.00 | ChatGPT model alias. |
+| `gpt-5.3-codex` | 1.75 | 0.175 | 14.00 | Codex-specialized model. |
+
+The runtime currently stores one price row per model id. If a model has separate short-context and long-context prices, use the row that matches the expected workload or split usage into distinct model ids/config aliases before relying on budget totals for exact accounting.
+
+When `PersistUsage` is enabled, LLM call records are appended as JSONL under `UsageLogPath`, one file per local date. Each call is tagged with profile, resolved model, prompt/template part, caller type/member, channel key, episode slug, token counts, cached/reasoning token details, latency, success/error status, and calculated cost.
+
+`Budgets` controls warning thresholds:
+
+- `DailyUsd`: daily cost limit across all LLM calls. Set to `0` to disable daily budget warnings.
+- `PerEpisodeUsd`: per-episode cost limit. Set to `0` to disable per-episode budget warnings.
+- `WarnAtPercent`: percentage of a configured limit that emits a warning before the hard limit is exceeded.
+- `EnableUiWarnings`: publishes budget warnings to the in-app UI event overlay.
+- `EnableDiscordWarnings`: posts budget warnings to Discord when Discord webhooks are configured.
+- `DiscordChannel`: optional webhook key for budget warnings. If blank, the current stream channel is used.
+
+Budget warnings are also recorded in the operator event stream as `llm_budget_warning`.
+
+LLM usage APIs:
+
+- `GET /api/llm/calls?limit=100`
+- `GET /api/llm/summary?groupBy=template`
+- `GET /api/llm/summary?groupBy=ip`
+- `GET /api/llm/summary?groupBy=generator`
+- `GET /api/llm/summary?groupBy=model`
+- `GET /api/llm/summary?groupBy=profile`
+- `GET /api/llm/budget?limit=1000`
+- `GET /api/llm/history/calls?date=YYYY-MM-DD`
+- `GET /api/llm/history/budget?date=YYYY-MM-DD`
 
 ### Soccer config example
 

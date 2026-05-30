@@ -2,9 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
@@ -58,7 +61,7 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public void SendDialogue(ChatNode node)
     {
-        PutInQueue("#stream", node.Line, node.Actor.Name, GetAvatarURL(node));
+        PutInQueue(GetStreamChannel(ChatManagerContext.Current), node.Line, node.Actor.Name, GetAvatarURL(node));
     }
 
     private string GetAvatarURL(ChatNode node)
@@ -96,6 +99,25 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
     {
         var webhook = Webhooks.FirstOrDefault(w => w.Key == channel).Value;
         Q.Enqueue(new DiscordWebhookQueueItem(webhook, message, waitForResponse, onPosted));
+    }
+
+    public static string GetStreamChannel(ChatManagerContext context)
+    {
+        if (webhooks == null || webhooks.Count == 0)
+            return "#stream";
+
+        var key = context?.Key;
+        if (!string.IsNullOrWhiteSpace(key))
+        {
+            if (webhooks.ContainsKey(key))
+                return key;
+
+            var hashKey = key.StartsWith("#", StringComparison.Ordinal) ? key : "#" + key;
+            if (webhooks.ContainsKey(hashKey))
+                return hashKey;
+        }
+
+        return webhooks.ContainsKey("#stream") ? "#stream" : webhooks.Keys.First();
     }
 }
 
@@ -233,63 +255,136 @@ public class DiscordWebhook
     public string URL { get; set; }
     public WebClient Client { get; set; }
 
+    private const float RateLimitWindowSeconds = 2.2f;
+    private const int MaxRequestsPerWindow = 4;
+    private const float MinimumSendSpacingSeconds = 0.75f;
+
     private Stopwatch rateLimitTimer = new Stopwatch();
-    private int requestsRemaining = 5;
+    private Stopwatch sendSpacingTimer = new Stopwatch();
+    private int requestsRemaining = MaxRequestsPerWindow;
 
     public DiscordWebhook(string url)
     {
         URL = url;
         rateLimitTimer.Start();
+        sendSpacingTimer.Start();
     }
 
     public IEnumerator SendAsync(DiscordWebhookMessage message, bool waitForResponse = false, Action<DiscordPostedMessage> onPosted = null)
     {
-        if (rateLimitTimer.Elapsed.TotalSeconds > 2 || requestsRemaining <= 0)
-            yield return RateLimit();
+        const int maxAttempts = 4;
 
-        Client = new WebClient();
-        Client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
-        UploadStringCompletedEventArgs result = null;
-        UploadStringCompletedEventHandler handler = (_, args) => result = args;
-        Client.UploadStringCompleted += handler;
-
-        var targetUrl = waitForResponse
-            ? $"{URL}{(URL.Contains("?") ? "&" : "?")}wait=true"
-            : URL;
-        Client.UploadStringAsync(new Uri(targetUrl), "POST", JsonConvert.SerializeObject(message));
-        requestsRemaining--;
-
-        yield return new WaitUntil(() => result != null);
-        Client.UploadStringCompleted -= handler;
-
-        if (result.Error != null)
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            UnityEngine.Debug.LogError(result.Error);
+            yield return WaitForSendSlot();
+
+            Client = new WebClient();
+            Client.Headers.Add(HttpRequestHeader.ContentType, "application/json");
+            UploadStringCompletedEventArgs result = null;
+            UploadStringCompletedEventHandler handler = (_, args) => result = args;
+            Client.UploadStringCompleted += handler;
+
+            var targetUrl = waitForResponse
+                ? $"{URL}{(URL.Contains("?") ? "&" : "?")}wait=true"
+                : URL;
+            Client.UploadStringAsync(new Uri(targetUrl), "POST", JsonConvert.SerializeObject(message));
+            requestsRemaining--;
+            sendSpacingTimer.Restart();
+
+            yield return new WaitUntil(() => result != null);
+            Client.UploadStringCompleted -= handler;
+
+            if (result.Error != null)
+            {
+                if (TryGetRetryDelaySeconds(result.Error, out var retrySeconds) && attempt < maxAttempts)
+                {
+                    UnityEngine.Debug.LogWarning($"Discord webhook rate-limited; retrying in {retrySeconds:0.##}s.");
+                    yield return new WaitForSeconds(retrySeconds);
+                    ResetRateLimitWindow();
+                    continue;
+                }
+
+                UnityEngine.Debug.LogError(result.Error);
+                yield break;
+            }
+
+            if (waitForResponse && !string.IsNullOrWhiteSpace(result.Result))
+            {
+                DiscordPostedMessage postedMessage = null;
+
+                try
+                {
+                    postedMessage = JsonConvert.DeserializeObject<DiscordPostedMessage>(result.Result);
+                }
+                catch (JsonException e)
+                {
+                    UnityEngine.Debug.LogWarning($"DiscordWebhook.SendAsync failed to parse webhook response: {e.Message}");
+                }
+
+                onPosted?.Invoke(postedMessage);
+            }
+
             yield break;
-        }
-
-        if (waitForResponse && !string.IsNullOrWhiteSpace(result.Result))
-        {
-            DiscordPostedMessage postedMessage = null;
-
-            try
-            {
-                postedMessage = JsonConvert.DeserializeObject<DiscordPostedMessage>(result.Result);
-            }
-            catch (JsonException e)
-            {
-                UnityEngine.Debug.LogWarning($"DiscordWebhook.SendAsync failed to parse webhook response: {e.Message}");
-            }
-
-            onPosted?.Invoke(postedMessage);
         }
     }
 
     private IEnumerator RateLimit()
     {
-        yield return new WaitUntil(() => rateLimitTimer.Elapsed.Seconds > 2);
+        yield return new WaitUntil(() => rateLimitTimer.Elapsed.TotalSeconds >= RateLimitWindowSeconds);
+        ResetRateLimitWindow();
+    }
+
+    private IEnumerator WaitForSendSlot()
+    {
+        if (rateLimitTimer.Elapsed.TotalSeconds >= RateLimitWindowSeconds)
+            ResetRateLimitWindow();
+
+        if (requestsRemaining <= 0)
+            yield return RateLimit();
+
+        var spacingDelay = MinimumSendSpacingSeconds - (float)sendSpacingTimer.Elapsed.TotalSeconds;
+        if (spacingDelay > 0f)
+            yield return new WaitForSeconds(spacingDelay);
+
+        if (rateLimitTimer.Elapsed.TotalSeconds >= RateLimitWindowSeconds)
+            ResetRateLimitWindow();
+    }
+
+    private void ResetRateLimitWindow()
+    {
         rateLimitTimer.Restart();
-        requestsRemaining = 5;
+        requestsRemaining = MaxRequestsPerWindow;
+    }
+
+    private static bool TryGetRetryDelaySeconds(Exception error, out float retrySeconds)
+    {
+        retrySeconds = 1f;
+        if (error is not WebException webException || webException.Response is not HttpWebResponse response)
+            return false;
+        if ((int)response.StatusCode != 429)
+            return false;
+
+        if (float.TryParse(response.Headers["Retry-After"], NumberStyles.Float, CultureInfo.InvariantCulture, out var headerDelay))
+        {
+            retrySeconds = Mathf.Max(0.25f, headerDelay);
+            return true;
+        }
+
+        try
+        {
+            using var stream = response.GetResponseStream();
+            using var reader = new StreamReader(stream);
+            var body = reader.ReadToEnd();
+            var retryAfter = JObject.Parse(body).Value<float?>("retry_after");
+            if (retryAfter.HasValue)
+                retrySeconds = Mathf.Max(0.25f, retryAfter.Value);
+        }
+        catch
+        {
+            retrySeconds = 1f;
+        }
+
+        return true;
     }
 }
 

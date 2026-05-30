@@ -905,13 +905,14 @@ public class ChatManager : MonoBehaviour
         if (chat?.Actors == null || chat.ManagerContext == null || CurrentContext == null)
             return;
 
+        var streamChannel = DiscordManager.GetStreamChannel(chat.ManagerContext);
         foreach (var actor in chat.Actors)
         {
             if (ChatManagerContext.Current.Key != chat.ManagerContext.Key)
                 continue;
             if (actor == null || string.IsNullOrEmpty(actor.Memory) || actor.Reference == null)
                 continue;
-            DiscordManager.PutInQueue("#stream", new DiscordWebhookMessage(
+            DiscordManager.PutInQueue(streamChannel, new DiscordWebhookMessage(
                 string.Empty, null, null,
                 new DiscordEmbed
                 {
@@ -927,6 +928,7 @@ public class ChatManager : MonoBehaviour
         if (chat == null || StopPlaying(chat) || string.IsNullOrEmpty(chat.Title))
             return;
 
+        var streamChannel = DiscordManager.GetStreamChannel(chat.ManagerContext);
         var message = new DiscordWebhookMessage(
             "# :clapper: Now Streaming!", null, null,
             new DiscordEmbed
@@ -937,7 +939,7 @@ public class ChatManager : MonoBehaviour
 
         if (!chat.NewEpisode)
         {
-            DiscordManager.PutInQueue("#stream", message, posted =>
+            DiscordManager.PutInQueue(streamChannel, message, posted =>
             {
                 RecordNowPlayingMessage(chat, posted);
                 FolderSource.RecordDiscordMessage(chat.Key, chat.FileName, posted);
@@ -946,7 +948,7 @@ public class ChatManager : MonoBehaviour
             return;
         }
 
-        DiscordManager.PutInQueue("#stream", message, posted => RecordNowPlayingMessage(chat, posted));
+        DiscordManager.PutInQueue(streamChannel, message, posted => RecordNowPlayingMessage(chat, posted));
     }
 
     private void RecordNowPlayingMessage(Chat chat, DiscordPostedMessage message)

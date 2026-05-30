@@ -32,7 +32,7 @@ public class ChatGenerator : MonoBehaviour
 
     private void Start()
     {
-        chatManagerContext = ChatManagerContext.Current;
+        chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
         if (isApiAccessible)
             ServerSource.Instance?.RegisterGenerator(this);
         StartCoroutine(UpdateQueue());

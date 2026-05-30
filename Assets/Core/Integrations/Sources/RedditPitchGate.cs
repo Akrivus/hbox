@@ -173,11 +173,34 @@ public sealed class PitchCandidateStore
         lock (instanceLock)
         {
             foreach (var store in instances.Values)
-                if (store.ApplyVote(messageId, channelId, upDelta, downDelta, source))
+                if (store.ApplyVoteByDiscordMessage(messageId, channelId, upDelta, downDelta, source))
                     return true;
         }
 
         return false;
+    }
+
+    public static PitchCandidate ApplyVote(string channelKey, string id, int upDelta, int downDelta, string source)
+    {
+        if (string.IsNullOrWhiteSpace(channelKey) || string.IsNullOrWhiteSpace(id))
+            return null;
+        if (upDelta == 0 && downDelta == 0)
+            return null;
+
+        lock (instanceLock)
+        {
+            if (instances.TryGetValue(channelKey, out var store))
+                return store.ApplyVoteById(channelKey, id, upDelta, downDelta, source);
+
+            foreach (var candidateStore in instances.Values)
+            {
+                var updated = candidateStore.ApplyVoteById(channelKey, id, upDelta, downDelta, source);
+                if (updated != null)
+                    return updated;
+            }
+        }
+
+        return null;
     }
 
     public int ResolveFinishedVotes(int minimumVotes)
@@ -226,7 +249,7 @@ public sealed class PitchCandidateStore
         }
     }
 
-    private bool ApplyVote(string messageId, string channelId, int upDelta, int downDelta, string source)
+    private bool ApplyVoteByDiscordMessage(string messageId, string channelId, int upDelta, int downDelta, string source)
     {
         lock (sync)
         {
@@ -237,20 +260,50 @@ public sealed class PitchCandidateStore
             if (candidate == null)
                 return false;
 
-            if (candidate.status != PitchStatus.PostedForVote)
-                return true;
+            var changed = ApplyVoteToCandidate(candidate, upDelta, downDelta, source);
+            if (changed)
+                Write();
 
-            if (IsExpired(candidate))
-                return true;
-
-            candidate.upVotes = Mathf.Max(0, candidate.upVotes + upDelta);
-            candidate.downVotes = Mathf.Max(0, candidate.downVotes + downDelta);
-            candidate.voteScore = candidate.upVotes - candidate.downVotes;
-
-            Write();
-            Debug.Log($"Pitch vote updated: {candidate.id} -> up {candidate.upVotes}, down {candidate.downVotes}, score {candidate.voteScore}");
             return true;
         }
+    }
+
+    private PitchCandidate ApplyVoteById(string channelKey, string id, int upDelta, int downDelta, string source)
+    {
+        lock (sync)
+        {
+            var candidate = manifest.candidates.FirstOrDefault(p =>
+                string.Equals(p.id, id, StringComparison.OrdinalIgnoreCase) &&
+                (string.IsNullOrWhiteSpace(channelKey) || string.Equals(p.channelKey, channelKey, StringComparison.OrdinalIgnoreCase)));
+
+            if (candidate == null)
+                return null;
+
+            if (ApplyVoteToCandidate(candidate, upDelta, downDelta, source))
+                Write();
+
+            StampContext(candidate);
+            return candidate;
+        }
+    }
+
+    private bool ApplyVoteToCandidate(PitchCandidate candidate, int upDelta, int downDelta, string source)
+    {
+        if (candidate == null)
+            return false;
+
+        if (candidate.status != PitchStatus.PostedForVote)
+            return false;
+
+        if (IsExpired(candidate))
+            return false;
+
+        candidate.upVotes = Mathf.Max(0, candidate.upVotes + upDelta);
+        candidate.downVotes = Mathf.Max(0, candidate.downVotes + downDelta);
+        candidate.voteScore = candidate.upVotes - candidate.downVotes;
+
+        Debug.Log($"Pitch vote updated: {candidate.id} -> up {candidate.upVotes}, down {candidate.downVotes}, score {candidate.voteScore}");
+        return true;
     }
 
     private void ResolveFinishedCandidate(PitchCandidate candidate, int minimumVotes)

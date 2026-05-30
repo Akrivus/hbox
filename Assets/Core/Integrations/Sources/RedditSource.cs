@@ -58,10 +58,18 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         ActiveWindowStart = c.ActiveHoursStart;
         ActiveWindowEnd = c.ActiveHoursEnd;
         EnablePitchGate = c.EnablePitchGate;
-        PitchDiscordChannel = string.IsNullOrWhiteSpace(c.PitchDiscordChannel) ? "#stream" : c.PitchDiscordChannel;
+        PitchDiscordChannel = c.PitchDiscordChannel;
         PitchExpirationMinutes = Mathf.Max(1, c.PitchExpirationMinutes);
         PitchAutoApprovalBatchSize = Mathf.Max(0, c.PitchAutoApprovalBatchSize);
         PitchMinimumVotesToQueue = Mathf.Max(0, c.PitchMinimumVotesToQueue);
+        RedditRequestGate.Configure(
+            c.RequestSpacingSeconds,
+            c.RateLimitCooldownSeconds,
+            c.MaxRequestAttempts,
+            c.OAuthClientId,
+            c.OAuthClientSecret,
+            c.OAuthDeviceId,
+            c.OAuthUserAgent);
 
         i = UnityEngine.Random.Range(0, SubReddits.Count);
 
@@ -90,6 +98,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             UiEventBus.Publish(chatManagerContext, nextRunTime);
             yield return new WaitUntil(() => chatManagerContext.IsActive && DateTime.Now >= nextRunTime);
 
+            UiEventBus.Publish(chatManagerContext, GetNextRunTime());
             yield return Drop();
             yield return WhenUnpaused();
         } while (chatManagerContext.IsActive);
@@ -110,7 +119,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         yield return FetchIdeas(canAutoApprove).AsCoroutine();
 
         while (ideas.TryDequeue(out var idea))
-            yield return generator.GenerateAndPlay(idea).AsCoroutine();
+            generator.AddIdeaToQueue(idea);
 
         OnBatchEnd?.Invoke();
     }
@@ -130,7 +139,17 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             for (var iterations = 0; iterations < BatchSize; iterations++)
             {
                 var subreddit = SubReddits.ElementAt(i);
-                var range = await FetchAsync(subreddit.Key);
+                IEnumerable<JToken> range;
+                try
+                {
+                    range = await FetchAsync(subreddit.Key);
+                }
+                catch (RedditRateLimitException e)
+                {
+                    Debug.LogWarning(e.Message);
+                    return;
+                }
+
                 var value = await BuildSubPrompt(string.Format(await FindMetaPrompt("{0}"), subreddit.Value));
                 var prompt = string.Format(promptTemplate, value, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
                 var posts = OrderPostsForPitchGate(range.Take(BatchSize)).ToList();
@@ -175,7 +194,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private async Task<bool> PostToIdea(JToken post, string template, bool autoApprove = false)
     {
-        var source = BuildSource(post);
+        var source = await BuildSourceAsync(post);
         var topic = source.title +
             "\n\n" + source.selftext +
             "\n\n" + source.threadContext;
@@ -210,22 +229,41 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         return true;
     }
 
-    private RedditPostSource BuildSource(JToken post)
+    private async Task<RedditPostSource> BuildSourceAsync(JToken post)
     {
         var permalink = post.Value<string>("permalink");
-        var top = miner.Mine(permalink);
+        var id = post.Value<string>("id");
+        var title = post.Value<string>("title");
+        var selftext = post.Value<string>("selftext");
+        var author = post.Value<string>("author");
+        var subreddit = post.Value<string>("subreddit_name_prefixed");
+        var url = post.Value<string>("url");
+        var score = post.Value<int?>("score") ?? 0;
+        var commentCount = post.Value<int?>("num_comments") ?? 0;
+        var top = await Task.Run(() =>
+        {
+            try
+            {
+                return miner.Mine(permalink);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Reddit thread mining failed for {permalink}: {e.Message}");
+                return new List<RedditThreadMiner.ThreadPick>();
+            }
+        });
 
         return new RedditPostSource
         {
-            id = post.Value<string>("id"),
-            title = post.Value<string>("title"),
-            selftext = post.Value<string>("selftext"),
-            author = post.Value<string>("author"),
-            subreddit = post.Value<string>("subreddit_name_prefixed"),
+            id = id,
+            title = title,
+            selftext = selftext,
+            author = author,
+            subreddit = subreddit,
             permalink = permalink,
-            url = post.Value<string>("url"),
-            score = post.Value<int?>("score") ?? 0,
-            commentCount = post.Value<int?>("num_comments") ?? 0,
+            url = url,
+            score = score,
+            commentCount = commentCount,
             threadContext = string.Join("\n\n", top.Select(t => t.DialogueSeed))
         };
     }
@@ -272,7 +310,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
             output,
             source,
             generator.slug,
-            PitchDiscordChannel,
+            ResolvePitchDiscordChannel(),
             PitchExpirationMinutes,
             approvalReason);
         candidate.discordColor = ResolvePitchColor(candidate);
@@ -303,6 +341,14 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         }
 
         return 0;
+    }
+
+    private string ResolvePitchDiscordChannel()
+    {
+        if (!string.IsNullOrWhiteSpace(PitchDiscordChannel) && !string.Equals(PitchDiscordChannel, "#stream", StringComparison.OrdinalIgnoreCase))
+            return PitchDiscordChannel;
+
+        return DiscordManager.GetStreamChannel(chatManagerContext);
     }
 
     private string BuildEpisodeContinuityContext()
@@ -425,9 +471,9 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private void Start()
     {
-        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(RedditConfigs), "reddit", (_config) => Configure((RedditConfigs)_config));
-        chatManagerContext = ChatManagerContext.Current;
+        chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? generator?.ManagerContext ?? ChatManagerContext.Current;
         pitchStore = new PitchCandidateStore(chatManagerContext, generator);
+        chatManagerContext.ConfigManager.RegisterConfig(typeof(RedditConfigs), "reddit", (_config) => Configure((RedditConfigs)_config));
     }
 
     private void OnDestroy()
@@ -439,7 +485,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private List<string> LoadHistory()
     {
-        fileName = $"reddit-{ChatManagerContext.Current.Key}.txt";
+        fileName = $"reddit-{chatManagerContext.Key}.txt";
         if (!File.Exists(fileName))
             return new List<string>();
         return File.ReadAllLines(fileName).ToList();
@@ -459,11 +505,9 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         var subreddit = parts[0];
         var query = parts.Length > 1 ? parts[1] : null;
         var url = $"https://www.reddit.com/r/{subreddit}.json?{query}";
-        var client = new WebClient();
+        using var client = new TimeoutWebClient();
 
-        client.Headers.Add("User-Agent", "polbot:1.0 (by /u/Akrivus)");
-
-        var json = client.DownloadString(url);
+        var json = RedditRequestGate.DownloadString(client, url);
         var data = JObject.Parse(json);
 
         fetchTimes[subreddit] = DateTime.Now;
@@ -536,4 +580,20 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         return true;
     }
 
+    private sealed class TimeoutWebClient : WebClient
+    {
+        private const int TimeoutMilliseconds = 15000;
+
+        protected override WebRequest GetWebRequest(Uri address)
+        {
+            var request = base.GetWebRequest(address);
+            if (request == null)
+                return null;
+
+            request.Timeout = TimeoutMilliseconds;
+            if (request is HttpWebRequest httpRequest)
+                httpRequest.ReadWriteTimeout = TimeoutMilliseconds;
+            return request;
+        }
+    }
 }

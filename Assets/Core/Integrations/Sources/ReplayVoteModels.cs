@@ -13,6 +13,17 @@ public sealed class ReplayVoteRequest
 }
 
 [Serializable]
+public sealed class PitchVoteRequest
+{
+    public string channelKey;
+    public string id;
+    public int delta;
+    public int upDelta;
+    public int downDelta;
+    public string source;
+}
+
+[Serializable]
 public sealed class ReplayDiscordBinding
 {
     public string channelKey;

@@ -52,6 +52,36 @@ public class RedditThreadMiner
         return picks;
     }
 
+    public string FormatDialogue(CommentNode root, int maxLines, int maxCharsPerLine)
+    {
+        var sb = new StringBuilder();
+        int lines = 0;
+
+        void Emit(CommentNode n, int depth)
+        {
+            if (lines >= maxLines) return;
+
+            var author = string.IsNullOrEmpty(n.Author) ? "anon" : n.Author;
+            var text = Condense(n.Body, maxCharsPerLine);
+
+            int indent = Math.Min(depth, 4) * 2;
+            sb.Append(' ', indent);
+            sb.Append('[').Append(author).Append("]: ").AppendLine(text);
+            lines++;
+
+            if (lines >= maxLines) return;
+
+            foreach (var c in n.Children)
+            {
+                if (lines >= maxLines) break;
+                Emit(c, depth + 1);
+            }
+        }
+
+        Emit(root, 0);
+        return sb.ToString().TrimEnd();
+    }
+
     private static List<CommentNode> FetchForest(string permalink, string sort, int maxDepth, int topLimit, int perLevelLimit)
     {
         if (!permalink.EndsWith("/")) permalink += "/";
@@ -59,7 +89,7 @@ public class RedditThreadMiner
         var url = $"https://www.reddit.com{permalink}.json?raw_json=1&sort={sort}&limit=100";
 
         using var client = NewClient();
-        var json = client.DownloadString(url);
+        var json = RedditRequestGate.DownloadString(client, url);
         var arr = JArray.Parse(json);
         if (arr.Count < 2) return new List<CommentNode>();
 
@@ -134,39 +164,26 @@ public class RedditThreadMiner
 
     private static WebClient NewClient()
     {
-        var _ = new WebClient();
+        var _ = new TimeoutWebClient();
         _.Headers.Add("User-Agent", "polbot:1.0 (by /u/Akrivus)");
         return _;
     }
 
-    public string FormatDialogue(CommentNode root, int maxLines, int maxCharsPerLine)
+    private sealed class TimeoutWebClient : WebClient
     {
-        var sb = new StringBuilder();
-        int lines = 0;
+        private const int TimeoutMilliseconds = 15000;
 
-        void Emit(CommentNode n, int depth)
+        protected override WebRequest GetWebRequest(Uri address)
         {
-            if (lines >= maxLines) return;
+            var request = base.GetWebRequest(address);
+            if (request == null)
+                return null;
 
-            var author = string.IsNullOrEmpty(n.Author) ? "anon" : n.Author;
-            var text = Condense(n.Body, maxCharsPerLine);
-
-            int indent = Math.Min(depth, 4) * 2;
-            sb.Append(' ', indent);
-            sb.Append('[').Append(author).Append("]: ").AppendLine(text);
-            lines++;
-
-            if (lines >= maxLines) return;
-
-            foreach (var c in n.Children)
-            {
-                if (lines >= maxLines) break;
-                Emit(c, depth + 1);
-            }
+            request.Timeout = TimeoutMilliseconds;
+            if (request is HttpWebRequest httpRequest)
+                httpRequest.ReadWriteTimeout = TimeoutMilliseconds;
+            return request;
         }
-
-        Emit(root, 0);
-        return sb.ToString().TrimEnd();
     }
 
     private static string Condense(string s, int max)

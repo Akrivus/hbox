@@ -19,6 +19,13 @@ public class RedditConfigs : IConfig
     public int MaxDialogueLines { get; set; } = 16;
     public int MaxCharsPerLine { get; set; } = 280;
     public string Sort { get; set; } = "confidence"; // or "top", "new"
+    public float RequestSpacingSeconds { get; set; } = 6f;
+    public float RateLimitCooldownSeconds { get; set; } = 300f;
+    public int MaxRequestAttempts { get; set; } = 3;
+    public string OAuthClientId { get; set; }
+    public string OAuthClientSecret { get; set; }
+    public string OAuthDeviceId { get; set; } = "DO_NOT_TRACK_THIS_DEVICE";
+    public string OAuthUserAgent { get; set; } = "script:hbox:1.1 (by /u/Akrivus)";
     public bool EnablePitchGate { get; set; } = false;
     public string PitchDiscordChannel { get; set; } = "#stream";
     public int PitchExpirationMinutes { get; set; } = 180;

@@ -999,6 +999,7 @@
 			let replayRequestId = 0;
 			let pitchRequestId = 0;
 			const votingReplays = new Set();
+			const votingPitches = new Set();
 
 			function setStatus(message, isError = false) {
 				status.textContent = message || '';
@@ -1031,6 +1032,7 @@
 			function clearPitchState() {
 				pitchRequestId++;
 				pitchState = [];
+				votingPitches.clear();
 				renderPitches(pitchState);
 			}
 
@@ -1461,6 +1463,9 @@
 					const expiresAt = formatTime(item.expiresAtUtc);
 					const statusLabel = formatPitchStatus(item.status);
 					const statusClass = getPitchStatusClass(item.status);
+					const voteKey = `${item.channelKey || ''}:${item.id || ''}`;
+					const isVoting = votingPitches.has(voteKey);
+					const canVote = statusLabel === 'PostedForVote';
 					const permalink = String(item.source?.permalink || '');
 					const sourceUrl = permalink.startsWith('http') ? permalink : (permalink ? `https://reddit.com${permalink}` : (item.source?.url || ''));
 					const sourceLabel = item.source?.subreddit || item.source?.author || 'reddit';
@@ -1495,12 +1500,92 @@
 							<span class="replay-chip discord-detail" title="Discord message">${item.discordMessageId ? `Discord ${escapeHtml(shortDiscordId(item.discordMessageId))}` : 'Discord pending'}</span>
 							<span class="replay-chip discord-detail" title="Expiration">Expires ${escapeHtml(expiresAt || 'unknown')}</span>
 						</div>
+						<div class="replay-votes">
+							<button class="replay-vote up" type="button" data-pitch-vote="up" data-channel-key="${escapeHtml(item.channelKey || '')}" data-id="${escapeHtml(item.id || '')}" aria-label="Thumbs up pitch" title="${canVote ? 'Thumbs up pitch' : 'Voting is closed for this pitch'}" ${isVoting || !canVote ? 'disabled' : ''}><span class="vote-icon">👍</span><span>Up</span><small>${item.upVotes ?? 0}</small></button>
+							<button class="replay-vote down" type="button" data-pitch-vote="down" data-channel-key="${escapeHtml(item.channelKey || '')}" data-id="${escapeHtml(item.id || '')}" aria-label="Thumbs down pitch" title="${canVote ? 'Thumbs down pitch' : 'Voting is closed for this pitch'}" ${isVoting || !canVote ? 'disabled' : ''}><span class="vote-icon">👎</span><span>Down</span><small>${item.downVotes ?? 0}</small></button>
+						</div>
 						<details class="pitch-body">
 							<summary>Pitch card</summary>
 							<pre>${escapeHtml(body || 'No pitch body stored.')}</pre>
 						</details>
 					`;
 					pitchFeed.appendChild(row);
+				}
+			}
+
+			async function voteOnPitch(channelKeyValue, id, vote) {
+				if (!channelKeyValue || !id)
+					return;
+				if (channelKeyValue !== getSelectedChannelKey())
+					return;
+
+				const voteKey = `${channelKeyValue}:${id}`;
+				if (votingPitches.has(voteKey))
+					return;
+
+				const index = pitchState.findIndex(item =>
+					item.id === id &&
+					String(item.channelKey || '').toLowerCase() === String(channelKeyValue || '').toLowerCase());
+				const previous = index >= 0 ? { ...pitchState[index] } : null;
+
+				votingPitches.add(voteKey);
+				if (index >= 0) {
+					const current = pitchState[index];
+					const optimistic = {
+						...current,
+						upVotes: Math.max(0, (Number(current.upVotes) || 0) + (vote === 'up' ? 1 : 0)),
+						downVotes: Math.max(0, (Number(current.downVotes) || 0) + (vote === 'down' ? 1 : 0))
+					};
+					optimistic.voteScore = (Number(optimistic.upVotes) || 0) - (Number(optimistic.downVotes) || 0);
+					pitchState.splice(index, 1, optimistic);
+				}
+				renderPitches(pitchState);
+
+				try {
+					const res = await fetch('/api/pitches/vote', {
+						method: 'POST',
+						headers: {
+							Accept: 'application/json',
+							'Content-Type': 'application/json'
+						},
+						cache: 'no-store',
+						body: JSON.stringify({
+							channelKey: channelKeyValue,
+							id,
+							upDelta: vote === 'up' ? 1 : 0,
+							downDelta: vote === 'down' ? 1 : 0,
+							source: 'operator-panel'
+						})
+					});
+
+					if (!res.ok)
+						throw new Error(`HTTP ${res.status}`);
+
+					const updated = await res.json();
+					if (channelKeyValue !== getSelectedChannelKey())
+						return;
+
+					const updatedIndex = pitchState.findIndex(item =>
+						item.id === updated.id &&
+						String(item.channelKey || '').toLowerCase() === String(updated.channelKey || '').toLowerCase());
+
+					if (updatedIndex >= 0)
+						pitchState.splice(updatedIndex, 1, updated);
+					else
+						pitchState.unshift(updated);
+
+					renderPitches(pitchState);
+					setStatus(`Pitch vote saved for ${extractPitchTitle(updated.body, updated.source?.title || updated.id)}.`);
+					await loadPitches().catch(err => setStatus(`Pitch refresh failed: ${err.message}`, true));
+				} catch (err) {
+					if (previous && index >= 0 && channelKeyValue === getSelectedChannelKey())
+						pitchState.splice(index, 1, previous);
+					if (channelKeyValue === getSelectedChannelKey())
+						setStatus(`Pitch vote failed: ${err.message}`, true);
+				} finally {
+					votingPitches.delete(voteKey);
+					if (channelKeyValue === getSelectedChannelKey())
+						renderPitches(pitchState);
 				}
 			}
 
@@ -2031,6 +2116,14 @@ Managed Heap: ${formatBytes(managed)}`;
 					return;
 
 				voteOnReplay(button.dataset.channelKey, button.dataset.slug, button.dataset.vote);
+			});
+
+			pitchFeed.addEventListener('click', (e) => {
+				const button = e.target.closest('[data-pitch-vote]');
+				if (!button)
+					return;
+
+				voteOnPitch(button.dataset.channelKey, button.dataset.id, button.dataset.pitchVote);
 			});
 
 			refreshChannels().catch(err => setStatus(`Failed to load channels: ${err.message}`, true));

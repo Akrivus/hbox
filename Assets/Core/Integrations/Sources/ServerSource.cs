@@ -49,9 +49,15 @@ public class ServerSource : MonoBehaviour
         AddApiRoute("GET", "/api/diagnostics/memory", GetMemoryDiagnosticsAsync);
         AddRoute("GET", "/api/diagnostics/memory/history", GetMemoryDiagnosticsHistoryAsync);
         AddRoute("GET", "/api/events", GetEventsAsync);
+        AddRoute("GET", "/api/llm/calls", GetLlmCallsAsync);
+        AddRoute("GET", "/api/llm/summary", GetLlmSummaryAsync);
+        AddRoute("GET", "/api/llm/budget", GetLlmBudgetAsync);
+        AddRoute("GET", "/api/llm/history/calls", GetLlmHistoryCallsAsync);
+        AddRoute("GET", "/api/llm/history/budget", GetLlmHistoryBudgetAsync);
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
         AddRoute("GET", "/api/pitches", GetPitchStatusAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
+        AddApiRoute<PitchVoteRequest, PitchCandidate>("POST", "/api/pitches/vote", VoteOnPitchAsync);
         AddApiRoute<ReplayVoteRequest, ReplayStatusRecord>("POST", "/api/replays/vote", VoteOnReplayAsync);
     }
 
@@ -283,6 +289,50 @@ public class ServerSource : MonoBehaviour
         return WriteJsonAsync(context.Response, OperatorTelemetry.GetRecentEvents(limit));
     }
 
+    private Task GetLlmCallsAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 100);
+        query.TryGetValue("promptPart", out var promptPart);
+        query.TryGetValue("profile", out var profile);
+        query.TryGetValue("model", out var model);
+        query.TryGetValue("callerType", out var callerType);
+        query.TryGetValue("channelKey", out var channelKey);
+
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetRecent(limit, promptPart, profile, model, callerType, channelKey));
+    }
+
+    private Task GetLlmSummaryAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 1000);
+        query.TryGetValue("groupBy", out var groupBy);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetBreakdown(groupBy, limit));
+    }
+
+    private Task GetLlmBudgetAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 1000);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetBudgetBreakdown(limit));
+    }
+
+    private Task GetLlmHistoryCallsAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 1000);
+        var date = ParseDate(query);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetPersistedCalls(date, limit));
+    }
+
+    private Task GetLlmHistoryBudgetAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 5000);
+        var date = ParseDate(query);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetPersistedBudgetBreakdown(date, limit));
+    }
+
     private Task GetRecentEpisodesAsync(HttpListenerContext context)
     {
         var query = ParseQueryString(context.Request.Url.Query);
@@ -304,6 +354,32 @@ public class ServerSource : MonoBehaviour
         var limit = ParseLimit(query, 50);
         query.TryGetValue("channelKey", out var channelKey);
         return WriteJsonAsync(context.Response, PitchCandidateStore.GetPitchStatus(channelKey, limit));
+    }
+
+    private Task<PitchCandidate> VoteOnPitchAsync(PitchVoteRequest request)
+    {
+        if (request == null)
+            throw new ArgumentException("Pitch vote payload is required.");
+        if (string.IsNullOrWhiteSpace(request.channelKey))
+            throw new ArgumentException("Pitch vote requires a channelKey.");
+        if (string.IsNullOrWhiteSpace(request.id))
+            throw new ArgumentException("Pitch vote requires an id.");
+
+        var upDelta = request.upDelta;
+        var downDelta = request.downDelta;
+        if (upDelta == 0 && downDelta == 0 && request.delta != 0)
+        {
+            upDelta = request.delta > 0 ? request.delta : 0;
+            downDelta = request.delta < 0 ? -request.delta : 0;
+        }
+        if (upDelta == 0 && downDelta == 0)
+            throw new ArgumentException("Pitch vote requires a non-zero upDelta, downDelta, or delta.");
+
+        var updated = PitchCandidateStore.ApplyVote(request.channelKey, request.id, upDelta, downDelta, request.source);
+        if (updated == null)
+            throw new ArgumentException($"Pitch '{request.id}' was not found for channel '{request.channelKey}'.");
+
+        return Task.FromResult(updated);
     }
 
     private Task<ReplayStatusRecord> VoteOnReplayAsync(ReplayVoteRequest request)
@@ -483,6 +559,13 @@ public class ServerSource : MonoBehaviour
         if (query != null && query.TryGetValue("limit", out var raw) && int.TryParse(raw, out var limit) && limit > 0)
             return limit;
         return fallback;
+    }
+
+    private static DateTime ParseDate(Dictionary<string, string> query)
+    {
+        if (query != null && query.TryGetValue("date", out var raw) && DateTime.TryParse(raw, out var date))
+            return date.Date;
+        return DateTime.Today;
     }
 
     [Serializable]
