@@ -827,43 +827,12 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
                 using var response = (HttpWebResponse)await request.GetResponseAsync();
                 return;
             }
-            catch (WebException e) when (TryGetRetryDelay(e, out var retryDelay) && attempt < maxAttempts)
+            catch (WebException e) when (DiscordRateLimit.TryGetRetryDelay(e, out var retryDelay) && attempt < maxAttempts)
             {
                 Debug.LogWarning($"Discord REST rate-limited; retrying {method} in {retryDelay.TotalSeconds:0.##}s.");
                 await Task.Delay(retryDelay);
             }
         }
-    }
-
-    private static bool TryGetRetryDelay(WebException exception, out TimeSpan retryDelay)
-    {
-        retryDelay = TimeSpan.FromSeconds(1);
-        if (exception?.Response is not HttpWebResponse response)
-            return false;
-        if ((int)response.StatusCode != 429)
-            return false;
-
-        if (double.TryParse(response.Headers["Retry-After"], NumberStyles.Float, CultureInfo.InvariantCulture, out var headerDelay))
-        {
-            retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, headerDelay));
-            return true;
-        }
-
-        try
-        {
-            using var stream = response.GetResponseStream();
-            using var reader = new StreamReader(stream);
-            var body = reader.ReadToEnd();
-            var retryAfter = JObject.Parse(body).Value<double?>("retry_after");
-            if (retryAfter.HasValue)
-                retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, retryAfter.Value));
-        }
-        catch
-        {
-            retryDelay = TimeSpan.FromSeconds(1);
-        }
-
-        return true;
     }
 
     [Serializable]

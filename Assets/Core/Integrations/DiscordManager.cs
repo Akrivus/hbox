@@ -296,10 +296,10 @@ public class DiscordWebhook
 
             if (result.Error != null)
             {
-                if (TryGetRetryDelaySeconds(result.Error, out var retrySeconds) && attempt < maxAttempts)
+                if (DiscordRateLimit.TryGetRetryDelay(result.Error, out var retryDelay) && attempt < maxAttempts)
                 {
-                    UnityEngine.Debug.LogWarning($"Discord webhook rate-limited; retrying in {retrySeconds:0.##}s.");
-                    yield return new WaitForSeconds(retrySeconds);
+                    UnityEngine.Debug.LogWarning($"Discord webhook rate-limited; retrying in {retryDelay.TotalSeconds:0.##}s.");
+                    yield return new WaitForSeconds((float)retryDelay.TotalSeconds);
                     ResetRateLimitWindow();
                     continue;
                 }
@@ -356,17 +356,27 @@ public class DiscordWebhook
         requestsRemaining = MaxRequestsPerWindow;
     }
 
-    private static bool TryGetRetryDelaySeconds(Exception error, out float retrySeconds)
+}
+
+public static class DiscordRateLimit
+{
+    public static bool TryGetRetryDelay(Exception error, out TimeSpan retryDelay)
     {
-        retrySeconds = 1f;
-        if (error is not WebException webException || webException.Response is not HttpWebResponse response)
+        retryDelay = TimeSpan.FromSeconds(1);
+        return error is WebException webException && TryGetRetryDelay(webException, out retryDelay);
+    }
+
+    public static bool TryGetRetryDelay(WebException exception, out TimeSpan retryDelay)
+    {
+        retryDelay = TimeSpan.FromSeconds(1);
+        if (exception?.Response is not HttpWebResponse response)
             return false;
         if ((int)response.StatusCode != 429)
             return false;
 
-        if (float.TryParse(response.Headers["Retry-After"], NumberStyles.Float, CultureInfo.InvariantCulture, out var headerDelay))
+        if (double.TryParse(response.Headers["Retry-After"], NumberStyles.Float, CultureInfo.InvariantCulture, out var headerDelay))
         {
-            retrySeconds = Mathf.Max(0.25f, headerDelay);
+            retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, headerDelay));
             return true;
         }
 
@@ -375,13 +385,13 @@ public class DiscordWebhook
             using var stream = response.GetResponseStream();
             using var reader = new StreamReader(stream);
             var body = reader.ReadToEnd();
-            var retryAfter = JObject.Parse(body).Value<float?>("retry_after");
+            var retryAfter = JObject.Parse(body).Value<double?>("retry_after");
             if (retryAfter.HasValue)
-                retrySeconds = Mathf.Max(0.25f, retryAfter.Value);
+                retryDelay = TimeSpan.FromSeconds(Math.Max(0.25, retryAfter.Value));
         }
         catch
         {
-            retrySeconds = 1f;
+            retryDelay = TimeSpan.FromSeconds(1);
         }
 
         return true;

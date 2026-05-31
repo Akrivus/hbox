@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -44,6 +43,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     private int i = 0;
     private RedditThreadMiner miner;
     private ChatManagerContext chatManagerContext;
+    private RedditPitchCandidateService pitchCandidateService;
 
     public void Configure(RedditConfigs c)
     {
@@ -278,69 +278,13 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
 
     private async Task<PitchCandidate> GeneratePitchCandidate(RedditPostSource source, string topic)
     {
-        var actors = "- " + string.Join("\n- ", chatManagerContext.Actors.Select(a => a.Name));
-        var memory = await MemoryBucket.GetContext(chatManagerContext, generator.slug);
-        var continuity = BuildEpisodeContinuityContext();
-        var sourceJson = JsonConvert.SerializeObject(source, Formatting.Indented);
-
-        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Candidate");
-        var prompt = await resolver.Resolve(
-            sourceJson,
-            topic,
-            actors,
-            memory,
-            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            continuity);
-
-        var output = await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
-
-        var evaluation = await EvaluatePitchCandidate(output, source, topic, actors, memory, continuity);
-        if (!PitchCandidateEvaluator.IsApproved(evaluation))
-        {
-            OperatorTelemetry.RecordEvent(
-                "pitch_rejected",
-                $"Rejected Reddit pitch for {source.id}: {PitchCandidateEvaluator.GetReason(evaluation)}",
-                chatManagerContext,
-                chatManagerContext.Key);
-            return null;
-        }
-
-        var approvalReason = PitchCandidateEvaluator.GetReason(evaluation);
-        var candidate = PitchCandidateFactory.FromText(
-            output,
+        var candidate = await pitchCandidateService.GenerateAsync(
             source,
-            generator.slug,
+            topic,
             ResolvePitchDiscordChannel(),
-            PitchExpirationMinutes,
-            approvalReason);
-        candidate.discordColor = ResolvePitchColor(candidate);
-
+            PitchExpirationMinutes);
         pitchStore.Save(candidate);
         return candidate;
-    }
-
-    private int ResolvePitchColor(PitchCandidate candidate)
-    {
-        var cast = PitchCandidateText.GetCast(candidate);
-        if (string.IsNullOrWhiteSpace(cast))
-            return 0;
-
-        var names = cast
-            .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(name => name.Trim())
-            .Where(name => !string.IsNullOrWhiteSpace(name));
-
-        foreach (var name in names)
-        {
-            var actor = chatManagerContext.Actors
-                .FirstOrDefault(a => a != null && (
-                    string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase) ||
-                    (a.Aliases?.Any(alias => string.Equals(alias, name, StringComparison.OrdinalIgnoreCase)) ?? false)));
-            if (actor != null)
-                return actor.Color1.ToDiscordColor();
-        }
-
-        return 0;
     }
 
     private string ResolvePitchDiscordChannel()
@@ -351,128 +295,11 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         return DiscordManager.GetStreamChannel(chatManagerContext);
     }
 
-    private string BuildEpisodeContinuityContext()
-    {
-        var episodes = new List<EpisodeContinuityItem>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var episode in OperatorTelemetry.GetRecentEpisodes(12))
-        {
-            if (episode == null || string.IsNullOrWhiteSpace(episode.slug) || seen.Contains(episode.slug))
-                continue;
-            if (string.IsNullOrWhiteSpace(episode.title) && string.IsNullOrWhiteSpace(episode.synopsis))
-                continue;
-
-            episodes.Add(new EpisodeContinuityItem
-            {
-                slug = episode.slug,
-                title = episode.title,
-                synopsis = episode.synopsis,
-                status = episode.status
-            });
-            seen.Add(episode.slug);
-        }
-
-        foreach (var episode in LoadSavedEpisodeContinuity(12))
-        {
-            if (episode == null || string.IsNullOrWhiteSpace(episode.slug) || seen.Contains(episode.slug))
-                continue;
-
-            episodes.Add(episode);
-            seen.Add(episode.slug);
-            if (episodes.Count >= 12)
-                break;
-        }
-
-        if (episodes.Count == 0)
-            return "No recent episode continuity found.";
-
-        return string.Join("\n", episodes
-            .Take(12)
-            .Select(episode =>
-            {
-                var title = string.IsNullOrWhiteSpace(episode.title) ? episode.slug : episode.title;
-                var synopsis = string.IsNullOrWhiteSpace(episode.synopsis) ? "No synopsis recorded." : episode.synopsis.Trim();
-                return $"- {title}: {synopsis}";
-            }));
-    }
-
-    private IEnumerable<EpisodeContinuityItem> LoadSavedEpisodeContinuity(int limit)
-    {
-        var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folder = Path.Combine(docs, chatManagerContext.Name);
-
-        if (!Directory.Exists(folder))
-            yield break;
-
-        IEnumerable<string> files;
-        try
-        {
-            files = Directory.GetFiles(folder, "*.json", SearchOption.TopDirectoryOnly)
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .Take(Mathf.Max(limit, 1) * 2);
-        }
-        catch (Exception e)
-        {
-            Debug.LogWarning($"RedditSource.LoadSavedEpisodeContinuity failed to list '{folder}': {e.Message}");
-            yield break;
-        }
-
-        foreach (var file in files)
-        {
-            Chat chat;
-            try
-            {
-                chat = JsonConvert.DeserializeObject<Chat>(File.ReadAllText(file));
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"RedditSource.LoadSavedEpisodeContinuity failed for '{file}': {e.Message}");
-                continue;
-            }
-
-            if (chat == null || string.IsNullOrWhiteSpace(chat.FileName))
-                continue;
-            if (string.IsNullOrWhiteSpace(chat.Title) && string.IsNullOrWhiteSpace(chat.Synopsis))
-                continue;
-
-            yield return new EpisodeContinuityItem
-            {
-                slug = chat.FileName,
-                title = chat.Title,
-                synopsis = chat.Synopsis,
-                status = "saved"
-            };
-        }
-    }
-
-    private async Task<string> EvaluatePitchCandidate(string pitch, RedditPostSource source, string topic, string actors, string memory, string continuity)
-    {
-        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Evaluator");
-        var prompt = await resolver.Resolve(
-            JsonConvert.SerializeObject(source, Formatting.Indented),
-            topic,
-            actors,
-            memory,
-            DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-            pitch,
-            continuity);
-
-        return await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
-    }
-
-    private sealed class EpisodeContinuityItem
-    {
-        public string slug;
-        public string title;
-        public string synopsis;
-        public string status;
-    }
-
     private void Start()
     {
-        chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? generator?.ManagerContext ?? ChatManagerContext.Current;
+        chatManagerContext = ChatManagerContext.Current;
         pitchStore = new PitchCandidateStore(chatManagerContext, generator);
+        pitchCandidateService = new RedditPitchCandidateService(chatManagerContext, generator);
         chatManagerContext.ConfigManager.RegisterConfig(typeof(RedditConfigs), "reddit", (_config) => Configure((RedditConfigs)_config));
     }
 
@@ -578,22 +405,5 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         if (start > end)
             return t >= start || t < end;
         return true;
-    }
-
-    private sealed class TimeoutWebClient : WebClient
-    {
-        private const int TimeoutMilliseconds = 15000;
-
-        protected override WebRequest GetWebRequest(Uri address)
-        {
-            var request = base.GetWebRequest(address);
-            if (request == null)
-                return null;
-
-            request.Timeout = TimeoutMilliseconds;
-            if (request is HttpWebRequest httpRequest)
-                httpRequest.ReadWriteTimeout = TimeoutMilliseconds;
-            return request;
-        }
     }
 }

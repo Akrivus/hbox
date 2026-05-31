@@ -479,7 +479,7 @@ public static class PitchToIdeaConverter
         return new Idea(body.ToString(), source?.author ?? "reddit", source?.subreddit ?? "reddit", source?.id);
     }
 
-    private static string BuildSourceUrl(RedditPostSource source)
+    public static string BuildSourceUrl(RedditPostSource source)
     {
         if (source == null)
             return string.Empty;
@@ -528,7 +528,7 @@ public static class PitchDiscordPublisher
         var cast = PitchCandidateText.GetCast(candidate);
         var reason = string.IsNullOrWhiteSpace(candidate.approvalReason) ? "No evaluator approval reason recorded." : candidate.approvalReason;
         var source = candidate.source;
-        var sourceUrl = PitchToIdeaSourceUrl(source);
+        var sourceUrl = PitchToIdeaConverter.BuildSourceUrl(source);
         var sourceTitle = string.IsNullOrWhiteSpace(source?.title) ? "Untitled Reddit source" : source.title;
         var sourceLabel = string.IsNullOrWhiteSpace(sourceUrl)
             ? sourceTitle
@@ -556,17 +556,6 @@ public static class PitchDiscordPublisher
     private static string FormatCount(int value, string label)
     {
         return $"{Mathf.Max(0, value):N0} {label}";
-    }
-
-    private static string PitchToIdeaSourceUrl(RedditPostSource source)
-    {
-        if (source == null)
-            return null;
-        if (!string.IsNullOrWhiteSpace(source.permalink))
-            return source.permalink.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? source.permalink : "https://reddit.com" + source.permalink;
-        if (!string.IsNullOrWhiteSpace(source.url))
-            return source.url;
-        return null;
     }
 }
 

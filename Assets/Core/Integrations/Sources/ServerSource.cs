@@ -365,14 +365,7 @@ public class ServerSource : MonoBehaviour
         if (string.IsNullOrWhiteSpace(request.id))
             throw new ArgumentException("Pitch vote requires an id.");
 
-        var upDelta = request.upDelta;
-        var downDelta = request.downDelta;
-        if (upDelta == 0 && downDelta == 0 && request.delta != 0)
-        {
-            upDelta = request.delta > 0 ? request.delta : 0;
-            downDelta = request.delta < 0 ? -request.delta : 0;
-        }
-        if (upDelta == 0 && downDelta == 0)
+        if (!TryResolveVoteDeltas(request.delta, request.upDelta, request.downDelta, out var upDelta, out var downDelta))
             throw new ArgumentException("Pitch vote requires a non-zero upDelta, downDelta, or delta.");
 
         var updated = PitchCandidateStore.ApplyVote(request.channelKey, request.id, upDelta, downDelta, request.source);
@@ -391,14 +384,7 @@ public class ServerSource : MonoBehaviour
         if (string.IsNullOrWhiteSpace(request.slug))
             throw new ArgumentException("Replay vote requires a slug.");
 
-        var upDelta = request.upDelta;
-        var downDelta = request.downDelta;
-        if (upDelta == 0 && downDelta == 0 && request.delta != 0)
-        {
-            upDelta = request.delta > 0 ? request.delta : 0;
-            downDelta = request.delta < 0 ? -request.delta : 0;
-        }
-        if (upDelta == 0 && downDelta == 0)
+        if (!TryResolveVoteDeltas(request.delta, request.upDelta, request.downDelta, out var upDelta, out var downDelta))
             throw new ArgumentException("Replay vote requires a non-zero upDelta, downDelta, or delta.");
 
         var updated = FolderSource.ApplyVote(request.channelKey, request.slug, upDelta, downDelta, request.source, request.messageId);
@@ -406,6 +392,20 @@ public class ServerSource : MonoBehaviour
             throw new ArgumentException($"Replay '{request.slug}' was not found for channel '{request.channelKey}'.");
 
         return Task.FromResult(updated);
+    }
+
+    private static bool TryResolveVoteDeltas(int delta, int requestedUpDelta, int requestedDownDelta, out int upDelta, out int downDelta)
+    {
+        upDelta = requestedUpDelta;
+        downDelta = requestedDownDelta;
+
+        if (upDelta == 0 && downDelta == 0 && delta != 0)
+        {
+            upDelta = delta > 0 ? delta : 0;
+            downDelta = delta < 0 ? -delta : 0;
+        }
+
+        return upDelta != 0 || downDelta != 0;
     }
 
     public static Task ProcessFileRequest(HttpListenerContext context, string path)

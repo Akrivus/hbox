@@ -164,26 +164,7 @@ public class RedditThreadMiner
 
     private static WebClient NewClient()
     {
-        var _ = new TimeoutWebClient();
-        _.Headers.Add("User-Agent", "polbot:1.0 (by /u/Akrivus)");
-        return _;
-    }
-
-    private sealed class TimeoutWebClient : WebClient
-    {
-        private const int TimeoutMilliseconds = 15000;
-
-        protected override WebRequest GetWebRequest(Uri address)
-        {
-            var request = base.GetWebRequest(address);
-            if (request == null)
-                return null;
-
-            request.Timeout = TimeoutMilliseconds;
-            if (request is HttpWebRequest httpRequest)
-                httpRequest.ReadWriteTimeout = TimeoutMilliseconds;
-            return request;
-        }
+        return new TimeoutWebClient();
     }
 
     private static string Condense(string s, int max)
