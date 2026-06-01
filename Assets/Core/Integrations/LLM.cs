@@ -15,11 +15,12 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
     public static string OPENAI_API_KEY = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     public static string OPENAI_API_URI = "https://api.openai.com";
 
-    public static string SLOW_MODEL = "gpt-4o";
-    public static string FAST_MODEL = "gpt-4o-mini";
-    public static Dictionary<LlmProfile, string> MODEL_PROFILES = new Dictionary<LlmProfile, string>();
-
     public static bool USE_EMBEDDINGS = true;
+    public static string EMBEDDING_MODEL = "text-embedding-3-small";
+
+    public static string SLOW_MODEL = "gpt-5-mini";
+    public static string FAST_MODEL = "gpt-5-nano";
+    public static Dictionary<LlmProfile, string> MODEL_PROFILES = new Dictionary<LlmProfile, string>();
 
     public static OpenAIClient API => _api ??= new OpenAIClient(new OpenAIAuthentication(OPENAI_API_KEY), new OpenAISettings(OPENAI_API_URI));
     private static OpenAIClient _api;
@@ -118,17 +119,63 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
         return await ChatAsync(chat, new List<Message> { new Message(Role.User, prompt.Text) }, profile, prompt);
     }
 
-    public static async Task<double[]> EmbedAsync(string text, int dimensions = 1532)
+    public static async Task<double[]> EmbedAsync(string text, int dimensions = 1536)
     {
         if (!USE_EMBEDDINGS || string.IsNullOrEmpty(text))
             return new double[0];
+
+        var stopwatch = Stopwatch.StartNew();
+        var caller = LlmCallTelemetry.CaptureCaller();
+
         try
         {
-            var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text, "text-embedding-3-small", "me", dimensions));
-            return request.Data.FirstOrDefault().Embedding.ToArray();
+            var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text, EMBEDDING_MODEL, "me", dimensions));
+            var embedding = request.Data.FirstOrDefault().Embedding.ToArray();
+            stopwatch.Stop();
+            RecordMeteredUsage(ChatManagerContext.Current, new LlmCallRecord
+            {
+                timestamp = DateTimeOffset.Now.ToString("O"),
+                channelKey = ChatManagerContext.Current?.Key ?? string.Empty,
+                context = ChatManagerContext.Current?.Name ?? string.Empty,
+                templateName = $"{caller.type}.{caller.member}",
+                profile = "Embedding",
+                model = EMBEDDING_MODEL,
+                callerType = caller.type,
+                callerMember = caller.member,
+                success = true,
+                inputChars = text.Length,
+                estimatedInputTokens = EstimateTokens(text),
+                promptTokens = EstimateTokens(text),
+                totalTokens = EstimateTokens(text),
+                billableUnitName = "tokens",
+                billableUnits = EstimateTokens(text),
+                usageType = "embedding",
+                durationMs = stopwatch.ElapsedMilliseconds
+            });
+            return embedding;
         }
         catch (Exception e)
         {
+            stopwatch.Stop();
+            RecordMeteredUsage(ChatManagerContext.Current, new LlmCallRecord
+            {
+                timestamp = DateTimeOffset.Now.ToString("O"),
+                channelKey = ChatManagerContext.Current?.Key ?? string.Empty,
+                context = ChatManagerContext.Current?.Name ?? string.Empty,
+                templateName = $"{caller.type}.{caller.member}",
+                profile = "Embedding",
+                model = EMBEDDING_MODEL,
+                callerType = caller.type,
+                callerMember = caller.member,
+                success = false,
+                inputChars = text.Length,
+                estimatedInputTokens = EstimateTokens(text),
+                billableUnitName = "tokens",
+                billableUnits = EstimateTokens(text),
+                usageType = "embedding",
+                durationMs = stopwatch.ElapsedMilliseconds,
+                error = e.Message
+            });
             UnityEngine.Debug.LogError(e.Message);
             return new double[0];
         }
@@ -224,6 +271,15 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             error = error ?? string.Empty
         });
         PublishBudgetAlert(chat?.ManagerContext, alert);
+    }
+
+    public static void RecordMeteredUsage(ChatManagerContext context, LlmCallRecord record)
+    {
+        if (record == null)
+            return;
+
+        var alert = LlmCallTelemetry.Record(record);
+        PublishBudgetAlert(context, alert);
     }
 
     private static void PublishBudgetAlert(ChatManagerContext context, LlmBudgetAlertRecord alert)
@@ -459,6 +515,8 @@ public static class LlmCallTelemetry
                 totalTokens = g.Sum(c => c.totalTokens),
                 cachedPromptTokens = g.Sum(c => c.cachedPromptTokens),
                 reasoningTokens = g.Sum(c => c.reasoningTokens),
+                billableUnitName = GetBillableUnitName(g),
+                billableUnits = g.Sum(c => c.billableUnits),
                 inputCostUsd = g.Sum(c => c.inputCostUsd),
                 cachedInputCostUsd = g.Sum(c => c.cachedInputCostUsd),
                 outputCostUsd = g.Sum(c => c.outputCostUsd),
@@ -472,7 +530,8 @@ public static class LlmCallTelemetry
                 channelKeys = g.Select(c => c.channelKey).Where(k => !string.IsNullOrWhiteSpace(k)).Distinct().OrderBy(k => k).ToList(),
                 templateNames = g.Select(c => c.templateName).Where(t => !string.IsNullOrWhiteSpace(t)).Distinct().OrderBy(t => t).ToList()
             })
-            .OrderByDescending(s => s.totalTokens > 0 ? s.totalTokens : s.estimatedTotalTokens)
+            .OrderByDescending(s => s.totalCostUsd)
+            .ThenByDescending(s => s.totalTokens > 0 ? s.totalTokens : s.estimatedTotalTokens)
             .ThenByDescending(s => s.callCount)
             .ToList();
     }
@@ -510,7 +569,8 @@ public static class LlmCallTelemetry
             byTemplate = BuildBreakdown(recent, "templateName"),
             byCaller = BuildBreakdown(recent, "callerType"),
             byProfile = BuildBreakdown(recent, "profile"),
-            byModel = BuildBreakdown(recent, "model")
+            byModel = BuildBreakdown(recent, "model"),
+            byUsageType = BuildBreakdown(recent, "usageType")
         };
     }
 
@@ -521,6 +581,16 @@ public static class LlmCallTelemetry
 
         if (!TryGetModelPrice(record.model, out var price) || price == null)
             return;
+
+        if (record.billableUnits > 0)
+        {
+            record.inputCostUsd = record.billableUnits * price.InputPerMillion / 1000000d;
+            record.cachedInputCostUsd = 0;
+            record.outputCostUsd = 0;
+            record.totalCostUsd = record.inputCostUsd;
+            record.priceFound = true;
+            return;
+        }
 
         var cachedTokens = Math.Max(0, record.cachedPromptTokens);
         var uncachedPromptTokens = Math.Max(0, record.promptTokens - cachedTokens);
@@ -858,6 +928,8 @@ public static class LlmCallTelemetry
                 return BlankKey(call.profile);
             case "model":
                 return BlankKey(call.model);
+            case "usageType":
+                return BlankKey(call.usageType, "llm");
             case "templateName":
             default:
                 return BlankKey(call.templateName);
@@ -881,14 +953,29 @@ public static class LlmCallTelemetry
             case "caller":
             case "generator":
                 return "callerType";
+            case "type":
+            case "service":
+            case "usage":
+                return "usageType";
             default:
                 return groupBy.Trim();
         }
     }
 
-    private static string BlankKey(string value)
+    private static string GetBillableUnitName(IEnumerable<LlmCallRecord> records)
     {
-        return string.IsNullOrWhiteSpace(value) ? "(unknown)" : value;
+        var names = records
+            .Select(c => c.billableUnitName)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+        return names.Count == 1 ? names[0] : string.Empty;
+    }
+
+    private static string BlankKey(string value, string placeholder = "(unknown)")
+    {
+        return string.IsNullOrWhiteSpace(value) ? placeholder : value;
     }
 }
 
@@ -925,6 +1012,9 @@ public sealed class LlmCallRecord
     public int promptTextTokens;
     public int completionTextTokens;
     public int promptImageTokens;
+    public string usageType;
+    public string billableUnitName;
+    public int billableUnits;
     public bool priceFound;
     public double inputCostUsd;
     public double cachedInputCostUsd;
@@ -946,6 +1036,8 @@ public sealed class LlmCallSummaryRecord
     public int totalTokens;
     public int cachedPromptTokens;
     public int reasoningTokens;
+    public string billableUnitName;
+    public int billableUnits;
     public double inputCostUsd;
     public double cachedInputCostUsd;
     public double outputCostUsd;
@@ -981,6 +1073,7 @@ public sealed class LlmBudgetBreakdownRecord
     public double totalCostUsd;
     public double sessionCostUsd;
     public int sessionCallCount;
+    public IReadOnlyList<LlmCallSummaryRecord> byUsageType;
     public LlmBudgetPolicySnapshot policy;
     public IReadOnlyList<LlmCallSummaryRecord> byChannel;
     public IReadOnlyList<LlmCallSummaryRecord> byContext;

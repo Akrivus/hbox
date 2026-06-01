@@ -9,6 +9,10 @@ using UnityEngine;
 
 public class Chat
 {
+    private const int RecallQueryMaxChars = 12000;
+    private const int RecallQueryDefaultSectionMaxChars = 3000;
+    private const int RecallQueryLogMaxChars = 5000;
+
     public string FileName { get; set; }
     public string Key { get; set; }
 
@@ -80,6 +84,52 @@ public class Chat
     {
         _new = true;
         _locked = true;
+    }
+
+    public string BuildRecallQuery(ActorContext actor = null, params string[] extras)
+    {
+        var sections = new List<string>();
+
+        AddRecallSection(sections, "Idea", Idea?.Prompt);
+        AddRecallSection(sections, "Topic", Topic);
+        AddRecallSection(sections, "Title", Title);
+        AddRecallSection(sections, "Synopsis", Synopsis);
+        AddRecallSection(sections, "Context", Context);
+        AddRecallSection(sections, "Location", Location);
+        AddRecallSection(sections, "Characters", Characters);
+        AddRecallSection(sections, "Vibe", Vibe);
+
+        if (actor != null)
+        {
+            AddRecallSection(sections, "Actor", actor.Name);
+            AddRecallSection(sections, "Actor Prompt", actor.Prompt);
+            AddRecallSection(sections, "Actor Context", actor.Context);
+            AddRecallSection(sections, "Actor Memory", actor.Memory);
+        }
+
+        AddRecallSection(sections, "Log", Log, RecallQueryLogMaxChars);
+
+        if (extras != null)
+            for (var i = 0; i < extras.Length; i++)
+                AddRecallSection(sections, $"Extra {i + 1}", extras[i]);
+
+        return TrimToLength(string.Join("\n\n", sections), RecallQueryMaxChars);
+    }
+
+    private static void AddRecallSection(List<string> sections, string label, string text, int maxChars = RecallQueryDefaultSectionMaxChars)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
+        sections.Add($"## {label}\n{TrimToLength(text.Trim(), maxChars)}");
+    }
+
+    private static string TrimToLength(string text, int maxChars)
+    {
+        if (string.IsNullOrEmpty(text) || maxChars <= 0 || text.Length <= maxChars)
+            return text;
+
+        return text.Substring(0, maxChars);
     }
     
     [JsonIgnore]

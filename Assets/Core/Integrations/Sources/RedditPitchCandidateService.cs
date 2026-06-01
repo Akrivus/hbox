@@ -28,7 +28,8 @@ public sealed class RedditPitchCandidateService
         int expirationMinutes)
     {
         var actors = "- " + string.Join("\n- ", context.Actors.Select(a => a.Name));
-        var memory = await MemoryBucket.GetContext(context, generator.slug);
+        var chat = new Chat(new Idea(topic), generator.ManagerContext);
+        var memory = await MemoryBucket.GetContext(context, generator.slug, chat.BuildRecallQuery(null, source.title, source.selftext));
         var continuity = BuildEpisodeContinuityContext();
         var sourceJson = JsonConvert.SerializeObject(source, Formatting.Indented);
 
@@ -41,7 +42,7 @@ public sealed class RedditPitchCandidateService
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             continuity);
 
-        var output = await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
+        var output = await LLM.CompleteAsync(prompt, chat, true);
         var evaluation = await EvaluateAsync(output, source, topic, actors, memory, continuity);
         if (!PitchCandidateEvaluator.IsApproved(evaluation))
         {

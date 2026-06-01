@@ -14,8 +14,9 @@ public class EpisodeToEpisodeContinuity : MonoBehaviour, ISubGenerator
     public async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
         var bucket = await MemoryBucket.Get(chat.ManagerContext, GetSlug(chat));
+        var memories = await bucket.GetRelevant(chat.BuildRecallQuery());
         var memory = await LLM.CompleteAsync(
-            await prompt.Resolve(chat.Log, bucket.Get(), chat.Idea.Prompt), chat, fastMode);
+            await prompt.Resolve(chat.Log, memories, chat.Idea.Prompt), chat, fastMode);
         await bucket.Add(prompt.Output);
 
         return chat;

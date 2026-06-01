@@ -86,21 +86,36 @@ Example:
       "SceneReasoning": "gpt-5.4"
     },
     "ModelPrices": {
-      "gpt-5.4-nano": {
-        "InputPerMillion": 0.20,
-        "CachedInputPerMillion": 0.02,
-        "OutputPerMillion": 1.25
-      },
-      "gpt-5.4-mini": {
-        "InputPerMillion": 0.75,
-        "CachedInputPerMillion": 0.075,
-        "OutputPerMillion": 4.50
-      },
-      "gpt-5.4": {
-        "InputPerMillion": 2.50,
-        "CachedInputPerMillion": 0.25,
-        "OutputPerMillion": 15.00
-      }
+		  "gpt-5.4": {
+		    "InputPerMillion": 2.50,
+		    "CachedInputPerMillion": 0.25,
+		    "OutputPerMillion": 4.50
+		  },
+		  "gpt-5.4-mini": {
+		    "InputPerMillion": 0.20,
+		    "CachedInputPerMillion": 0.02,
+		    "OutputPerMillion": 1.25
+		  },
+		  "gpt-5.4-nano": {
+		    "InputPerMillion": 0.75,
+		    "CachedInputPerMillion": 0.02,
+		    "OutputPerMillion": 1.25
+		  },
+		  "text-embedding-3-small": {
+		    "InputPerMillion": 0.02,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 0
+		  },
+		  "gpt-4o-mini-tts": {
+		    "InputPerMillion": 0.60,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 12.00
+		  },
+		  "google-standard-tts": {
+		    "InputPerMillion": 0.000004,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 0
+		  }
     },
     "PersistUsage": true,
     "UsageLogPath": "Logs/llm-usage",
@@ -218,6 +233,7 @@ Example:
 - `reddit.OAuthUserAgent` should identify the app and Reddit username that owns the client, for example `script:hbox:1.1 (by /u/yourname)`.
 - Approved pitch posts are pinned by the Discord bot when bot permissions allow it, and the operator panel reads `/api/pitches` for the current pitch deck.
 - OpenAI text generation and OpenAI TTS are configured separately.
+- `UseEmbeddings` enables semantic memory recall. When disabled, memory context falls back to the most recent saved memories.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.
 
 ### OpenAI model profiles and usage budgets
@@ -234,6 +250,8 @@ Example:
 - `CachedInputPerMillion`: cached input token price.
 - `OutputPerMillion`: output token price.
 
+Embeddings and TTS use the same `ModelPrices` table so the dashboard can show them in the budget widget without a separate cost pipeline. For embeddings, `InputPerMillion` is applied to estimated input tokens. For TTS, `InputPerMillion` is applied to input characters, so configure model ids such as `gpt-4o-mini-tts` and `google-standard-tts` with per-1M-character prices if you want speech cost included.
+
 Current standard API prices for the main text generation models, in USD per 1M tokens:
 
 | Model | InputPerMillion | CachedInputPerMillion | OutputPerMillion | Notes |
@@ -249,7 +267,7 @@ Current standard API prices for the main text generation models, in USD per 1M t
 
 The runtime currently stores one price row per model id. If a model has separate short-context and long-context prices, use the row that matches the expected workload or split usage into distinct model ids/config aliases before relying on budget totals for exact accounting.
 
-When `PersistUsage` is enabled, LLM call records are appended as JSONL under `UsageLogPath`, one file per local date. Each call is tagged with profile, resolved model, prompt/template part, caller type/member, channel key, episode slug, token counts, cached/reasoning token details, latency, success/error status, and calculated cost.
+When `PersistUsage` is enabled, usage records are appended as JSONL under `UsageLogPath`, one file per local date. Each call is tagged with usage type, profile, resolved model, prompt/template part, caller type/member, channel key, episode slug, token counts or billable units, cached/reasoning token details, latency, success/error status, and calculated cost.
 
 `Budgets` controls warning thresholds:
 

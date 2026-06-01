@@ -27,8 +27,9 @@ public class MemoryGeneration : MonoBehaviour, ISubGenerator
 
         var resolver = new PromptResolver(chat.ManagerContext, "Actors", actor.Name, "Memories", DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss"));
         var bucket = await MemoryBucket.Get(chat.ManagerContext, actor.Name);
+        var memories = await bucket.GetRelevant(chat.BuildRecallQuery(actor));
         var memory = await LLM.CompleteAsync(
-            await prompt.Resolve(chat.Log, actor.Prompt, bucket.Get(), actor.Context), chat, fastMode);
+            await prompt.Resolve(chat.Log, actor.Prompt, memories, actor.Context), chat, fastMode);
         actor.Memory = memory;
         await bucket.Add(prompt.Output);
     }

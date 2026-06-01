@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 public class MemoryBucket
 {
     private const int MaxLoadedBuckets = 24;
+    private const int DefaultContextLength = 2048;
 
     public static Dictionary<string, MemoryBucket> Buckets = new Dictionary<string, MemoryBucket>();
 
@@ -94,26 +95,32 @@ public class MemoryBucket
     public async Task<string> Recall(string text)
     {
         Touch();
-        var embeddings = await LLM.EmbedAsync(text);
-        var memory = Memories.OrderBy(x => CosineSimilarity(x.Embeddings, embeddings)).First();
-        return memory.Text;
+        var memories = await GetRankedMemories(text);
+        return memories.FirstOrDefault()?.Text ?? string.Empty;
     }
 
-    public string Get(int length = 2048, bool exact = false)
+    public async Task<string> GetRelevant(string query, int length = DefaultContextLength, bool exact = false)
     {
         Touch();
-        var memory = Memories
+
+        if (!LLM.USE_EMBEDDINGS || string.IsNullOrWhiteSpace(query))
+            return Get(length, exact);
+
+        var ranked = await GetRankedMemories(query);
+        if (ranked.Count == 0)
+            return Get(length, exact);
+
+        return JoinMemories(ranked.Select(x => x.Text), length, exact);
+    }
+
+    public string Get(int length = DefaultContextLength, bool exact = false)
+    {
+        Touch();
+        var texts = Memories
             .OrderBy(x => x.Created)
             .Reverse()
-            .Select(x => x.Text)
-            .Where(s =>
-            {
-                if (length <= s.Length && exact)
-                    return false;
-                length -= s.Length;
-                return length >= 0;
-            }).ToArray();
-        return string.Join("\n", memory);
+            .Select(x => x.Text);
+        return JoinMemories(texts, length, exact);
     }
 
     public void Clean()
@@ -136,6 +143,70 @@ public class MemoryBucket
         return await LLM.EmbedAsync(text);
     }
 
+    private async Task<List<Memory>> GetRankedMemories(string query)
+    {
+        if (Memories == null || Memories.Count == 0)
+            return new List<Memory>();
+
+        var queryEmbeddings = await LLM.EmbedAsync(query);
+        if (!HasEmbeddings(queryEmbeddings))
+            return new List<Memory>();
+
+        await EnsureEmbeddings(queryEmbeddings.Length);
+
+        return Memories
+            .Where(x => HasEmbeddings(x.Embeddings))
+            .Select(x => new
+            {
+                Memory = x,
+                Similarity = CosineSimilarity(x.Embeddings, queryEmbeddings)
+            })
+            .Where(x => !double.IsNaN(x.Similarity) && !double.IsInfinity(x.Similarity))
+            .OrderByDescending(x => x.Similarity)
+            .ThenByDescending(x => x.Memory.Created)
+            .Select(x => x.Memory)
+            .ToList();
+    }
+
+    private async Task EnsureEmbeddings(int dimensions)
+    {
+        if (!LLM.USE_EMBEDDINGS)
+            return;
+
+        foreach (var memory in Memories.Where(x => x != null && NeedsEmbeddingRefresh(x, dimensions) && !string.IsNullOrWhiteSpace(x.Text)))
+        {
+            memory.SetEmbeddings(await Embed(memory.Text));
+            if (HasEmbeddings(memory.Embeddings))
+                IsDirty = true;
+        }
+    }
+
+    private static string JoinMemories(IEnumerable<string> texts, int length, bool exact)
+    {
+        var remaining = length;
+        var memory = texts
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Where(s =>
+            {
+                if (remaining <= s.Length && exact)
+                    return false;
+                remaining -= s.Length;
+                return remaining >= 0;
+            })
+            .ToArray();
+        return string.Join("\n", memory);
+    }
+
+    private static bool HasEmbeddings(double[] embeddings)
+    {
+        return embeddings != null && embeddings.Length > 0;
+    }
+
+    private static bool NeedsEmbeddingRefresh(Memory memory, int dimensions)
+    {
+        return !HasEmbeddings(memory.Embeddings) || memory.Embeddings.Length != dimensions;
+    }
+
     public static async Task<MemoryBucket> Get(ChatManagerContext context, string name)
     {
         var key = GetBucketKey(context.Key, name);
@@ -155,15 +226,26 @@ public class MemoryBucket
 
     public static async Task<string> GetContext(ChatManagerContext context, string channel)
     {
+        return await GetContext(context, channel, null);
+    }
+
+    public static async Task<string> GetContext(ChatManagerContext context, string channel, string query)
+    {
         var bucket = await Get(context, "#" + channel);
-        return bucket.Get();
+        return await bucket.GetRelevant(query);
     }
 
     private static double CosineSimilarity(double[] a, double[] b)
     {
+        if (!HasEmbeddings(a) || !HasEmbeddings(b) || a.Length != b.Length)
+            return double.NaN;
+
         var dotProduct = a.Zip(b, (x, y) => x * y).Sum();
         var magnitudeA = Math.Sqrt(a.Sum(x => x * x));
         var magnitudeB = Math.Sqrt(b.Sum(x => x * x));
+        if (magnitudeA <= 0 || magnitudeB <= 0)
+            return double.NaN;
+
         return dotProduct / (magnitudeA * magnitudeB);
     }
 
@@ -221,5 +303,10 @@ public class Memory
         ContextKey = prompt.ManagerContext.Key;
         Embeddings = embeddings;
         Created = DateTime.Now;
+    }
+
+    public void SetEmbeddings(double[] embeddings)
+    {
+        Embeddings = embeddings;
     }
 }

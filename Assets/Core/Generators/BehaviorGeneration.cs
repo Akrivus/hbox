@@ -24,12 +24,13 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
         await actor.SetPrompt(chat.Actors);
 
         var bucket = await MemoryBucket.Get(chat.ManagerContext, actor.Name);
+        var memories = await bucket.GetRelevant(chat.BuildRecallQuery(actor));
         actor.Context = await LLM.CompleteAsync(
             await prompt.Resolve(
                 chat.Topic,
                 chat.Idea.Prompt,
                 actor.Prompt,
-                bucket.Get()),
+                memories),
             chat,
             fastMode);
     }

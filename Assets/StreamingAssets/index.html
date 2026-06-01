@@ -2214,6 +2214,14 @@
 				return Number(item?.estimatedTotalTokens) || ((Number(item?.estimatedInputTokens) || 0) + (Number(item?.estimatedOutputTokens) || 0));
 			}
 
+			function formatUsageVolume(item) {
+				const units = Number(item?.billableUnits) || 0;
+				const unitName = item?.billableUnitName || '';
+				if (units > 0 && unitName)
+					return `${formatInteger(units)} ${unitName}`;
+				return `${formatTokenCount(getActualOrEstimatedTokens(item))} tokens`;
+			}
+
 			function renderUsage(budget, calls) {
 				if (!budget) {
 					usageGenerated.textContent = 'Waiting for usage';
@@ -2274,7 +2282,14 @@
 							<span>highest cost stages</span>
 							<span>${escapeHtml((budget.byTemplate || [])[0]?.key || 'none')}</span>
 						</div>
-						<div class="feed-copy">${renderUsageInlineBreakdown((budget.byTemplate || []).slice(0, 8))}</div>
+						<div class="feed-copy">${renderUsageInlineBreakdown((budget.byTemplate || []).slice(0, 12))}</div>
+					</div>
+					<div class="feed-item">
+						<div class="feed-head">
+							<span>service mix</span>
+							<span>${escapeHtml((budget.byUsageType || [])[0]?.key || 'none')}</span>
+						</div>
+						<div class="feed-copy">${renderUsageInlineBreakdown((budget.byUsageType || []))}</div>
 					</div>
 				`;
 
@@ -2286,7 +2301,7 @@
 				if (!items.length)
 					return 'No calls recorded yet.';
 				return items
-					.map(item => `${escapeHtml(item.key || '(unknown)')}: ${formatUsd(item.totalCostUsd)} / ${formatTokenCount(getActualOrEstimatedTokens(item))} tokens`)
+					.map(item => `${escapeHtml(item.key || 'llm')}: ${formatUsd(item.totalCostUsd)} / ${formatUsageVolume(item)}`)
 					.join('<br>');
 			}
 
@@ -2425,7 +2440,7 @@
 				const totalCost = Number(budget.totalCostUsd) || 0;
 				const allStages = (budget.byTemplate || [])
 					.map(item => ({
-						label: item.key || '(unknown)',
+						label: item.key || 'llm',
 						value: Number(item.totalCostUsd) || 0
 					}))
 					.filter(item => item.value > 0);
@@ -2479,7 +2494,7 @@
 							<span>${escapeHtml(call.profile || 'profile')}</span>
 							<span>${formatTime(call.timestamp)}</span>
 						</div>
-						<div class="feed-title">${escapeHtml(title)} | ${formatUsd(call.totalCostUsd)} | ${formatTokenCount(getActualOrEstimatedTokens(call))} tokens</div>
+						<div class="feed-title">${escapeHtml(title)} | ${formatUsd(call.totalCostUsd)} | ${formatUsageVolume(call)}</div>
 						<div class="feed-copy">${escapeHtml(call.model || 'no model')} | ${escapeHtml(call.channelKey || call.context || 'No channel')} | ${escapeHtml(call.callerType || 'unknown caller')}.${escapeHtml(call.callerMember || 'unknown')} | ${escapeHtml(statusLabel)}${call.error ? ` | ${escapeHtml(call.error)}` : ''}</div>
 					`;
 					usageCallFeed.appendChild(row);

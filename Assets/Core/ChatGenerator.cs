@@ -119,7 +119,7 @@ public class ChatGenerator : MonoBehaviour
         var secrets = string.Join(", ", GetCharacterNames(true));
         var locations = "- " + string.Join("\n - ", GetLocationNames());
         var idea = chat.Idea.Prompt;
-        var context = await MemoryBucket.GetContext(chat.ManagerContext, slug);
+        var context = await MemoryBucket.GetContext(chat.ManagerContext, slug, chat.BuildRecallQuery());
 
         prompt = await prompt.Resolve(context, options, idea, secrets, locations);
         var topic = await LLM.CompleteAsync(prompt, chat, false);

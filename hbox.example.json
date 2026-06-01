@@ -10,17 +10,38 @@
 			"fast": "gpt-5-nano"
 		},
 		"ModelPrices": {
-			"gpt-5-mini": {
-				"InputPerMillion": 0,
-				"CachedInputPerMillion": 0,
-				"OutputPerMillion": 0
-			},
-			"gpt-5-nano": {
-				"InputPerMillion": 0,
-				"CachedInputPerMillion": 0,
-				"OutputPerMillion": 0
-			}
+		  "gpt-5.4": {
+		    "InputPerMillion": 2.50,
+		    "CachedInputPerMillion": 0.25,
+		    "OutputPerMillion": 4.50
+		  },
+		  "gpt-5.4-mini": {
+		    "InputPerMillion": 0.20,
+		    "CachedInputPerMillion": 0.02,
+		    "OutputPerMillion": 1.25
+		  },
+		  "gpt-5.4-nano": {
+		    "InputPerMillion": 0.75,
+		    "CachedInputPerMillion": 0.02,
+		    "OutputPerMillion": 1.25
+		  },
+		  "text-embedding-3-small": {
+		    "InputPerMillion": 0.02,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 0
+		  },
+		  "gpt-4o-mini-tts": {
+		    "InputPerMillion": 0.60,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 12.00
+		  },
+		  "google-standard-tts": {
+		    "InputPerMillion": 0.000004,
+		    "CachedInputPerMillion": 0,
+		    "OutputPerMillion": 0
+		  }
 		},
+		"UseEmbeddings": true,
 		"PersistUsage": true,
 		"UsageLogPath": "Logs/llm-usage",
 		"Budgets": {
