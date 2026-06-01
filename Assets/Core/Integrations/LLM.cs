@@ -353,28 +353,31 @@ public static class LlmCallTelemetry
                 .Take(NormalizeLimit(limit, MaxCalls))
                 .ToList();
 
-            return new LlmBudgetBreakdownRecord
-            {
-                generatedAt = DateTimeOffset.Now.ToString("O"),
-                callCount = recent.Count,
-                promptTokens = recent.Sum(c => c.promptTokens),
-                completionTokens = recent.Sum(c => c.completionTokens),
-                totalTokens = recent.Sum(c => c.totalTokens),
-                cachedPromptTokens = recent.Sum(c => c.cachedPromptTokens),
-                reasoningTokens = recent.Sum(c => c.reasoningTokens),
-                estimatedTotalTokens = recent.Sum(c => c.estimatedInputTokens + c.estimatedOutputTokens),
-                inputCostUsd = recent.Sum(c => c.inputCostUsd),
-                cachedInputCostUsd = recent.Sum(c => c.cachedInputCostUsd),
-                outputCostUsd = recent.Sum(c => c.outputCostUsd),
-                totalCostUsd = recent.Sum(c => c.totalCostUsd),
-                policy = BuildPolicySnapshot(),
-                byChannel = BuildBreakdown(recent, "channelKey"),
-                byContext = BuildBreakdown(recent, "context"),
-                byTemplate = BuildBreakdown(recent, "templateName"),
-                byCaller = BuildBreakdown(recent, "callerType"),
-                byProfile = BuildBreakdown(recent, "profile"),
-                byModel = BuildBreakdown(recent, "model")
-            };
+            return BuildBudgetBreakdown(recent, "session", null, null, null);
+        }
+    }
+
+    public static LlmBudgetBreakdownRecord GetUsageBreakdown(string range, int limit = 5000)
+    {
+        lock (sync)
+        {
+            var recent = ResolveUsageRecordsUnsafe(range, out var normalizedRange, out var from, out var to)
+                .OrderByDescending(c => c.timestamp)
+                .Take(NormalizeLimit(limit, 10000))
+                .ToList();
+
+            return BuildBudgetBreakdown(recent, normalizedRange, null, from, to);
+        }
+    }
+
+    public static IReadOnlyList<LlmCallRecord> GetUsageCalls(string range, int limit = 1000)
+    {
+        lock (sync)
+        {
+            return ResolveUsageRecordsUnsafe(range, out _, out _, out _)
+                .OrderByDescending(c => c.timestamp)
+                .Take(NormalizeLimit(limit, 5000))
+                .ToList();
         }
     }
 
@@ -398,29 +401,7 @@ public static class LlmCallTelemetry
                 .Take(NormalizeLimit(limit, 10000))
                 .ToList();
 
-            return new LlmBudgetBreakdownRecord
-            {
-                generatedAt = DateTimeOffset.Now.ToString("O"),
-                date = date.ToString("yyyy-MM-dd"),
-                callCount = recent.Count,
-                promptTokens = recent.Sum(c => c.promptTokens),
-                completionTokens = recent.Sum(c => c.completionTokens),
-                totalTokens = recent.Sum(c => c.totalTokens),
-                cachedPromptTokens = recent.Sum(c => c.cachedPromptTokens),
-                reasoningTokens = recent.Sum(c => c.reasoningTokens),
-                estimatedTotalTokens = recent.Sum(c => c.estimatedInputTokens + c.estimatedOutputTokens),
-                inputCostUsd = recent.Sum(c => c.inputCostUsd),
-                cachedInputCostUsd = recent.Sum(c => c.cachedInputCostUsd),
-                outputCostUsd = recent.Sum(c => c.outputCostUsd),
-                totalCostUsd = recent.Sum(c => c.totalCostUsd),
-                policy = BuildPolicySnapshot(),
-                byChannel = BuildBreakdown(recent, "channelKey"),
-                byContext = BuildBreakdown(recent, "context"),
-                byTemplate = BuildBreakdown(recent, "templateName"),
-                byCaller = BuildBreakdown(recent, "callerType"),
-                byProfile = BuildBreakdown(recent, "profile"),
-                byModel = BuildBreakdown(recent, "model")
-            };
+            return BuildBudgetBreakdown(recent, "day", date.ToString("yyyy-MM-dd"), date.Date, date.Date);
         }
     }
 
@@ -496,12 +477,49 @@ public static class LlmCallTelemetry
             .ToList();
     }
 
+    private static LlmBudgetBreakdownRecord BuildBudgetBreakdown(IReadOnlyList<LlmCallRecord> recent, string range, string date, DateTime? from, DateTime? to)
+    {
+        foreach (var record in recent)
+            ApplyPricing(record);
+        foreach (var record in calls)
+            ApplyPricing(record);
+
+        return new LlmBudgetBreakdownRecord
+        {
+            generatedAt = DateTimeOffset.Now.ToString("O"),
+            range = range ?? string.Empty,
+            date = date ?? string.Empty,
+            from = from?.ToString("yyyy-MM-dd") ?? string.Empty,
+            to = to?.ToString("yyyy-MM-dd") ?? string.Empty,
+            callCount = recent.Count,
+            promptTokens = recent.Sum(c => c.promptTokens),
+            completionTokens = recent.Sum(c => c.completionTokens),
+            totalTokens = recent.Sum(c => c.totalTokens),
+            cachedPromptTokens = recent.Sum(c => c.cachedPromptTokens),
+            reasoningTokens = recent.Sum(c => c.reasoningTokens),
+            estimatedTotalTokens = recent.Sum(c => c.estimatedInputTokens + c.estimatedOutputTokens),
+            inputCostUsd = recent.Sum(c => c.inputCostUsd),
+            cachedInputCostUsd = recent.Sum(c => c.cachedInputCostUsd),
+            outputCostUsd = recent.Sum(c => c.outputCostUsd),
+            totalCostUsd = recent.Sum(c => c.totalCostUsd),
+            sessionCostUsd = calls.Sum(c => c.totalCostUsd),
+            sessionCallCount = calls.Count,
+            policy = BuildPolicySnapshot(),
+            byChannel = BuildBreakdown(recent, "channelKey"),
+            byContext = BuildBreakdown(recent, "context"),
+            byTemplate = BuildBreakdown(recent, "templateName"),
+            byCaller = BuildBreakdown(recent, "callerType"),
+            byProfile = BuildBreakdown(recent, "profile"),
+            byModel = BuildBreakdown(recent, "model")
+        };
+    }
+
     private static void ApplyPricing(LlmCallRecord record)
     {
         if (record == null || string.IsNullOrWhiteSpace(record.model))
             return;
 
-        if (!modelPrices.TryGetValue(record.model, out var price) || price == null)
+        if (!TryGetModelPrice(record.model, out var price) || price == null)
             return;
 
         var cachedTokens = Math.Max(0, record.cachedPromptTokens);
@@ -511,6 +529,30 @@ public static class LlmCallTelemetry
         record.outputCostUsd = Math.Max(0, record.completionTokens) * price.OutputPerMillion / 1000000d;
         record.totalCostUsd = record.inputCostUsd + record.cachedInputCostUsd + record.outputCostUsd;
         record.priceFound = true;
+    }
+
+    private static bool TryGetModelPrice(string model, out LlmModelPrice price)
+    {
+        price = null;
+        if (string.IsNullOrWhiteSpace(model))
+            return false;
+
+        if (modelPrices.TryGetValue(model, out price) && price != null)
+            return true;
+
+        var bestMatch = modelPrices
+            .Where(entry =>
+                !string.IsNullOrWhiteSpace(entry.Key) &&
+                entry.Value != null &&
+                model.StartsWith(entry.Key + "-", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(entry => entry.Key.Length)
+            .FirstOrDefault();
+
+        if (bestMatch.Value == null)
+            return false;
+
+        price = bestMatch.Value;
+        return true;
     }
 
     private static LlmBudgetAlertRecord EvaluateBudgetUnsafe(LlmCallRecord record)
@@ -543,9 +585,7 @@ public static class LlmCallTelemetry
 
     private static bool IsSameLocalDate(string timestamp, DateTime date)
     {
-        if (DateTimeOffset.TryParse(timestamp, out var parsed))
-            return parsed.LocalDateTime.Date == date.Date;
-        return false;
+        return TryGetLocalDate(timestamp, out var parsedDate) && parsedDate == date.Date;
     }
 
     private static LlmBudgetAlertRecord EvaluateBudgetScopeUnsafe(string scope, string key, double costUsd, double limitUsd, LlmCallRecord record)
@@ -630,7 +670,10 @@ public static class LlmCallTelemetry
             {
                 var record = JsonConvert.DeserializeObject<LlmCallRecord>(line);
                 if (record != null)
+                {
+                    ApplyPricing(record);
                     records.Add(record);
+                }
             }
             catch
             {
@@ -638,6 +681,163 @@ public static class LlmCallTelemetry
         }
 
         return records;
+    }
+
+    private static IReadOnlyList<LlmCallRecord> ResolveUsageRecordsUnsafe(string range, out string normalizedRange, out DateTime? from, out DateTime? to)
+    {
+        normalizedRange = NormalizeUsageRange(range);
+        from = null;
+        to = null;
+
+        if (normalizedRange == "session")
+            return calls.ToList();
+
+        var today = DateTime.Today;
+        List<LlmCallRecord> records;
+        switch (normalizedRange)
+        {
+            case "day":
+                from = today;
+                to = today;
+                records = LoadPersistedRangeUnsafe(today, today).ToList();
+                break;
+            case "week":
+                from = today.AddDays(-6);
+                to = today;
+                records = LoadPersistedRangeUnsafe(from.Value, to.Value).ToList();
+                break;
+            case "month":
+                from = new DateTime(today.Year, today.Month, 1);
+                to = today;
+                records = LoadPersistedRangeUnsafe(from.Value, to.Value).ToList();
+                break;
+            case "all":
+                records = LoadAllPersistedUnsafe().ToList();
+                break;
+            default:
+                normalizedRange = "session";
+                return calls.ToList();
+        }
+
+        MergeMemoryCallsUnsafe(records, from, to);
+        return records;
+    }
+
+    private static string NormalizeUsageRange(string range)
+    {
+        if (string.IsNullOrWhiteSpace(range))
+            return "day";
+
+        switch (range.Trim().ToLowerInvariant())
+        {
+            case "live":
+            case "current":
+            case "current-session":
+            case "session":
+                return "session";
+            case "day":
+            case "daily":
+            case "today":
+                return "day";
+            case "7d":
+            case "weekly":
+            case "week":
+                return "week";
+            case "30d":
+            case "monthly":
+            case "calendar-month":
+            case "month":
+                return "month";
+            case "365d":
+            case "yearly":
+            case "year":
+                return "all";
+            case "all-time":
+            case "lifetime":
+            case "all":
+                return "all";
+            default:
+                return "day";
+        }
+    }
+
+    private static IReadOnlyList<LlmCallRecord> LoadPersistedRangeUnsafe(DateTime startDate, DateTime endDate)
+    {
+        var records = new List<LlmCallRecord>();
+        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+            records.AddRange(LoadPersistedUnsafe(date));
+        return records;
+    }
+
+    private static IReadOnlyList<LlmCallRecord> LoadAllPersistedUnsafe()
+    {
+        if (!Directory.Exists(usageLogPath))
+            return Array.Empty<LlmCallRecord>();
+
+        var records = new List<LlmCallRecord>();
+        foreach (var path in Directory.GetFiles(usageLogPath, "*.jsonl"))
+        {
+            foreach (var line in File.ReadLines(path))
+            {
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                try
+                {
+                    var record = JsonConvert.DeserializeObject<LlmCallRecord>(line);
+                    if (record != null)
+                    {
+                        ApplyPricing(record);
+                        records.Add(record);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
+
+        return records;
+    }
+
+    private static void MergeMemoryCallsUnsafe(List<LlmCallRecord> records, DateTime? from, DateTime? to)
+    {
+        var seen = new HashSet<string>(records.Select(GetRecordKey));
+        foreach (var call in calls)
+        {
+            if (!IsWithinDateRange(call.timestamp, from, to))
+                continue;
+
+            if (seen.Add(GetRecordKey(call)))
+                records.Add(call);
+        }
+    }
+
+    private static string GetRecordKey(LlmCallRecord record)
+    {
+        if (!string.IsNullOrWhiteSpace(record?.responseId))
+            return record.responseId;
+        return $"{record?.timestamp}|{record?.channelKey}|{record?.templateName}|{record?.model}|{record?.totalTokens}";
+    }
+
+    private static bool IsWithinDateRange(string timestamp, DateTime? from, DateTime? to)
+    {
+        if (from == null && to == null)
+            return true;
+        if (!TryGetLocalDate(timestamp, out var date))
+            return false;
+        if (from != null && date < from.Value.Date)
+            return false;
+        return to == null || date <= to.Value.Date;
+    }
+
+    private static bool TryGetLocalDate(string timestamp, out DateTime date)
+    {
+        date = default;
+        if (!DateTimeOffset.TryParse(timestamp, out var parsed))
+            return false;
+        date = parsed.LocalDateTime.Date;
+        return true;
     }
 
     private static string GetGroupKey(LlmCallRecord call, string groupBy)
@@ -764,7 +964,10 @@ public sealed class LlmCallSummaryRecord
 public sealed class LlmBudgetBreakdownRecord
 {
     public string generatedAt;
+    public string range;
     public string date;
+    public string from;
+    public string to;
     public int callCount;
     public int promptTokens;
     public int completionTokens;
@@ -776,6 +979,8 @@ public sealed class LlmBudgetBreakdownRecord
     public double cachedInputCostUsd;
     public double outputCostUsd;
     public double totalCostUsd;
+    public double sessionCostUsd;
+    public int sessionCallCount;
     public LlmBudgetPolicySnapshot policy;
     public IReadOnlyList<LlmCallSummaryRecord> byChannel;
     public IReadOnlyList<LlmCallSummaryRecord> byContext;

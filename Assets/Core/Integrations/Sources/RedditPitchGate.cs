@@ -495,6 +495,11 @@ public static class PitchDiscordPublisher
 {
     public static void Publish(PitchCandidate candidate, PitchCandidateStore store)
     {
+        Publish(candidate, store, null);
+    }
+
+    public static void Publish(PitchCandidate candidate, PitchCandidateStore store, ChatManagerContext context)
+    {
         if (candidate == null || store == null)
             return;
 
@@ -506,7 +511,8 @@ public static class PitchDiscordPublisher
         };
 
         candidate.status = PitchStatus.PostedForVote;
-        DiscordManager.PutInQueue(candidate.discordChannelKey, new DiscordWebhookMessage("# :new: From Reddit!", null, null, embed), posted =>
+        var contextKey = context?.Key ?? candidate.channelKey;
+        DiscordManager.PutInQueueForContext(contextKey, candidate.discordChannelKey, new DiscordWebhookMessage("# :new: From Reddit!", null, null, embed), posted =>
         {
             if (posted != null)
             {

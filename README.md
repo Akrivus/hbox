@@ -228,7 +228,7 @@ Example:
 - `Utility`, `PostProcess`, and `Sentiment`: cheap/default profiles for low-reasoning work.
 - `Dialogue` and `SceneReasoning`: higher-capability profiles for chain stages that benefit from stronger reasoning.
 
-`ModelPrices` is keyed by the exact model name returned by the OpenAI response. The values in the example above are illustrative; update them when model pricing changes. Costs are calculated from response usage metadata when available:
+`ModelPrices` is keyed by model id. Exact model ids are matched first; versioned response ids such as `gpt-5.4-mini-03-26` fall back to the longest configured prefix such as `gpt-5.4-mini`. The values in the example above are illustrative; update them when model pricing changes. Costs are calculated from response usage metadata when available:
 
 - `InputPerMillion`: uncached input token price.
 - `CachedInputPerMillion`: cached input token price.
@@ -271,6 +271,11 @@ LLM usage APIs:
 - `GET /api/llm/summary?groupBy=model`
 - `GET /api/llm/summary?groupBy=profile`
 - `GET /api/llm/budget?limit=1000`
+- `GET /api/llm/usage?range=day`
+- `GET /api/llm/usage?range=week`
+- `GET /api/llm/usage?range=month`
+- `GET /api/llm/usage?range=all`
+- `GET /api/llm/usage/calls?range=week&limit=24`
 - `GET /api/llm/history/calls?date=YYYY-MM-DD`
 - `GET /api/llm/history/budget?date=YYYY-MM-DD`
 

@@ -212,7 +212,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
                 return true;
             }
 
-            PitchDiscordPublisher.Publish(candidate, pitchStore);
+            PitchDiscordPublisher.Publish(candidate, pitchStore, chatManagerContext);
             UiEventBus.Publish(chatManagerContext, $"Posted Reddit pitch for vote: {PitchCandidateText.GetTitle(candidate)}");
             return true;
         }

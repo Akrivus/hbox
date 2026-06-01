@@ -52,6 +52,8 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/api/llm/calls", GetLlmCallsAsync);
         AddRoute("GET", "/api/llm/summary", GetLlmSummaryAsync);
         AddRoute("GET", "/api/llm/budget", GetLlmBudgetAsync);
+        AddRoute("GET", "/api/llm/usage", GetLlmUsageAsync);
+        AddRoute("GET", "/api/llm/usage/calls", GetLlmUsageCallsAsync);
         AddRoute("GET", "/api/llm/history/calls", GetLlmHistoryCallsAsync);
         AddRoute("GET", "/api/llm/history/budget", GetLlmHistoryBudgetAsync);
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
@@ -69,6 +71,11 @@ public class ServerSource : MonoBehaviour
         listener.Prefixes.Add("http://localhost:6789/");
         thread = new Thread(() => Listen().GetAwaiter().GetResult());
         thread.Start();
+    }
+
+    private void Update()
+    {
+        OperatorTelemetry.CaptureRequestedMemorySnapshot();
     }
 
     private void OnDestroy()
@@ -272,6 +279,7 @@ public class ServerSource : MonoBehaviour
 
     private Task<MemoryDiagnosticsSnapshot> GetMemoryDiagnosticsAsync()
     {
+        OperatorTelemetry.RequestMemorySnapshot("operator_poll");
         return Task.FromResult(OperatorTelemetry.GetLatestMemorySnapshot());
     }
 
@@ -315,6 +323,22 @@ public class ServerSource : MonoBehaviour
         var query = ParseQueryString(context.Request.Url.Query);
         var limit = ParseLimit(query, 1000);
         return WriteJsonAsync(context.Response, LlmCallTelemetry.GetBudgetBreakdown(limit));
+    }
+
+    private Task GetLlmUsageAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 5000);
+        query.TryGetValue("range", out var range);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetUsageBreakdown(range, limit));
+    }
+
+    private Task GetLlmUsageCallsAsync(HttpListenerContext context)
+    {
+        var query = ParseQueryString(context.Request.Url.Query);
+        var limit = ParseLimit(query, 1000);
+        query.TryGetValue("range", out var range);
+        return WriteJsonAsync(context.Response, LlmCallTelemetry.GetUsageCalls(range, limit));
     }
 
     private Task GetLlmHistoryCallsAsync(HttpListenerContext context)
@@ -651,6 +675,8 @@ public static class OperatorTelemetry
     private const int MaxRecentTouchedAssets = 20;
 
     private static MemoryDiagnosticsSnapshot latestMemorySnapshot;
+    private static bool memorySnapshotRequested;
+    private static string pendingMemorySnapshotReason;
 
     public static void RecordEvent(string type, string message, ChatManagerContext context = null, string channelKey = null, string episodeSlug = null, DateTimeOffset? countdownAt = null)
     {
@@ -885,6 +911,32 @@ public static class OperatorTelemetry
             TrimMemorySnapshotsUnsafe();
             return snapshot;
         }
+    }
+
+    public static void RequestMemorySnapshot(string reason = null)
+    {
+        lock (sync)
+        {
+            memorySnapshotRequested = true;
+            pendingMemorySnapshotReason = string.IsNullOrWhiteSpace(reason) ? "requested" : reason;
+        }
+    }
+
+    public static void CaptureRequestedMemorySnapshot()
+    {
+        string reason;
+
+        lock (sync)
+        {
+            if (!memorySnapshotRequested)
+                return;
+
+            memorySnapshotRequested = false;
+            reason = pendingMemorySnapshotReason;
+            pendingMemorySnapshotReason = null;
+        }
+
+        CaptureMemorySnapshot(reason);
     }
 
     public static MemoryDiagnosticsSnapshot GetLatestMemorySnapshot()
@@ -1156,6 +1208,15 @@ public static class OperatorTelemetry
 
     private static long GetBestWorkingSetBytes(DiagnosticsProcess process)
     {
+        try
+        {
+            process?.Refresh();
+        }
+        catch
+        {
+            // Some Unity player targets restrict process counters; fall through to cheaper runtime fallbacks.
+        }
+
         var workingSet = process?.WorkingSet64 ?? 0;
         if (workingSet > 0)
             return workingSet;
@@ -1164,7 +1225,11 @@ public static class OperatorTelemetry
         if (workingSet > 0)
             return workingSet;
 
-        return process?.PrivateMemorySize64 ?? 0;
+        var privateMemory = process?.PrivateMemorySize64 ?? 0;
+        if (privateMemory > 0)
+            return privateMemory;
+
+        return GC.GetTotalMemory(false);
     }
 
     private static int NormalizeLimit(int requested, int max)

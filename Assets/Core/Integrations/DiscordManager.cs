@@ -16,17 +16,22 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public static Dictionary<string, DiscordWebhook> Webhooks => webhooks;
     private static Dictionary<string, DiscordWebhook> webhooks;
+    private static readonly Dictionary<string, Dictionary<string, DiscordWebhook>> webhooksByContext = new Dictionary<string, Dictionary<string, DiscordWebhook>>(StringComparer.OrdinalIgnoreCase);
 
     private static Queue<DiscordWebhookQueueItem> Q = new Queue<DiscordWebhookQueueItem>();
 
     public Dictionary<string, string> WebhookURLs { get; private set; }
+    private ChatManagerContext managerContext;
 
     private static string url = "https://raw.githubusercontent.com/Akrivus/polbol/refs/heads/main/WWW/";
 
     public void Configure(DiscordConfigs c)
     {
-        WebhookURLs = c.WebhookURLs;
+        WebhookURLs = c.WebhookURLs ?? new Dictionary<string, string>();
         webhooks = WebhookURLs.ToDictionary(k => k.Key, v => new DiscordWebhook(v.Value));
+        var contextKey = managerContext?.Key ?? ChatManagerContext.Current?.Key;
+        if (!string.IsNullOrWhiteSpace(contextKey))
+            webhooksByContext[contextKey] = webhooks;
         url = c.AvatarURL;
 
         StartCoroutine(UpdateWebhooks());
@@ -34,7 +39,8 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private void Start()
     {
-        ChatManagerContext.Current.ConfigManager.RegisterConfig(typeof(DiscordConfigs), "discord", (_config) => Configure((DiscordConfigs)_config));
+        managerContext = ChatManagerContext.Current;
+        managerContext.ConfigManager.RegisterConfig(typeof(DiscordConfigs), "discord", (_config) => Configure((DiscordConfigs)_config));
         Instance = this;
     }
 
@@ -97,8 +103,14 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public static void PutInQueue(string channel, DiscordWebhookMessage message, bool waitForResponse, Action<DiscordPostedMessage> onPosted)
     {
-        var webhook = Webhooks.FirstOrDefault(w => w.Key == channel).Value;
+        var webhook = ResolveWebhook(null, channel);
         Q.Enqueue(new DiscordWebhookQueueItem(webhook, message, waitForResponse, onPosted));
+    }
+
+    public static void PutInQueueForContext(string contextKey, string channel, DiscordWebhookMessage message, Action<DiscordPostedMessage> onPosted)
+    {
+        var webhook = ResolveWebhook(contextKey, channel);
+        Q.Enqueue(new DiscordWebhookQueueItem(webhook, message, true, onPosted));
     }
 
     public static string GetStreamChannel(ChatManagerContext context)
@@ -118,6 +130,42 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         }
 
         return webhooks.ContainsKey("#stream") ? "#stream" : webhooks.Keys.First();
+    }
+
+    private static DiscordWebhook ResolveWebhook(string contextKey, string channel)
+    {
+        if (!string.IsNullOrWhiteSpace(contextKey) && webhooksByContext.TryGetValue(contextKey, out var contextWebhooks))
+        {
+            var webhook = ResolveWebhookFromMap(contextWebhooks, contextKey, channel);
+            if (webhook != null)
+                return webhook;
+        }
+
+        return ResolveWebhookFromMap(Webhooks, contextKey, channel);
+    }
+
+    private static DiscordWebhook ResolveWebhookFromMap(Dictionary<string, DiscordWebhook> map, string contextKey, string channel)
+    {
+        if (map == null || map.Count == 0)
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(channel) && map.TryGetValue(channel, out var webhook))
+            return webhook;
+
+        if (!string.IsNullOrWhiteSpace(contextKey))
+        {
+            if (map.TryGetValue(contextKey, out webhook))
+                return webhook;
+
+            var hashKey = contextKey.StartsWith("#", StringComparison.Ordinal) ? contextKey : "#" + contextKey;
+            if (map.TryGetValue(hashKey, out webhook))
+                return webhook;
+        }
+
+        if (map.TryGetValue("#stream", out webhook))
+            return webhook;
+
+        return map.Values.FirstOrDefault();
     }
 }
 
