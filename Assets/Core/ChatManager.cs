@@ -311,7 +311,7 @@ public class ChatManager : MonoBehaviour
         SafeInvoke(OnChatLoaded, chat, nameof(OnChatLoaded));
 
         var chatActors = chat.Actors ?? Array.Empty<ActorContext>();
-        var fallbackSpawnPoints = GetValidFallbackSpawnPoints(chat.ManagerContext);
+        var fallbackSpawnPoints = new FallbackSpawnPointCursor(GetValidFallbackSpawnPoints(chat.ManagerContext));
         var activeActorReferences = new HashSet<Actor>();
         foreach (var actorController in actors)
         {
@@ -324,7 +324,7 @@ public class ChatManager : MonoBehaviour
             if (actor?.Reference == null || activeActorReferences.Contains(actor.Reference))
                 continue;
 
-            yield return AddActor(actor, GetFirstAvailableFallbackSpawnPoint(fallbackSpawnPoints));
+            yield return AddActor(actor, fallbackSpawnPoints.GetNext(), true);
             if (!IsPlaybackCurrent(chat, expectedKey, generation))
                 yield break;
         }
@@ -449,7 +449,7 @@ public class ChatManager : MonoBehaviour
         yield return new WaitForSeconds(clip.length);
     }
 
-    private IEnumerator AddActor(ActorContext context, Transform spawnPointTransform)
+    private IEnumerator AddActor(ActorContext context, Transform spawnPointTransform, bool offsetSharedFallback = false)
     {
         if (context == null || context.Reference == null) // another weird fluke
             yield break;
@@ -466,9 +466,13 @@ public class ChatManager : MonoBehaviour
             if (spawnPoint == null)
                 spawnPoint = spawnPoints.FirstOrDefault(t => t != null && t.transform.childCount == 0);
             if (spawnPoint != null)
+            {
                 spawnPointTransform = spawnPoint.transform;
+                offsetSharedFallback = false;
+            }
         }
 
+        var spawnPointChildCount = spawnPointTransform != null ? spawnPointTransform.childCount : 0;
         var obj = spawnPointTransform != null
             ? Instantiate(context.Reference.Prefab, spawnPointTransform)
             : Instantiate(context.Reference.Prefab);
@@ -480,6 +484,8 @@ public class ChatManager : MonoBehaviour
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
+        if (offsetSharedFallback && spawnPointChildCount > 0)
+            obj.transform.localPosition = GetSharedFallbackOffset(spawnPointChildCount);
 
         var controller = obj.GetComponent<ActorController>();
         if (controller == null)
@@ -801,19 +807,43 @@ public class ChatManager : MonoBehaviour
         return validFallbacks.ToArray();
     }
 
-    private static Transform GetFirstAvailableFallbackSpawnPoint(Transform[] fallbackSpawnPoints)
+    private static Vector3 GetSharedFallbackOffset(int occupiedCount)
     {
-        if (fallbackSpawnPoints == null)
-            return null;
+        const float radiusStep = 0.3f;
+        const float goldenAngle = 137.508f;
 
-        for (var i = 0; i < fallbackSpawnPoints.Length; i++)
+        var angle = occupiedCount * goldenAngle * Mathf.Deg2Rad;
+        var ring = 1 + occupiedCount / 8;
+        var radius = radiusStep * ring;
+        return new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
+    }
+
+    private sealed class FallbackSpawnPointCursor
+    {
+        private readonly Transform[] spawnPoints;
+        private int nextOccupiedIndex;
+
+        public FallbackSpawnPointCursor(Transform[] spawnPoints)
         {
-            var fallback = fallbackSpawnPoints[i];
-            if (fallback != null && fallback.childCount == 0)
-                return fallback;
+            this.spawnPoints = spawnPoints ?? Array.Empty<Transform>();
         }
 
-        return null;
+        public Transform GetNext()
+        {
+            for (var i = 0; i < spawnPoints.Length; i++)
+            {
+                var fallback = spawnPoints[i];
+                if (fallback != null && fallback.childCount == 0)
+                    return fallback;
+            }
+
+            if (spawnPoints.Length == 0)
+                return null;
+
+            var occupiedFallback = spawnPoints[nextOccupiedIndex % spawnPoints.Length];
+            nextOccupiedIndex++;
+            return occupiedFallback;
+        }
     }
 
     private IEnumerator RecoverLiveContext(Chat chat, string expectedKey, int generation, float timeoutSeconds = 1f)

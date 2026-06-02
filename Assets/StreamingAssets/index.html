@@ -2489,6 +2489,11 @@
 					row.className = 'feed-item';
 					const title = call.templateName || call.promptPart || `${call.callerType || 'LLM'}.${call.callerMember || 'call'}`;
 					const statusLabel = call.success ? 'ok' : 'failed';
+					const links = [
+						call.promptUrl ? `<a href="${escapeHtml(call.promptUrl)}" target="_blank" rel="noopener">Prompt</a>` : '',
+						call.inputUrl ? `<a href="${escapeHtml(call.inputUrl)}" target="_blank" rel="noopener">Input</a>` : '',
+						call.outputUrl ? `<a href="${escapeHtml(call.outputUrl)}" target="_blank" rel="noopener">Output</a>` : ''
+					].filter(Boolean).join(' | ');
 					row.innerHTML = `
 						<div class="feed-head">
 							<span>${escapeHtml(call.profile || 'profile')}</span>
@@ -2496,6 +2501,7 @@
 						</div>
 						<div class="feed-title">${escapeHtml(title)} | ${formatUsd(call.totalCostUsd)} | ${formatUsageVolume(call)}</div>
 						<div class="feed-copy">${escapeHtml(call.model || 'no model')} | ${escapeHtml(call.channelKey || call.context || 'No channel')} | ${escapeHtml(call.callerType || 'unknown caller')}.${escapeHtml(call.callerMember || 'unknown')} | ${escapeHtml(statusLabel)}${call.error ? ` | ${escapeHtml(call.error)}` : ''}</div>
+						${links ? `<div class="feed-copy">${links}</div>` : ''}
 					`;
 					usageCallFeed.appendChild(row);
 				}

@@ -165,6 +165,12 @@ public class ServerSource : MonoBehaviour
 
             if (handler == null)
             {
+                if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) && IsVaultPath(path))
+                {
+                    await GetVaultFileAsync(context);
+                    return;
+                }
+
                 response.StatusCode = 404;
                 await WriteJsonAsync(response, new ApiErrorResponse("not_found", $"No route registered for '{path}'."));
                 return;
@@ -437,6 +443,125 @@ public class ServerSource : MonoBehaviour
         var file = Path.Combine(Application.streamingAssetsPath, path);
         var text = File.ReadAllText(file);
         return context.Response.WriteStringAsync(text, "text/html; charset=utf-8");
+    }
+
+    private static async Task GetVaultFileAsync(HttpListenerContext context)
+    {
+        if (!TryResolveVaultPath(context.Request.Url.AbsolutePath, out var file, out var errorCode, out var errorMessage))
+        {
+            context.Response.StatusCode = errorCode;
+            await WriteJsonAsync(context.Response, new ApiErrorResponse(errorCode == 403 ? "forbidden" : "not_found", errorMessage));
+            return;
+        }
+
+        var bytes = await Task.Run(() => File.ReadAllBytes(file));
+        context.Response.ContentType = GetContentType(file);
+        context.Response.ContentLength64 = bytes.Length;
+        await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+    }
+
+    public static string GetVaultUrl(string path)
+    {
+        if (!TryGetVaultRelativePath(path, out var relative))
+            return string.Empty;
+
+        return "/vault/" + string.Join("/", relative
+            .Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString));
+    }
+
+    private static bool IsVaultPath(string path)
+    {
+        return path != null && path.StartsWith("/vault/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryResolveVaultPath(string requestPath, out string file, out int errorCode, out string errorMessage)
+    {
+        file = string.Empty;
+        errorCode = 404;
+        errorMessage = "Vault file not found.";
+
+        if (!IsVaultPath(requestPath))
+            return false;
+
+        var relative = Uri.UnescapeDataString(requestPath.Substring("/vault/".Length)).Replace('/', Path.DirectorySeparatorChar);
+        if (string.IsNullOrWhiteSpace(relative))
+            return false;
+
+        var root = GetVaultRoot();
+        var fullPath = Path.GetFullPath(Path.Combine(root, relative));
+        if (!IsUnderDirectory(fullPath, root))
+        {
+            errorCode = 403;
+            errorMessage = "Requested file is outside the Vault.";
+            return false;
+        }
+
+        if (!File.Exists(fullPath))
+            return false;
+
+        file = fullPath;
+        return true;
+    }
+
+    private static bool TryGetVaultRelativePath(string path, out string relative)
+    {
+        relative = string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var root = GetVaultRoot();
+        var fullPath = Path.GetFullPath(path);
+        if (!IsUnderDirectory(fullPath, root))
+            return false;
+
+        relative = fullPath.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return !string.IsNullOrWhiteSpace(relative);
+    }
+
+    private static string GetVaultRoot()
+    {
+        return Path.GetFullPath(PromptResolver.BasePath);
+    }
+
+    private static bool IsUnderDirectory(string path, string directory)
+    {
+        var normalizedDirectory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedPath.StartsWith(normalizedDirectory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetContentType(string path)
+    {
+        switch (Path.GetExtension(path).ToLowerInvariant())
+        {
+            case ".html":
+            case ".htm":
+                return "text/html; charset=utf-8";
+            case ".md":
+            case ".txt":
+            case ".log":
+            case ".json":
+            case ".jsonl":
+            case ".csv":
+                return "text/plain; charset=utf-8";
+            case ".png":
+                return "image/png";
+            case ".jpg":
+            case ".jpeg":
+                return "image/jpeg";
+            case ".gif":
+                return "image/gif";
+            case ".webp":
+                return "image/webp";
+            case ".wav":
+                return "audio/wav";
+            case ".mp3":
+                return "audio/mpeg";
+            default:
+                return "application/octet-stream";
+        }
     }
 
     public static async Task ProcessBodyString(HttpListenerContext context, Func<string, Task> handler)

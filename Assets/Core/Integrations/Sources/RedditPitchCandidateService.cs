@@ -4,16 +4,25 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 public sealed class RedditPitchCandidateService
 {
-    private const int ContinuityEpisodeLimit = 12;
     private const int ContinuityTelemetryScanLimit = 100;
     private const long MaxContinuityOutputBytes = 128 * 1024;
 
     private readonly ChatManagerContext context;
     private readonly ChatGenerator generator;
+
+    public int MemoryMaxChars { get; set; } = 4000;
+    public int ContinuityEpisodeLimit { get; set; } = 6;
+    public int ContinuityMaxChars { get; set; } = 4000;
+    public int SourceSelftextMaxChars { get; set; } = 1200;
+    public int EvaluatorThreadMaxChars { get; set; } = 1800;
+    public int EvaluatorMemoryMaxChars { get; set; } = 1200;
+    public int EvaluatorContinuityMaxChars { get; set; } = 1200;
+    public int EvaluatorActorLimit { get; set; } = 40;
 
     public RedditPitchCandidateService(ChatManagerContext context, ChatGenerator generator)
     {
@@ -29,21 +38,22 @@ public sealed class RedditPitchCandidateService
     {
         var actors = "- " + string.Join("\n- ", context.Actors.Select(a => a.Name));
         var chat = new Chat(new Idea(topic), generator.ManagerContext);
-        var memory = await MemoryBucket.GetContext(context, generator.slug, chat.BuildRecallQuery(null, source.title, source.selftext));
+        var memory = LimitText(await MemoryBucket.GetContext(context, generator.slug, chat.BuildRecallQuery(null, source.title, source.selftext)), MemoryMaxChars);
         var continuity = BuildEpisodeContinuityContext();
-        var sourceJson = JsonConvert.SerializeObject(source, Formatting.Indented);
+        var sourceJson = BuildPromptSourceJson(source);
+        var threadMaterial = LimitText(source.threadContext, 0);
 
         var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Candidate");
         var prompt = await resolver.Resolve(
             sourceJson,
-            topic,
+            threadMaterial,
             actors,
             memory,
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             continuity);
 
         var output = await LLM.CompleteAsync(prompt, chat, true);
-        var evaluation = await EvaluateAsync(output, source, topic, actors, memory, continuity);
+        var evaluation = await EvaluateAsync(output, source, actors, memory, continuity);
         if (!PitchCandidateEvaluator.IsApproved(evaluation))
         {
             OperatorTelemetry.RecordEvent(
@@ -66,19 +76,19 @@ public sealed class RedditPitchCandidateService
         return candidate;
     }
 
-    private async Task<string> EvaluateAsync(string pitch, RedditPostSource source, string topic, string actors, string memory, string continuity)
+    private async Task<string> EvaluateAsync(string pitch, RedditPostSource source, string actors, string memory, string continuity)
     {
         var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Evaluator");
         var prompt = await resolver.Resolve(
-            JsonConvert.SerializeObject(source, Formatting.Indented),
-            topic,
-            actors,
-            memory,
+            BuildPromptSourceJson(source),
+            LimitText(source.threadContext, EvaluatorThreadMaxChars),
+            LimitActorsForEvaluation(pitch, actors),
+            LimitText(memory, EvaluatorMemoryMaxChars),
             DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
             pitch,
-            continuity);
+            LimitText(continuity, EvaluatorContinuityMaxChars));
 
-        return await LLM.CompleteAsync(prompt, new Chat(new Idea(topic), generator.ManagerContext), true);
+        return await LLM.CompleteAsync(prompt, new Chat(new Idea(pitch), generator.ManagerContext), LlmProfile.Utility);
     }
 
     private int ResolvePitchColor(PitchCandidate candidate)
@@ -107,6 +117,9 @@ public sealed class RedditPitchCandidateService
 
     private string BuildEpisodeContinuityContext()
     {
+        if (ContinuityEpisodeLimit <= 0)
+            return "No recent episode continuity requested.";
+
         var episodes = new List<EpisodeContinuityItem>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -136,21 +149,65 @@ public sealed class RedditPitchCandidateService
 
             episodes.Add(episode);
             seen.Add(episode.slug);
-            if (episodes.Count >= 12)
+            if (episodes.Count >= ContinuityEpisodeLimit)
                 break;
         }
 
         if (episodes.Count == 0)
             return "No recent episode continuity found.";
 
-        return string.Join("\n", episodes
+        return LimitText(string.Join("\n", episodes
             .Take(ContinuityEpisodeLimit)
             .Select(episode =>
             {
                 var title = string.IsNullOrWhiteSpace(episode.title) ? episode.slug : episode.title;
                 var synopsis = string.IsNullOrWhiteSpace(episode.synopsis) ? "No synopsis recorded." : episode.synopsis.Trim();
                 return $"- {title}: {synopsis}";
-            }));
+            })), ContinuityMaxChars);
+    }
+
+    private string BuildPromptSourceJson(RedditPostSource source)
+    {
+        var sourceObject = JObject.FromObject(source);
+        sourceObject.Remove(nameof(RedditPostSource.threadContext));
+        sourceObject[nameof(RedditPostSource.selftext)] = LimitText(source.selftext, SourceSelftextMaxChars);
+        return sourceObject.ToString(Formatting.Indented);
+    }
+
+    private string LimitActorsForEvaluation(string pitch, string actors)
+    {
+        if (EvaluatorActorLimit <= 0 || string.IsNullOrWhiteSpace(actors))
+            return actors;
+
+        var lines = actors
+            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+        var selected = lines
+            .Where(line => IsActorMentionedInPitch(line, pitch))
+            .Concat(lines)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(EvaluatorActorLimit);
+
+        return string.Join("\n", selected);
+    }
+
+    private static bool IsActorMentionedInPitch(string actorLine, string pitch)
+    {
+        if (string.IsNullOrWhiteSpace(actorLine) || string.IsNullOrWhiteSpace(pitch))
+            return false;
+
+        var actor = actorLine.Trim().TrimStart('-').Trim();
+        return actor.Length > 0 && pitch.IndexOf(actor, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string LimitText(string text, int maxChars)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+        var trimmed = text.Trim();
+        if (maxChars <= 0 || trimmed.Length <= maxChars)
+            return trimmed;
+        return trimmed.Substring(0, Math.Max(0, maxChars - 1)) + "…";
     }
 
     private bool IsCurrentContextEpisode(EpisodeRecord episode)

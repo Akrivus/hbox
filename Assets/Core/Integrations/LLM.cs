@@ -243,6 +243,11 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             episodeSlug = chat?.FileName ?? chat?.Idea?.Slug ?? string.Empty,
             promptPart = promptPart,
             promptPath = prompt?.Path ?? string.Empty,
+            promptUrl = ServerSource.GetVaultUrl(prompt?.Path),
+            inputPath = prompt?.InputPath ?? string.Empty,
+            inputUrl = ServerSource.GetVaultUrl(prompt?.InputPath),
+            outputPath = prompt?.Output?.Path ?? string.Empty,
+            outputUrl = ServerSource.GetVaultUrl(prompt?.Output?.Path),
             templateName = string.IsNullOrWhiteSpace(promptPart) ? $"{caller.type}.{caller.member}" : promptPart,
             profile = profile.ToString(),
             model = response?.Model ?? fallbackModel ?? string.Empty,
@@ -988,6 +993,11 @@ public sealed class LlmCallRecord
     public string episodeSlug;
     public string promptPart;
     public string promptPath;
+    public string promptUrl;
+    public string inputPath;
+    public string inputUrl;
+    public string outputPath;
+    public string outputUrl;
     public string templateName;
     public string profile;
     public string model;

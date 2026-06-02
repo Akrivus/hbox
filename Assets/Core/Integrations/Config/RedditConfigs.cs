@@ -31,4 +31,12 @@ public class RedditConfigs : IConfig
     public int PitchExpirationMinutes { get; set; } = 180;
     public int PitchAutoApprovalBatchSize { get; set; } = 0;
     public int PitchMinimumVotesToQueue { get; set; } = 1;
+    public int PitchMemoryMaxChars { get; set; } = 4000;
+    public int PitchContinuityEpisodeLimit { get; set; } = 6;
+    public int PitchContinuityMaxChars { get; set; } = 4000;
+    public int PitchSourceSelftextMaxChars { get; set; } = 1200;
+    public int PitchEvaluatorThreadMaxChars { get; set; } = 1800;
+    public int PitchEvaluatorMemoryMaxChars { get; set; } = 1200;
+    public int PitchEvaluatorContinuityMaxChars { get; set; } = 1200;
+    public int PitchEvaluatorActorLimit { get; set; } = 40;
 }

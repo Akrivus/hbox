@@ -176,6 +176,14 @@ Example:
     "PitchExpirationMinutes": 180,
     "PitchAutoApprovalBatchSize": 0,
     "PitchMinimumVotesToQueue": 1,
+    "PitchMemoryMaxChars": 4000,
+    "PitchContinuityEpisodeLimit": 6,
+    "PitchContinuityMaxChars": 4000,
+    "PitchSourceSelftextMaxChars": 1200,
+    "PitchEvaluatorThreadMaxChars": 1800,
+    "PitchEvaluatorMemoryMaxChars": 1200,
+    "PitchEvaluatorContinuityMaxChars": 1200,
+    "PitchEvaluatorActorLimit": 40,
     "MaxDepth": 3,
     "TopRoots": 3,
     "TopLevelLimit": 30,
@@ -224,6 +232,8 @@ Example:
 - `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
 - `reddit.PitchAutoApprovalBatchSize` is how many top evaluator-approved Reddit pitches can skip Discord voting and queue directly per active Reddit batch slot. Set it to `0` to require voting for every pitch.
 - `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before an expired positive voted pitch can queue.
+- `reddit.PitchMemoryMaxChars`, `reddit.PitchContinuityEpisodeLimit`, `reddit.PitchContinuityMaxChars`, and `reddit.PitchSourceSelftextMaxChars` bound the context used while writing pitch cards.
+- `reddit.PitchEvaluatorThreadMaxChars`, `reddit.PitchEvaluatorMemoryMaxChars`, `reddit.PitchEvaluatorContinuityMaxChars`, and `reddit.PitchEvaluatorActorLimit` keep the rejection filter cheap; rejected candidates no longer need to pay for generation-sized context.
 - Autoapproved pitch candidates are sorted by Reddit comment count weighted most heavily, then Reddit karma, then newest post first.
 - Pitch generation uses `Vault/{show}/Prompts/Reddit Source/Pitch Candidate.md`, then `Vault/{show}/Prompts/Reddit Source/Pitch Evaluator.md` to reject weak or overlong pitches before posting.
 - Posted pitch cards surface the pitch, cast, source subreddit, Reddit karma/comment counts, and evaluator approval reason; the approved `Idea` still includes the raw Reddit post text and mined thread material for generation context.

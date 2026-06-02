@@ -20,6 +20,7 @@ public class PromptResolver
     public string Part { get; private set; } = string.Empty;
     public string Path { get; private set; }
     public string Text { get; private set; } = string.Empty;
+    public string InputPath { get; private set; } = string.Empty;
     public PromptResolver Output { get; private set; } = null;
     public ChatManagerContext ManagerContext { get; private set; }
     public string FolderName { get; private set; }
@@ -124,6 +125,7 @@ public class PromptResolver
         var folder = System.IO.Path.Combine(BasePath, FolderName, BaseInputPath, Part);
         var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
+        InputPath = path;
         await Save(path, Text);
 
         Debug.Log($"Saved input to '{path}'");

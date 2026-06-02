@@ -62,6 +62,17 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         PitchExpirationMinutes = Mathf.Max(1, c.PitchExpirationMinutes);
         PitchAutoApprovalBatchSize = Mathf.Max(0, c.PitchAutoApprovalBatchSize);
         PitchMinimumVotesToQueue = Mathf.Max(0, c.PitchMinimumVotesToQueue);
+        if (pitchCandidateService != null)
+        {
+            pitchCandidateService.MemoryMaxChars = Mathf.Max(0, c.PitchMemoryMaxChars);
+            pitchCandidateService.ContinuityEpisodeLimit = Mathf.Max(0, c.PitchContinuityEpisodeLimit);
+            pitchCandidateService.ContinuityMaxChars = Mathf.Max(0, c.PitchContinuityMaxChars);
+            pitchCandidateService.SourceSelftextMaxChars = Mathf.Max(0, c.PitchSourceSelftextMaxChars);
+            pitchCandidateService.EvaluatorThreadMaxChars = Mathf.Max(0, c.PitchEvaluatorThreadMaxChars);
+            pitchCandidateService.EvaluatorMemoryMaxChars = Mathf.Max(0, c.PitchEvaluatorMemoryMaxChars);
+            pitchCandidateService.EvaluatorContinuityMaxChars = Mathf.Max(0, c.PitchEvaluatorContinuityMaxChars);
+            pitchCandidateService.EvaluatorActorLimit = Mathf.Max(0, c.PitchEvaluatorActorLimit);
+        }
         RedditRequestGate.Configure(
             c.RequestSpacingSeconds,
             c.RateLimitCooldownSeconds,
