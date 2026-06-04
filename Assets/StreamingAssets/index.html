@@ -1749,12 +1749,20 @@
 			}
 
 			function getPitchStatusClass(status) {
-				const value = formatPitchStatus(status).toLowerCase();
+				const value = normalizePitchStatus(status);
 				if (value === 'approved' || value === 'queuedasidea')
 					return 'ready';
 				if (value === 'rejected' || value === 'expired')
 					return 'unlinked';
 				return 'waiting';
+			}
+
+			function normalizePitchStatus(status) {
+				const keys = ['draft', 'postedforvote', 'approved', 'rejected', 'expired', 'queuedasidea'];
+				const numeric = Number(status);
+				if (Number.isInteger(numeric) && numeric >= 0 && numeric < keys.length)
+					return keys[numeric];
+				return String(status || 'Draft').replace(/\s+/g, '').toLowerCase();
 			}
 
 			function formatPitchStatus(status) {
@@ -1947,7 +1955,7 @@
 			function renderPitches(items) {
 				pitchFeed.innerHTML = '';
 				const visibleItems = items.filter(item => {
-					const status = formatPitchStatus(item.status).toLowerCase();
+					const status = normalizePitchStatus(item.status);
 					return status !== 'expired' && status !== 'approved' && status !== 'queuedasidea';
 				});
 
@@ -1968,9 +1976,10 @@
 						? 'Expiration unknown'
 						: (expirationRemaining > 0 ? `Expires in ${formatRelativeDuration(expirationRemaining)}` : 'Expired');
 					const statusLabel = formatPitchStatus(item.status);
+					const statusKey = normalizePitchStatus(item.status);
 					const voteKey = `${item.channelKey || ''}:${item.id || ''}`;
 					const isVoting = votingPitches.has(voteKey);
-					const canVote = statusLabel === 'PostedForVote';
+					const canVote = statusKey === 'postedforvote' && (Number.isNaN(expiresAt.getTime()) || expirationRemaining > 0);
 					const permalink = String(item.source?.permalink || '');
 					const sourceUrl = permalink.startsWith('http') ? permalink : (permalink ? `https://reddit.com${permalink}` : (item.source?.url || ''));
 					const sourceLabel = item.source?.subreddit || item.source?.author || 'Reddit';
@@ -1982,7 +1991,7 @@
 					row.className = 'feed-item pitch-card';
 					row.innerHTML = `
 						<div class="feed-head">
-							<span>${escapeHtml(statusLabel === 'PostedForVote' ? 'Awaiting vote' : statusLabel)}</span>
+							<span>${escapeHtml(statusKey === 'postedforvote' ? 'Awaiting vote' : statusLabel)}</span>
 							<span>${escapeHtml(createdAt)}</span>
 						</div>
 						<div class="pitch-topline">

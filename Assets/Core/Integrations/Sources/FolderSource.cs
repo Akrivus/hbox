@@ -511,7 +511,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             .Where(entry => !recentHistory.Contains(entry.slug))
             .ToList();
 
-        return unplayed.Count < ReplayRate ? ranked : unplayed;
+        return unplayed.Count > 0 ? unplayed : ranked;
     }
 
     private void UpsertManifestEntry(string slug, Action<ReplayManifestEntry> apply)
