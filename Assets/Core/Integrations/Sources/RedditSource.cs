@@ -31,6 +31,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     public bool EnablePitchGate = false;
     public string PitchDiscordChannel = "#stream";
     public int PitchExpirationMinutes = 180;
+    public int PitchApprovalScore = 1;
     public int PitchAutoApprovalBatchSize = 0;
     public int PitchMinimumVotesToQueue = 1;
 
@@ -60,8 +61,10 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
         EnablePitchGate = c.EnablePitchGate;
         PitchDiscordChannel = c.PitchDiscordChannel;
         PitchExpirationMinutes = Mathf.Max(1, c.PitchExpirationMinutes);
+        PitchApprovalScore = Mathf.Max(1, c.PitchApprovalScore);
         PitchAutoApprovalBatchSize = Mathf.Max(0, c.PitchAutoApprovalBatchSize);
         PitchMinimumVotesToQueue = Mathf.Max(0, c.PitchMinimumVotesToQueue);
+        pitchStore?.ConfigureVoting(PitchMinimumVotesToQueue, PitchApprovalScore);
         if (pitchCandidateService != null)
         {
             pitchCandidateService.MemoryMaxChars = Mathf.Max(0, c.PitchMemoryMaxChars);
@@ -124,7 +127,7 @@ public class RedditSource : MonoBehaviour, IConfigurable<RedditConfigs>
     {
         OnBatchStart?.Invoke();
         var canAutoApprove = IsInActiveWindow(DateTime.Now);
-        if (EnablePitchGate && canAutoApprove)
+        if (EnablePitchGate)
             pitchStore?.ResolveFinishedVotes(PitchMinimumVotesToQueue);
 
         yield return FetchIdeas(canAutoApprove).AsCoroutine();

@@ -113,6 +113,18 @@ public class DiscordManager : MonoBehaviour, IConfigurable<DiscordConfigs>
         Q.Enqueue(new DiscordWebhookQueueItem(webhook, message, true, onPosted));
     }
 
+    public static void DeleteWebhookMessageForContext(string contextKey, string channel, string messageId)
+    {
+        if (Instance == null || string.IsNullOrWhiteSpace(messageId))
+            return;
+
+        var webhook = ResolveWebhook(contextKey, channel);
+        if (webhook == null)
+            return;
+
+        Instance.StartCoroutine(webhook.DeleteMessageAsync(messageId));
+    }
+
     public static string GetStreamChannel(ChatManagerContext context)
     {
         if (webhooks == null || webhooks.Count == 0)
@@ -374,6 +386,58 @@ public class DiscordWebhook
 
             yield break;
         }
+    }
+
+    public IEnumerator DeleteMessageAsync(string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(messageId))
+            yield break;
+
+        const int maxAttempts = 4;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            yield return WaitForSendSlot();
+
+            Client = new WebClient();
+            UploadStringCompletedEventArgs result = null;
+            UploadStringCompletedEventHandler handler = (_, args) => result = args;
+            Client.UploadStringCompleted += handler;
+
+            var targetUrl = $"{URL.TrimEnd('/')}/messages/{Uri.EscapeDataString(messageId)}";
+            Client.UploadStringAsync(new Uri(targetUrl), "DELETE", string.Empty);
+            requestsRemaining--;
+            sendSpacingTimer.Restart();
+
+            yield return new WaitUntil(() => result != null);
+            Client.UploadStringCompleted -= handler;
+
+            if (result.Error != null)
+            {
+                if (IsNotFound(result.Error))
+                    yield break;
+
+                if (DiscordRateLimit.TryGetRetryDelay(result.Error, out var retryDelay) && attempt < maxAttempts)
+                {
+                    UnityEngine.Debug.LogWarning($"Discord webhook rate-limited; retrying delete in {retryDelay.TotalSeconds:0.##}s.");
+                    yield return new WaitForSeconds((float)retryDelay.TotalSeconds);
+                    ResetRateLimitWindow();
+                    continue;
+                }
+
+                UnityEngine.Debug.LogWarning($"DiscordWebhook.DeleteMessageAsync failed: {result.Error.Message}");
+                yield break;
+            }
+
+            yield break;
+        }
+    }
+
+    private static bool IsNotFound(Exception error)
+    {
+        return error is WebException webException &&
+            webException.Response is HttpWebResponse response &&
+            response.StatusCode == HttpStatusCode.NotFound;
     }
 
     private IEnumerator RateLimit()

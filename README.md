@@ -228,10 +228,11 @@ Example:
 - `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`.
 - `reddit.PitchDiscordChannel` must match a configured Discord webhook key, usually `#stream`.
 - `reddit.BatchPeriodOffset` and `reddit.BatchPeriodInMinutes` control Reddit fetch cadence all day; `reddit.ActiveHoursStart` and `reddit.ActiveHoursEnd` only gate queueing/autoapproval work.
-- Pitch votes resolve after the voting window closes: more thumbs-up than thumbs-down queues the pitch as an `Idea`; more thumbs-down rejects it; ties or too few votes expire.
+- Pitch votes queue immediately once the live vote score reaches `reddit.PitchApprovalScore` and the total vote count meets `reddit.PitchMinimumVotesToQueue`. Remaining posted pitches are resolved after the voting window closes: enough positive votes queue the pitch as an `Idea`; more thumbs-down rejects it; ties, too few votes, or positive scores below the approval score expire.
 - `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
+- `reddit.PitchApprovalScore` is the positive vote score required to queue a live or expired pitch.
 - `reddit.PitchAutoApprovalBatchSize` is how many top evaluator-approved Reddit pitches can skip Discord voting and queue directly per active Reddit batch slot. Set it to `0` to require voting for every pitch.
-- `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before an expired positive voted pitch can queue.
+- `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before a positive voted pitch can queue.
 - `reddit.PitchMemoryMaxChars`, `reddit.PitchContinuityEpisodeLimit`, `reddit.PitchContinuityMaxChars`, and `reddit.PitchSourceSelftextMaxChars` bound the context used while writing pitch cards.
 - `reddit.PitchEvaluatorThreadMaxChars`, `reddit.PitchEvaluatorMemoryMaxChars`, `reddit.PitchEvaluatorContinuityMaxChars`, and `reddit.PitchEvaluatorActorLimit` keep the rejection filter cheap; rejected candidates no longer need to pay for generation-sized context.
 - Autoapproved pitch candidates are sorted by Reddit comment count weighted most heavily, then Reddit karma, then newest post first.
@@ -242,6 +243,8 @@ Example:
 - `reddit.OAuthClientId` enables app-only OAuth for read-only listing and comment requests. Add `OAuthClientSecret` for a confidential/script app, or omit the secret and set `OAuthDeviceId` for an installed-app client. When OAuth is configured, Reddit fetches use `oauth.reddit.com` with a cached bearer token.
 - `reddit.OAuthUserAgent` should identify the app and Reddit username that owns the client, for example `script:hbox:1.1 (by /u/yourname)`.
 - Approved pitch posts are pinned by the Discord bot when bot permissions allow it, and the operator panel reads `/api/pitches` for the current pitch deck.
+- Expired pitch polls delete their original Discord webhook message after the vote is resolved.
+- Now Playing Discord webhook messages are deleted when the episode finishes.
 - OpenAI text generation and OpenAI TTS are configured separately.
 - `UseEmbeddings` enables semantic memory recall. When disabled, memory context falls back to the most recent saved memories.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.

@@ -225,7 +225,7 @@ public class ChatManager : MonoBehaviour
             lastPlayInterrupted = !completed;
             ReleaseActorVoiceClips();
             chat?.ReleaseRuntimeAudio();
-            UnpinNowPlayingMessage(chat);
+            DeleteNowPlayingMessage(chat);
             if (NowPlaying == chat)
                 NowPlaying = null;
 
@@ -990,12 +990,13 @@ public class ChatManager : MonoBehaviour
         DiscordBotService.Instance?.PinNowPlayingMessage(message);
     }
 
-    private void UnpinNowPlayingMessage(Chat chat)
+    private void DeleteNowPlayingMessage(Chat chat)
     {
         if (chat == null || nowPlayingDiscordMessage == null)
             return;
 
-        DiscordBotService.Instance?.UnpinNowPlayingMessage(nowPlayingDiscordMessage);
+        var streamChannel = DiscordManager.GetStreamChannel(chat.ManagerContext);
+        DiscordManager.DeleteWebhookMessageForContext(chat.ManagerContext?.Key, streamChannel, nowPlayingDiscordMessage.id);
         nowPlayingDiscordMessage = null;
     }
 }

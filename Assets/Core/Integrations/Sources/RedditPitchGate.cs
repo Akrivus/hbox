@@ -63,6 +63,8 @@ public sealed class PitchCandidateStore
     private readonly ChatManagerContext context;
     private readonly ChatGenerator generator;
     private readonly string path;
+    private int minimumVotesToQueue = 1;
+    private int approvalScore = 1;
     private PitchCandidateManifest manifest = new PitchCandidateManifest();
 
     public PitchCandidateStore(ChatManagerContext context, ChatGenerator generator)
@@ -74,6 +76,12 @@ public sealed class PitchCandidateStore
 
         lock (instanceLock)
             instances[context.Key] = this;
+    }
+
+    public void ConfigureVoting(int minimumVotes, int approvalScore)
+    {
+        minimumVotesToQueue = Mathf.Max(0, minimumVotes);
+        this.approvalScore = Mathf.Max(1, approvalScore);
     }
 
     public void Save(PitchCandidate candidate)
@@ -217,6 +225,7 @@ public sealed class PitchCandidateStore
                     continue;
 
                 ResolveFinishedCandidate(candidate, voteMinimum);
+                DeletePollMessage(candidate);
                 changed = true;
                 if (candidate.status == PitchStatus.QueuedAsIdea)
                     queued++;
@@ -303,6 +312,8 @@ public sealed class PitchCandidateStore
         candidate.voteScore = candidate.upVotes - candidate.downVotes;
 
         Debug.Log($"Pitch vote updated: {candidate.id} -> up {candidate.upVotes}, down {candidate.downVotes}, score {candidate.voteScore}");
+        if (HasWinningVote(candidate))
+            QueueApprovedCandidate(candidate, "pitch_vote_won");
         return true;
     }
 
@@ -315,12 +326,21 @@ public sealed class PitchCandidateStore
         var totalVotes = Mathf.Max(0, candidate.upVotes) + Mathf.Max(0, candidate.downVotes);
         if (totalVotes < Mathf.Max(0, minimumVotes))
             candidate.status = PitchStatus.Expired;
-        else if (candidate.voteScore > 0)
+        else if (candidate.voteScore >= approvalScore)
             QueueApprovedCandidate(candidate);
         else if (candidate.voteScore < 0)
             candidate.status = PitchStatus.Rejected;
         else
             candidate.status = PitchStatus.Expired;
+    }
+
+    private bool HasWinningVote(PitchCandidate candidate)
+    {
+        if (candidate == null || candidate.status != PitchStatus.PostedForVote)
+            return false;
+
+        var totalVotes = Mathf.Max(0, candidate.upVotes) + Mathf.Max(0, candidate.downVotes);
+        return totalVotes >= minimumVotesToQueue && candidate.voteScore >= approvalScore;
     }
 
     private void QueueApprovedCandidate(PitchCandidate candidate, string eventName = "pitch_queued")
@@ -332,6 +352,15 @@ public sealed class PitchCandidateStore
         candidate.queuedAtUtc = DateTime.UtcNow.ToString("O");
         generator.AddIdeaToQueue(PitchToIdeaConverter.Convert(candidate));
         OperatorTelemetry.RecordEvent(eventName, $"Queued pitch: {PitchCandidateText.GetTitle(candidate)}", context, context.Key);
+    }
+
+    private void DeletePollMessage(PitchCandidate candidate)
+    {
+        if (candidate == null || string.IsNullOrWhiteSpace(candidate.discordMessageId))
+            return;
+
+        var contextKey = context?.Key ?? candidate.channelKey;
+        DiscordManager.DeleteWebhookMessageForContext(contextKey, candidate.discordChannelKey, candidate.discordMessageId);
     }
 
     private bool IsExpired(PitchCandidate candidate)

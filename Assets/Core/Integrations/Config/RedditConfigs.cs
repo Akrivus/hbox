@@ -29,6 +29,7 @@ public class RedditConfigs : IConfig
     public bool EnablePitchGate { get; set; } = false;
     public string PitchDiscordChannel { get; set; } = "#stream";
     public int PitchExpirationMinutes { get; set; } = 180;
+    public int PitchApprovalScore { get; set; } = 1;
     public int PitchAutoApprovalBatchSize { get; set; } = 0;
     public int PitchMinimumVotesToQueue { get; set; } = 1;
     public int PitchMemoryMaxChars { get; set; } = 4000;
