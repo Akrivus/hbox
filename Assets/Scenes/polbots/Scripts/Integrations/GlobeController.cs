@@ -140,16 +140,28 @@ public class GlobeController : MonoBehaviour
             return;
         var zoomScaleFactor = Mathf.Clamp01(_lastEntry.Scale / Scale);
         var zoom = (1f - Mathf.Abs(_energy)) * zoomScaleFactor * MaxZoomLevel;
-        Globe.ZoomTo(MinZoomLevel + zoom);
+        var zoomLevel = Mathf.Clamp(MinZoomLevel + zoom, MinZoomLevel, MaxZoomLevel);
+        Globe.ZoomTo(zoomLevel);
     }
 
     private IEnumerator OnChatDequeued(Chat chat)
     {
-        if (chat.Topic.Contains("Mode: Globe"))
+        var nextIsGlobe = chat?.Topic?.Contains("Mode: Globe") == true;
+        var wasGlobe = _zoomTo;
+
+        if (nextIsGlobe)
+        {
+            ChatManagerContext.Current.RemoveActorsOnCompletion = true;
+            ChatManagerContext.Current.DisableSoundEffects = true;
+            yield return ChatManager.Instance.RemoveAllActors();
             Enable();
+        }
         else
+        {
+            if (wasGlobe)
+                yield return ChatManager.Instance.RemoveAllActors();
             Disable();
-        yield return ChatManager.Instance.RemoveAllActors();
+        }
     }
 
     private void OnChatLoaded(Chat chat)
