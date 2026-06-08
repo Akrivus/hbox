@@ -15,9 +15,17 @@ public class ShareScreenUIManager : MonoBehaviour
     [SerializeField]
     private int minVideoScreens = 4;
 
+    private bool _shareScreenActive;
+
     private void Start()
     {
         ShareScreenOff();
+    }
+
+    private void LateUpdate()
+    {
+        if (_shareScreenPrefab != null && _shareScreenPrefab.activeSelf != _shareScreenActive)
+            _shareScreenPrefab.SetActive(_shareScreenActive);
     }
 
     public void ShareScreenOn()
@@ -40,25 +48,28 @@ public class ShareScreenUIManager : MonoBehaviour
 
     private void SetShareScreen(GridLayoutGroup.Corner corner, GridLayoutGroup.Axis axis, TextAnchor alignment, int childCount, bool active)
     {
+        _shareScreenActive = active;
+
+        if (_shareScreenPrefab != null && active)
+            _shareScreenPrefab.transform.SetSiblingIndex(0);
+
         _gridLayoutGroup.startCorner = corner;
         _gridLayoutGroup.startAxis = axis;
         _gridLayoutGroup.childAlignment = alignment;
         _gridLayoutGroup.MaxChildren = childCount;
-        _gridLayoutGroup.UpdateChildren();
-
-        if (VideoCallUIManager.Instance != null)
-            VideoCallUIManager.Instance.Enabled = active;
 
         switch (axis)
         {
             case GridLayoutGroup.Axis.Horizontal:
                 _gridLayoutGroup.SetLayoutHorizontal();
-                _shareScreenPrefab.SetActive(active);
                 break;
             case GridLayoutGroup.Axis.Vertical:
                 _gridLayoutGroup.SetLayoutVertical();
-                _shareScreenPrefab.SetActive(active);
                 break;
         }
+
+        _gridLayoutGroup.UpdateChildren();
+        if (_shareScreenPrefab != null)
+            _shareScreenPrefab.SetActive(_shareScreenActive);
     }
 }

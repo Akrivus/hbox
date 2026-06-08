@@ -11,8 +11,21 @@ HBOx embeds football matches inside the live polbots scene instead of letting th
 ### [`SceneLoader.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/Loaders/SceneLoader.cs)
 
 - Added `SceneLoader.PreserveHostScene`.
+- Added `SceneLoader.PushPreserveHostScene()` / `PopPreserveHostScene()` so embedded hosts can pin preserve mode across async vendor startup.
 - When enabled, `LoadDefaultScene()` and `LoadScene(...)` use additive scene loading instead of `LoadSceneMode.Single`.
+- Scene loading also falls back to additive mode whenever more than one Unity scene is already loaded.
+- This protects embedded HBOx runs even if the explicit preserve flag is dropped during vendor startup or teardown ordering.
 - HBOx turns this on only while embedded soccer is active.
+
+### [`Boot.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/Boot.cs)
+
+- `Start()` exits early while `SceneLoader.PreserveHostScene` is enabled.
+- This keeps the vendor standalone bootstrap from taking over when HBOx embeds soccer inside the existing polbots scene.
+
+### [`DefaultSceneLoader.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/Loaders/DefaultSceneLoader.cs)
+
+- `Start()` exits early while `SceneLoader.PreserveHostScene` is enabled.
+- This prevents the vendor default-scene bootstrap path from unloading or replacing the host scene during embedded startup.
 
 ### [`SerializableSceneCollection.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/Utilities/SerializableSceneCollection.cs)
 
@@ -45,26 +58,41 @@ HBOx embeds football matches inside the live polbots scene instead of letting th
 - Added null/length guards inside `CalculateOffsideLine(...)`.
 - This avoids per-frame null exceptions when match state is in transition and keeps the sim from hard-crashing while lifecycle issues are being cleaned up.
 
+### [`MatchEngineLoader.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/MatchEngine/MatchEngineLoader.cs)
+
+- Skips match-camera `cullingMask` and `clearFlags` mutation while `SceneLoader.PreserveHostScene` is enabled.
+- This prevents embedded match startup from visually taking over the host polbots camera.
+
+### [`CameraTransition.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/CameraTransition/CameraTransition.cs)
+
+- Uses the Football Simulator `MainCamera` singleton instead of Unity `Camera.main` when capturing transition frames.
+- This prevents transition effects from briefly stealing or rendering through the host polbots camera.
+
 ## HBOx Integration Hooks Depending On These Patches
 
 ### [`SoccerGameSource.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/Scenes/polbots/Scripts/Integrations/SoccerGameSource.cs)
 
 - Enables `SceneLoader.PreserveHostScene` while soccer is embedded.
-- Disables the asset `Boot` / `DefaultSceneLoader` startup behaviors inside `_StartingScene`.
+- Disables the asset `Boot` / `DefaultSceneLoader` startup behaviors inside `_StartingScene`; the vendor files also contain preserve-mode early returns as a race guard.
 - Uses explicit football teardown instead of relying on scene unload alone.
-- Claims football camera ownership during embedded matches and restores host cameras after teardown.
-- Rebinds the football main camera to the polbots broadcast render texture and watches for dropped `targetTexture` assignments during runtime.
+- Leaves the host `MainCamera` ownership intact during embedded matches.
+- Rebinds the football camera to the polbots broadcast render texture and watches for dropped `targetTexture` assignments during runtime.
 - Explicitly destroys tracked football `DontDestroyOnLoad` objects during normal match end and abrupt host-scene teardown.
+- Treats only the configured soccer game scene unload as soccer teardown; unrelated additive scene unloads must not disable `PreserveHostScene`.
 
 ## If The Vendor Asset Is Updated
 
 Reapply these changes first:
 
 1. embedded additive scene loading
-2. additive scene unload tracking
-3. tracked football `DontDestroy` teardown
-4. singleton cache refresh / clear on disable-destroy
-5. idempotent single-addressable prefab loading
-6. `MatchManager` null-safety around late-update offside calculations
+2. preserve-mode lock API in `SceneLoader`
+3. additive fallback when multiple scenes are already loaded
+4. preserve-mode early returns in `Boot` and `DefaultSceneLoader`
+5. embedded camera mutation guards in `MatchEngineLoader` and `CameraTransition`
+6. additive scene unload tracking
+7. tracked football `DontDestroy` teardown
+8. singleton cache refresh / clear on disable-destroy
+9. idempotent single-addressable prefab loading
+10. `MatchManager` null-safety around late-update offside calculations
 
 If the asset is moved to a private submodule, keep this file in the main repo so the integration contract stays documented.

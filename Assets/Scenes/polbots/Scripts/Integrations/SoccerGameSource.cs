@@ -101,6 +101,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private SoccerAnnouncerService announcerService;
     private ChatManagerContext boundContext;
     private bool eventsBound;
+    private bool configRegistered;
+    private bool emissionEventsRegistered;
+    private bool announcerEmitBound;
+    private bool gameOnStartTriggered;
+    private bool preserveHostSceneLockHeld;
 
     public void Configure(SoccerConfigs config)
     {
@@ -112,14 +117,20 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         UnbindContextEvents();
 
-        boundContext = ChatManagerContext.Current;
+        boundContext = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
         if (boundContext == null)
             return;
 
         boundContext.AfterIntermission += TriggerGame;
 
-        if (config.GameOnStart)
+        if (config.GameOnBatchEnd)
             boundContext.OnChatQueueEmpty += BreakTheSilence;
+
+        if (config.GameOnStart && !gameOnStartTriggered)
+        {
+            gameOnStartTriggered = true;
+            StartCoroutine(StartConfiguredGame());
+        }
 
         eventsBound = true;
         SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -140,6 +151,22 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         PushIdea(gameEventLog);
         gameEventLog = string.Empty;
+    }
+
+    private IEnumerator StartConfiguredGame()
+    {
+        yield return null;
+
+        if (config?.GameOnStart != true || isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame)
+            yield break;
+
+        if (!TrySelectDefaultActors())
+        {
+            Debug.LogWarning("SoccerGameSource.GameOnStart could not start because two soccer-capable actors were not available.");
+            yield break;
+        }
+
+        yield return LoadGame();
     }
 
     public void IncrementVolume()
@@ -178,13 +205,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void Start()
     {
-        boundContext = ChatManagerContext.Current;
-        if (boundContext == null)
-            return;
-
-        boundContext.ConfigManager.RegisterConfig(typeof(SoccerConfigs), "soccer", cfg => Configure((SoccerConfigs)cfg));
-        RegisterEmissionEvents();
-        OnEmit += HandleAnnouncerEmit;
+        TryRegisterRuntimeBindings();
     }
 
     private void OnDestroy()
@@ -195,7 +216,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
         UnbindContextEvents();
 
-        OnEmit -= HandleAnnouncerEmit;
+        if (announcerEmitBound)
+        {
+            OnEmit -= HandleAnnouncerEmit;
+            announcerEmitBound = false;
+        }
 
         isConfigured = false;
 
@@ -211,6 +236,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void Update()
     {
+        TryRegisterRuntimeBindings();
         volume = Mathf.Lerp(volume, 0, Time.deltaTime / fadeOutDuration);
         teamAudio.volume = isGameLoaded ? Mathf.Clamp01(volume) * maxVolume : 0;
         interruptService?.Tick();
@@ -218,25 +244,126 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         TickBroadcastWatchdog();
     }
 
+    private void TryRegisterRuntimeBindings()
+    {
+        if (!configRegistered)
+        {
+            var context = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
+            if (context?.ConfigManager != null)
+            {
+                boundContext = context;
+                context.ConfigManager.RegisterConfig(typeof(SoccerConfigs), "soccer", cfg => Configure((SoccerConfigs)cfg));
+                configRegistered = true;
+            }
+        }
+
+        if (!emissionEventsRegistered)
+        {
+            RegisterEmissionEvents();
+            emissionEventsRegistered = true;
+        }
+
+        if (!announcerEmitBound)
+        {
+            OnEmit += HandleAnnouncerEmit;
+            announcerEmitBound = true;
+        }
+    }
+
     private void TriggerGame(Chat chat)
     {
         if (isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame || chat == null)
             return;
 
-        if (!chat.Topic.Contains("Mode: Soccer"))
+        if (!IsSoccerMode(chat))
             return;
 
-        var homeName = chat.Topic.Find("Home");
-        var awayName = chat.Topic.Find("Away");
+        var homeName = FindMetadata(chat.Topic, "Home");
+        if (string.IsNullOrWhiteSpace(homeName))
+            homeName = FindMetadata(chat.Idea?.Prompt, "Home");
+
+        var awayName = FindMetadata(chat.Topic, "Away");
+        if (string.IsNullOrWhiteSpace(awayName))
+            awayName = FindMetadata(chat.Idea?.Prompt, "Away");
 
         if (config.RequireTextPatternMatch && (string.IsNullOrEmpty(homeName) || string.IsNullOrEmpty(awayName)))
             return;
 
-        homeActor = boundContext?.ActorsSearch[homeName] ?? chat.Actors[0].Reference;
-        awayActor = boundContext?.ActorsSearch[awayName] ?? chat.Actors[1].Reference;
+        homeActor = ResolveActor(homeName) ?? GetChatActor(chat, 0);
+        awayActor = ResolveActor(awayName) ?? GetChatActor(chat, 1);
 
         if (homeActor != null && awayActor != null)
             StartCoroutine(LoadGame());
+    }
+
+    private Actor ResolveActor(string actorName)
+    {
+        if (string.IsNullOrWhiteSpace(actorName) || boundContext?.ActorsSearch == null)
+            return null;
+
+        return boundContext.ActorsSearch[actorName.Trim()];
+    }
+
+    private static Actor GetChatActor(Chat chat, int index)
+    {
+        if (chat?.Actors == null || index < 0 || index >= chat.Actors.Length)
+            return null;
+
+        return chat.Actors[index]?.Reference;
+    }
+
+    private bool TrySelectDefaultActors()
+    {
+        if (homeActor != null && awayActor != null)
+            return true;
+
+        var candidates = boundContext?.ActorsSearch?.List?
+            .Where(actor => actor != null && actor.Players != null && actor.Players.Length > 0)
+            .ToList();
+
+        if (candidates == null || candidates.Count < 2)
+            return false;
+
+        if (homeActor == null)
+            homeActor = candidates.Sample();
+
+        if (awayActor == null || awayActor == homeActor)
+            awayActor = candidates.Where(actor => actor != homeActor).ToArray().Sample();
+
+        return homeActor != null && awayActor != null && homeActor != awayActor;
+    }
+
+    private static bool IsSoccerMode(Chat chat)
+    {
+        return IsSoccerMode(chat?.Topic) || IsSoccerMode(chat?.Idea?.Prompt);
+    }
+
+    private static bool IsSoccerMode(string text)
+    {
+        var mode = FindMetadata(text, "Mode");
+        return string.Equals(mode, "Soccer", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FindMetadata(string text, string key)
+    {
+        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(key))
+            return string.Empty;
+
+        var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine.Trim().TrimStart('#', '_', '*').TrimStart();
+            if (!line.StartsWith(key, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var value = line.Substring(key.Length).TrimStart();
+            if (value.Length == 0 || value[0] != ':')
+                continue;
+
+            return value.Substring(1).Trim();
+        }
+
+        return string.Empty;
     }
 
     private void UnbindContextEvents()
@@ -257,10 +384,17 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         isLoadingGame = true;
 
-        SceneLoader.PreserveHostScene = true;
+        PreserveHostScene();
 
-        homeActor ??= ChatManager.Instance.NowPlaying.Actors[0].Reference;
-        awayActor ??= ChatManager.Instance.NowPlaying.Actors[1].Reference;
+        homeActor ??= GetChatActor(ChatManager.Instance?.NowPlaying, 0);
+        awayActor ??= GetChatActor(ChatManager.Instance?.NowPlaying, 1);
+        if ((homeActor == null || awayActor == null) && !TrySelectDefaultActors())
+        {
+            Debug.LogWarning("SoccerGameSource.LoadGame skipped because home/away actors could not be resolved.");
+            ReleaseHostScene();
+            isLoadingGame = false;
+            yield break;
+        }
 
         homeTeam = teams.Sample();
         awayTeam = teams.Except(new[] { homeTeam }).Sample();
@@ -306,8 +440,15 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private IEnumerator StartGame()
     {
-        if (isGameLoaded || isStartingGame || isUnloadingGame || MatchEngineLoader.Current == null)
+        if (isGameLoaded || isStartingGame || isUnloadingGame)
             yield break;
+
+        yield return new WaitUntilTimer(() => MatchEngineLoader.Current != null, 5);
+        if (MatchEngineLoader.Current == null)
+        {
+            Debug.LogWarning("SoccerGameSource.StartGame skipped because MatchEngineLoader was not available after loading the soccer scene.");
+            yield break;
+        }
 
         if (startedMatchId == currentMatchId && !string.IsNullOrWhiteSpace(currentMatchId))
             yield break;
@@ -329,13 +470,13 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
             yield return MatchEngineLoader.CreateMatch(match).AsCoroutine();
             SuppressUpcomingMatchUi();
+            PreserveHostScene();
             yield return MatchEngineLoader.Current.StartMatchEngine(new UpcomingMatchEvent(match), false, true).AsCoroutine();
 
             yield return new WaitForSeconds(1);
 
             matchStateService.MarkLive();
 
-            ClaimFootballMainCamera();
             ConfigureBroadcastCamera();
             VideoCallUIManager.Instance.ShareScreenOn();
             isGameLoaded = true;
@@ -419,7 +560,32 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void OnSceneUnloaded(Scene scene)
     {
         addedScenes.Remove(scene.handle);
-        FinalizeSoccerTeardown("soccer_unloaded");
+        if (GameScene.Contains(scene.name))
+            FinalizeSoccerTeardown("soccer_unloaded");
+    }
+
+    private void PreserveHostScene()
+    {
+        if (preserveHostSceneLockHeld)
+        {
+            SceneLoader.PreserveHostScene = true;
+            return;
+        }
+
+        SceneLoader.PushPreserveHostScene();
+        preserveHostSceneLockHeld = true;
+    }
+
+    private void ReleaseHostScene()
+    {
+        if (!preserveHostSceneLockHeld)
+        {
+            SceneLoader.PreserveHostScene = false;
+            return;
+        }
+
+        SceneLoader.PopPreserveHostScene();
+        preserveHostSceneLockHeld = false;
     }
 
     private void DisableFootballBoot(Scene scene)
@@ -485,6 +651,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             return;
 
         footballCamera.targetTexture = matchBroadcastTexture;
+        if (footballCamera.gameObject.CompareTag("MainCamera"))
+            footballCamera.gameObject.tag = "Untagged";
     }
 
     private void ClearBroadcastCamera()
@@ -723,7 +891,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (VideoCallUIManager.Instance != null)
             VideoCallUIManager.Instance.ShareScreenOff();
 
-        SceneLoader.PreserveHostScene = false;
+        ReleaseHostScene();
         isSceneLoaded = false;
         isGameLoaded = false;
         startedMatchId = null;

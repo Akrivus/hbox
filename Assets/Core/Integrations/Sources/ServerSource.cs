@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using DiagnosticsProcess = System.Diagnostics.Process;
@@ -29,6 +30,9 @@ public class ServerSource : MonoBehaviour
 
     private readonly object generatorLock = new object();
     private readonly Dictionary<string, GeneratorRuntimeInfo> generators = new Dictionary<string, GeneratorRuntimeInfo>(StringComparer.OrdinalIgnoreCase);
+    private readonly object pendingIdeaLock = new object();
+    private readonly Queue<PendingIdeaRequest> pendingIdeaRequests = new Queue<PendingIdeaRequest>();
+    private IReadOnlyList<GeneratorRuntimeInfo> cachedGeneratorSnapshot = Array.Empty<GeneratorRuntimeInfo>();
 
     private HttpListener listener;
     private Thread thread;
@@ -59,6 +63,7 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
         AddRoute("GET", "/api/pitches", GetPitchStatusAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
+        AddRoute("GET", "/vault", GetVaultPathAsync);
         AddApiRoute<PitchVoteRequest, PitchCandidate>("POST", "/api/pitches/vote", VoteOnPitchAsync);
         AddApiRoute<ReplayVoteRequest, ReplayStatusRecord>("POST", "/api/replays/vote", VoteOnReplayAsync);
     }
@@ -75,6 +80,8 @@ public class ServerSource : MonoBehaviour
 
     private void Update()
     {
+        ProcessPendingIdeaRequests();
+        RefreshGeneratorSnapshot();
         OperatorTelemetry.CaptureRequestedMemorySnapshot();
     }
 
@@ -167,7 +174,7 @@ public class ServerSource : MonoBehaviour
             {
                 if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) && IsVaultPath(path))
                 {
-                    await GetVaultFileAsync(context);
+                    await GetVaultPathAsync(context);
                     return;
                 }
 
@@ -214,7 +221,7 @@ public class ServerSource : MonoBehaviour
 
         AddRoute("POST", $"/api/channels/{info.slug}/ideas", context => ProcessBodyString(context, body =>
         {
-            generator.AddPromptToQueue(body);
+            EnqueueIdeaRequest(info.slug, body);
             return Task.CompletedTask;
         }));
     }
@@ -237,11 +244,7 @@ public class ServerSource : MonoBehaviour
 
         lock (Instance.generatorLock)
         {
-            return Instance.generators.Values
-                .OrderBy(g => g.context)
-                .ThenBy(g => g.name)
-                .Select(g => g.WithRuntime())
-                .ToList();
+            return Instance.cachedGeneratorSnapshot.ToList();
         }
     }
 
@@ -252,11 +255,54 @@ public class ServerSource : MonoBehaviour
 
         lock (Instance.generatorLock)
         {
-            if (!Instance.generators.TryGetValue(slug, out var info) || info.generator == null)
+            if (!Instance.generators.ContainsKey(slug))
                 return false;
+        }
 
-            info.generator.AddPromptToQueue(prompt);
-            return true;
+        Instance.EnqueueIdeaRequest(slug, prompt);
+        return true;
+    }
+
+    private void EnqueueIdeaRequest(string slug, string prompt)
+    {
+        if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
+            return;
+
+        lock (pendingIdeaLock)
+            pendingIdeaRequests.Enqueue(new PendingIdeaRequest(slug, prompt));
+    }
+
+    private void ProcessPendingIdeaRequests()
+    {
+        while (true)
+        {
+            PendingIdeaRequest request;
+            lock (pendingIdeaLock)
+            {
+                if (pendingIdeaRequests.Count == 0)
+                    return;
+
+                request = pendingIdeaRequests.Dequeue();
+            }
+
+            ChatGenerator generator = null;
+            lock (generatorLock)
+                if (generators.TryGetValue(request.slug, out var info))
+                    generator = info.generator;
+
+            generator?.AddPromptToQueue(request.prompt);
+        }
+    }
+
+    private void RefreshGeneratorSnapshot()
+    {
+        lock (generatorLock)
+        {
+            cachedGeneratorSnapshot = generators.Values
+                .OrderBy(g => g.context)
+                .ThenBy(g => g.name)
+                .Select(g => g.WithRuntime())
+                .ToList();
         }
     }
 
@@ -274,12 +320,7 @@ public class ServerSource : MonoBehaviour
     {
         lock (generatorLock)
         {
-            var snapshot = generators.Values
-                .OrderBy(g => g.context)
-                .ThenBy(g => g.name)
-                .Select(g => g.WithRuntime())
-                .ToList();
-            return Task.FromResult((IReadOnlyList<GeneratorRuntimeInfo>)snapshot);
+            return Task.FromResult(cachedGeneratorSnapshot);
         }
     }
 
@@ -445,17 +486,42 @@ public class ServerSource : MonoBehaviour
         return context.Response.WriteStringAsync(text, "text/html; charset=utf-8");
     }
 
-    private static async Task GetVaultFileAsync(HttpListenerContext context)
+    private static async Task GetVaultPathAsync(HttpListenerContext context)
     {
-        if (!TryResolveVaultPath(context.Request.Url.AbsolutePath, out var file, out var errorCode, out var errorMessage))
+        var requestPath = context.Request.Url.AbsolutePath;
+        if (!TryResolveVaultRequestPath(requestPath, out var path, out var relativePath, out var isDirectory, out var errorCode, out var errorMessage))
         {
+            if (errorCode == 404 && TryGetVaultParentUrl(requestPath, out var parentUrl))
+            {
+                context.Response.Redirect(parentUrl);
+                return;
+            }
+
             context.Response.StatusCode = errorCode;
-            await WriteJsonAsync(context.Response, new ApiErrorResponse(errorCode == 403 ? "forbidden" : "not_found", errorMessage));
+            await context.Response.WriteStringAsync(RenderVaultErrorPage(errorMessage), "text/html; charset=utf-8");
             return;
         }
 
-        var bytes = await Task.Run(() => File.ReadAllBytes(file));
-        context.Response.ContentType = GetContentType(file);
+        if (isDirectory)
+        {
+            await context.Response.WriteStringAsync(RenderVaultDirectoryPage(path, relativePath), "text/html; charset=utf-8");
+            return;
+        }
+
+        var query = ParseQueryString(context.Request.Url.Query);
+        var wantsRaw = query.TryGetValue("raw", out var raw) &&
+            (string.Equals(raw, "1", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(raw, "true", StringComparison.OrdinalIgnoreCase));
+
+        if (IsMarkdownFile(path) && !wantsRaw)
+        {
+            var markdown = await Task.Run(() => File.ReadAllText(path));
+            await context.Response.WriteStringAsync(RenderVaultMarkdownPage(markdown, path, relativePath), "text/html; charset=utf-8");
+            return;
+        }
+
+        var bytes = await Task.Run(() => File.ReadAllBytes(path));
+        context.Response.ContentType = GetContentType(path);
         context.Response.ContentLength64 = bytes.Length;
         await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
     }
@@ -472,36 +538,467 @@ public class ServerSource : MonoBehaviour
 
     private static bool IsVaultPath(string path)
     {
-        return path != null && path.StartsWith("/vault/", StringComparison.OrdinalIgnoreCase);
+        return path != null &&
+            (string.Equals(path, "/vault", StringComparison.OrdinalIgnoreCase) ||
+             path.StartsWith("/vault/", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool TryResolveVaultPath(string requestPath, out string file, out int errorCode, out string errorMessage)
+    private static bool TryResolveVaultRequestPath(string requestPath, out string path, out string relativePath, out bool isDirectory, out int errorCode, out string errorMessage)
     {
-        file = string.Empty;
+        path = string.Empty;
+        relativePath = string.Empty;
+        isDirectory = false;
         errorCode = 404;
-        errorMessage = "Vault file not found.";
+        errorMessage = "Vault path not found.";
 
         if (!IsVaultPath(requestPath))
             return false;
 
-        var relative = Uri.UnescapeDataString(requestPath.Substring("/vault/".Length)).Replace('/', Path.DirectorySeparatorChar);
-        if (string.IsNullOrWhiteSpace(relative))
-            return false;
+        var relative = string.Equals(requestPath, "/vault", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : Uri.UnescapeDataString(requestPath.Substring("/vault/".Length)).Replace('/', Path.DirectorySeparatorChar);
 
         var root = GetVaultRoot();
         var fullPath = Path.GetFullPath(Path.Combine(root, relative));
-        if (!IsUnderDirectory(fullPath, root))
+        if (!IsSameOrUnderDirectory(fullPath, root))
         {
             errorCode = 403;
-            errorMessage = "Requested file is outside the Vault.";
+            errorMessage = "Requested path is outside the Vault.";
             return false;
+        }
+
+        if (Directory.Exists(fullPath))
+        {
+            path = fullPath;
+            relativePath = GetVaultRelativePath(fullPath);
+            isDirectory = true;
+            return true;
         }
 
         if (!File.Exists(fullPath))
             return false;
 
-        file = fullPath;
+        path = fullPath;
+        relativePath = GetVaultRelativePath(fullPath);
         return true;
+    }
+
+    private static string GetVaultRelativePath(string path)
+    {
+        var root = GetVaultRoot();
+        var fullPath = Path.GetFullPath(path);
+        if (!IsSameOrUnderDirectory(fullPath, root))
+            return string.Empty;
+
+        return fullPath.Equals(root, StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : fullPath.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+
+    private static string GetVaultParentRelativePath(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return string.Empty;
+
+        var parent = Path.GetDirectoryName(relativePath);
+        return string.IsNullOrWhiteSpace(parent) ? string.Empty : parent;
+    }
+
+    private static bool TryGetVaultParentUrl(string requestPath, out string parentUrl)
+    {
+        parentUrl = "/vault";
+        if (!IsVaultPath(requestPath) || string.Equals(requestPath, "/vault", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var relative = Uri.UnescapeDataString(requestPath.Substring("/vault/".Length)).Replace('/', Path.DirectorySeparatorChar);
+        var parent = Path.GetDirectoryName(relative);
+        parentUrl = string.IsNullOrWhiteSpace(parent) ? "/vault" : BuildVaultUrl(parent);
+        return true;
+    }
+
+    private static bool IsHiddenVaultEntry(string name)
+    {
+        return name.StartsWith(".", StringComparison.Ordinal);
+    }
+
+    private static bool IsMarkdownFile(string path)
+    {
+        return string.Equals(Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string RenderVaultDirectoryPage(string directory, string relativePath)
+    {
+        var title = string.IsNullOrWhiteSpace(relativePath) ? "Vault" : relativePath.Replace('\\', '/');
+        var parentPath = GetVaultParentRelativePath(relativePath);
+        var entries = Directory.GetFileSystemEntries(directory)
+            .Where(entry => !IsHiddenVaultEntry(Path.GetFileName(entry)))
+            .OrderByDescending(Directory.Exists)
+            .ThenBy(entry => Path.GetFileName(entry), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var body = new StringBuilder();
+        body.AppendLine("<!doctype html>");
+        body.AppendLine("<html lang=\"en\">");
+        body.AppendLine("<head>");
+        body.AppendLine("<meta charset=\"utf-8\">");
+        body.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        body.AppendLine($"<title>{WebUtility.HtmlEncode(title)}</title>");
+        body.AppendLine($"<style>{GetVaultPageCss()}</style>");
+        body.AppendLine("</head>");
+        body.AppendLine("<body>");
+        body.AppendLine("<header>");
+        body.AppendLine($"<span class=\"vault-path\">{RenderVaultBreadcrumbs(relativePath)}</span>");
+        body.AppendLine("<span class=\"spacer\"></span>");
+        if (!string.IsNullOrWhiteSpace(relativePath))
+            body.AppendLine($"<a href=\"{WebUtility.HtmlEncode(BuildVaultUrl(parentPath))}\">Parent</a>");
+        body.AppendLine("</header>");
+        body.AppendLine("<main>");
+        body.AppendLine($"<h1>{WebUtility.HtmlEncode(title)}</h1>");
+
+        if (!string.IsNullOrWhiteSpace(relativePath))
+            body.AppendLine($"<p><a href=\"{WebUtility.HtmlEncode(BuildVaultUrl(GetVaultParentRelativePath(relativePath)))}\">../</a></p>");
+
+        body.AppendLine("<ul class=\"vault-list\">");
+        foreach (var entry in entries)
+        {
+            var name = Path.GetFileName(entry);
+            var entryRelativePath = GetVaultRelativePath(entry);
+            var isDirectory = Directory.Exists(entry);
+            var label = isDirectory ? name + "/" : name;
+            var href = BuildVaultUrl(entryRelativePath);
+            var meta = isDirectory ? "folder" : FormatBytes(new FileInfo(entry).Length);
+            body.AppendLine($"<li><a href=\"{WebUtility.HtmlEncode(href)}\">{WebUtility.HtmlEncode(label)}</a> <span class=\"muted\">{WebUtility.HtmlEncode(meta)}</span></li>");
+        }
+        body.AppendLine("</ul>");
+        body.AppendLine("</main>");
+        body.AppendLine("</body>");
+        body.AppendLine("</html>");
+        return body.ToString();
+    }
+
+    private static string RenderVaultMarkdownPage(string markdown, string file, string relativePath)
+    {
+        var title = Path.GetFileName(relativePath);
+        var parentPath = GetVaultParentRelativePath(relativePath);
+        var html = RenderMarkdown(markdown ?? string.Empty, file);
+        var body = new StringBuilder();
+
+        body.AppendLine("<!doctype html>");
+        body.AppendLine("<html lang=\"en\">");
+        body.AppendLine("<head>");
+        body.AppendLine("<meta charset=\"utf-8\">");
+        body.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        body.AppendLine($"<title>{WebUtility.HtmlEncode(title)}</title>");
+        body.AppendLine($"<style>{GetVaultPageCss()}</style>");
+        body.AppendLine("</head>");
+        body.AppendLine("<body>");
+        body.AppendLine("<header>");
+        body.AppendLine($"<span class=\"vault-path\">{RenderVaultBreadcrumbs(relativePath)}</span>");
+        body.AppendLine("<span class=\"spacer\"></span>");
+        body.AppendLine($"<a href=\"{WebUtility.HtmlEncode(BuildVaultUrl(parentPath))}\">Parent</a>");
+        body.AppendLine($"<a href=\"{WebUtility.HtmlEncode(BuildVaultUrl(relativePath) + "?raw=1")}\">Raw</a>");
+        body.AppendLine("</header>");
+        body.AppendLine("<main>");
+        body.AppendLine($"<h1>{WebUtility.HtmlEncode(title)}</h1>");
+        body.AppendLine("<article>");
+        body.AppendLine(html);
+        body.AppendLine("</article>");
+        body.AppendLine("</main>");
+        body.AppendLine("</body>");
+        body.AppendLine("</html>");
+        return body.ToString();
+    }
+
+    private static string RenderVaultBreadcrumbs(string relativePath)
+    {
+        var parts = (relativePath ?? string.Empty)
+            .Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+        var body = new StringBuilder();
+        body.Append("<a href=\"/vault\">Vault</a>");
+
+        var current = string.Empty;
+        foreach (var part in parts)
+        {
+            current = string.IsNullOrWhiteSpace(current) ? part : Path.Combine(current, part);
+            body.Append(" / ");
+            body.Append($"<a href=\"{WebUtility.HtmlEncode(BuildVaultUrl(current))}\">{WebUtility.HtmlEncode(part)}</a>");
+        }
+
+        return body.ToString();
+    }
+
+    private static string GetVaultPageCss()
+    {
+        return "body{font-family:Segoe UI,Arial,sans-serif;line-height:1.55;margin:0;color:#1f2328;background:#fff}" +
+            "header{position:sticky;top:0;background:#f6f8fa;border-bottom:1px solid #d0d7de;padding:12px 24px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}" +
+            "main{max-width:920px;margin:24px;padding:0 0 48px}" +
+            "a{color:#0759b8;text-decoration:none}a:hover{text-decoration:underline}" +
+            "article{overflow-wrap:anywhere}" +
+            "h1,h2,h3,h4,h5,h6{line-height:1.25;margin:1.25em 0 .5em}" +
+            "p{margin:.65em 0}" +
+            "ul{padding-left:1.4rem}li{margin:.25rem 0}" +
+            "pre{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:12px;overflow:auto}" +
+            "code{background:#f6f8fa;border-radius:4px;padding:.1rem .25rem}" +
+            "pre code{background:transparent;padding:0}" +
+            "blockquote{border-left:4px solid #d0d7de;color:#57606a;margin-left:0;padding-left:12px}" +
+            ".vault-path{font-weight:600}.spacer{flex:1}.muted{color:#57606a;font-size:.9rem}.vault-list{padding-left:1.4rem}";
+    }
+
+    private static string RenderMarkdown(string markdown, string file)
+    {
+        var currentDirectory = Path.GetDirectoryName(file) ?? GetVaultRoot();
+        var body = new StringBuilder();
+        var lines = markdown.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        var inCodeBlock = false;
+        var inList = false;
+        var paragraph = new List<string>();
+
+        void FlushParagraph()
+        {
+            if (paragraph.Count == 0)
+                return;
+
+            body.AppendLine($"<p>{string.Join("<br>", paragraph.Select(line => RenderInlineMarkdown(line, currentDirectory)))}</p>");
+            paragraph.Clear();
+        }
+
+        void CloseList()
+        {
+            if (!inList)
+                return;
+
+            body.AppendLine("</ul>");
+            inList = false;
+        }
+
+        foreach (var rawLine in lines)
+        {
+            var line = rawLine ?? string.Empty;
+            var trimmed = line.Trim();
+
+            if (trimmed.StartsWith("```", StringComparison.Ordinal))
+            {
+                FlushParagraph();
+                CloseList();
+                body.AppendLine(inCodeBlock ? "</code></pre>" : "<pre><code>");
+                inCodeBlock = !inCodeBlock;
+                continue;
+            }
+
+            if (inCodeBlock)
+            {
+                body.AppendLine(WebUtility.HtmlEncode(line));
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                FlushParagraph();
+                CloseList();
+                continue;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^[-*_]{3,}$"))
+            {
+                if (paragraph.Count == 1)
+                {
+                    CloseList();
+                    body.AppendLine($"<h2>{RenderInlineMarkdown(paragraph[0], currentDirectory)}</h2>");
+                    paragraph.Clear();
+                    continue;
+                }
+
+                FlushParagraph();
+                CloseList();
+                body.AppendLine("<hr>");
+                continue;
+            }
+
+            if (Regex.IsMatch(trimmed, @"^=+$") && paragraph.Count == 1)
+            {
+                CloseList();
+                body.AppendLine($"<h1>{RenderInlineMarkdown(paragraph[0], currentDirectory)}</h1>");
+                paragraph.Clear();
+                continue;
+            }
+
+            var heading = Regex.Match(trimmed, @"^(#{1,6})\s+(.+)$");
+            if (heading.Success)
+            {
+                FlushParagraph();
+                CloseList();
+                var level = heading.Groups[1].Value.Length;
+                body.AppendLine($"<h{level}>{RenderInlineMarkdown(heading.Groups[2].Value, currentDirectory)}</h{level}>");
+                continue;
+            }
+
+            var list = Regex.Match(trimmed, @"^[-*]\s+(.+)$");
+            if (list.Success)
+            {
+                FlushParagraph();
+                if (!inList)
+                {
+                    body.AppendLine("<ul>");
+                    inList = true;
+                }
+                body.AppendLine($"<li>{RenderInlineMarkdown(list.Groups[1].Value, currentDirectory)}</li>");
+                continue;
+            }
+
+            if (trimmed.StartsWith("> ", StringComparison.Ordinal))
+            {
+                FlushParagraph();
+                CloseList();
+                body.AppendLine($"<blockquote>{RenderInlineMarkdown(trimmed.Substring(2), currentDirectory)}</blockquote>");
+                continue;
+            }
+
+            paragraph.Add(trimmed);
+        }
+
+        FlushParagraph();
+        CloseList();
+        if (inCodeBlock)
+            body.AppendLine("</code></pre>");
+
+        return body.ToString();
+    }
+
+    private static string RenderInlineMarkdown(string text, string currentDirectory)
+    {
+        var body = new StringBuilder();
+        var plain = new StringBuilder();
+        var i = 0;
+
+        void FlushPlain()
+        {
+            if (plain.Length == 0)
+                return;
+
+            body.Append(RenderInlineText(plain.ToString()));
+            plain.Clear();
+        }
+
+        while (i < text.Length)
+        {
+            if (i + 1 < text.Length && text[i] == '[' && text[i + 1] == '[')
+            {
+                var end = text.IndexOf("]]", i + 2, StringComparison.Ordinal);
+                if (end >= 0)
+                {
+                    FlushPlain();
+                    var target = text.Substring(i + 2, end - i - 2);
+                    var parts = target.Split(new[] { '|' }, 2);
+                    var href = ResolveVaultWikiLink(parts[0], currentDirectory);
+                    var label = parts.Length > 1 ? parts[1] : parts[0];
+                    body.Append($"<a href=\"{WebUtility.HtmlEncode(href)}\">{RenderInlineText(label)}</a>");
+                    i = end + 2;
+                    continue;
+                }
+            }
+
+            if (text[i] == '[' && (i == 0 || text[i - 1] != '!'))
+            {
+                var labelEnd = text.IndexOf(']', i + 1);
+                if (labelEnd > i && labelEnd + 1 < text.Length && text[labelEnd + 1] == '(')
+                {
+                    var urlEnd = text.IndexOf(')', labelEnd + 2);
+                    if (urlEnd > labelEnd)
+                    {
+                        FlushPlain();
+                        var label = text.Substring(i + 1, labelEnd - i - 1);
+                        var href = ResolveVaultMarkdownLink(text.Substring(labelEnd + 2, urlEnd - labelEnd - 2), currentDirectory);
+                        body.Append($"<a href=\"{WebUtility.HtmlEncode(href)}\">{RenderInlineText(label)}</a>");
+                        i = urlEnd + 1;
+                        continue;
+                    }
+                }
+            }
+
+            plain.Append(text[i]);
+            i++;
+        }
+
+        FlushPlain();
+        return body.ToString();
+    }
+
+    private static string RenderInlineText(string text)
+    {
+        var encoded = WebUtility.HtmlEncode(text ?? string.Empty);
+        encoded = Regex.Replace(encoded, @"`([^`]+)`", "<code>$1</code>");
+        encoded = Regex.Replace(encoded, @"\*\*([^*]+)\*\*", "<strong>$1</strong>");
+        encoded = Regex.Replace(encoded, @"\*([^*]+)\*", "<em>$1</em>");
+        return encoded;
+    }
+
+    private static string ResolveVaultMarkdownLink(string target, string currentDirectory)
+    {
+        if (string.IsNullOrWhiteSpace(target))
+            return "#";
+        if (Regex.IsMatch(target, @"^[a-z][a-z0-9+.-]*:", RegexOptions.IgnoreCase) || target.StartsWith("#", StringComparison.Ordinal))
+            return target;
+        if (target.StartsWith("/vault", StringComparison.OrdinalIgnoreCase))
+            return target;
+
+        var parts = target.Split(new[] { '#' }, 2);
+        var pathPart = Uri.UnescapeDataString(parts[0]).Replace('/', Path.DirectorySeparatorChar);
+        var fragment = parts.Length > 1 ? "#" + Uri.EscapeDataString(parts[1]) : string.Empty;
+        var resolved = Path.GetFullPath(Path.Combine(currentDirectory, pathPart));
+        return TryGetVaultRelativePathAllowRoot(resolved, out var relative)
+            ? BuildVaultUrl(relative) + fragment
+            : "#";
+    }
+
+    private static string ResolveVaultWikiLink(string target, string currentDirectory)
+    {
+        var clean = (target ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(clean))
+            return "#";
+
+        var fileName = Path.GetExtension(clean).Equals(".md", StringComparison.OrdinalIgnoreCase) ? clean : clean + ".md";
+        var local = Path.GetFullPath(Path.Combine(currentDirectory, fileName.Replace('/', Path.DirectorySeparatorChar)));
+        if (File.Exists(local) && TryGetVaultRelativePathAllowRoot(local, out var localRelative))
+            return BuildVaultUrl(localRelative);
+
+        var root = GetVaultRoot();
+        var match = Directory.GetFiles(root, "*.md", SearchOption.AllDirectories)
+            .FirstOrDefault(path => string.Equals(Path.GetFileNameWithoutExtension(path), clean, StringComparison.OrdinalIgnoreCase));
+        return match != null && TryGetVaultRelativePathAllowRoot(match, out var relative)
+            ? BuildVaultUrl(relative)
+            : BuildVaultUrl(GetVaultRelativePath(Path.Combine(currentDirectory, fileName)));
+    }
+
+    private static string RenderVaultErrorPage(string message)
+    {
+        return "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Vault Error</title></head><body>" +
+            $"<h1>Vault Error</h1><p>{WebUtility.HtmlEncode(message)}</p><p><a href=\"/vault\">Vault root</a></p>" +
+            "</body></html>";
+    }
+
+    private static string BuildVaultUrl(string relativePath)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+            return "/vault";
+
+        return "/vault/" + string.Join("/", relativePath
+            .Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(Uri.EscapeDataString));
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        string[] units = { "B", "KB", "MB", "GB" };
+        var value = (double)Math.Max(0, bytes);
+        var unit = 0;
+
+        while (value >= 1024 && unit < units.Length - 1)
+        {
+            value /= 1024;
+            unit++;
+        }
+
+        return unit == 0 ? $"{value:0} {units[unit]}" : $"{value:0.##} {units[unit]}";
     }
 
     private static bool TryGetVaultRelativePath(string path, out string relative)
@@ -519,6 +1016,23 @@ public class ServerSource : MonoBehaviour
         return !string.IsNullOrWhiteSpace(relative);
     }
 
+    private static bool TryGetVaultRelativePathAllowRoot(string path, out string relative)
+    {
+        relative = string.Empty;
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var root = GetVaultRoot();
+        var fullPath = Path.GetFullPath(path);
+        if (!IsSameOrUnderDirectory(fullPath, root))
+            return false;
+
+        relative = fullPath.Equals(root, StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : fullPath.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return true;
+    }
+
     private static string GetVaultRoot()
     {
         return Path.GetFullPath(PromptResolver.BasePath);
@@ -530,6 +1044,14 @@ public class ServerSource : MonoBehaviour
             + Path.DirectorySeparatorChar;
         var normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         return normalizedPath.StartsWith(normalizedDirectory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSameOrUnderDirectory(string path, string directory)
+    {
+        var normalizedDirectory = directory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var normalizedPath = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return normalizedPath.Equals(normalizedDirectory, StringComparison.OrdinalIgnoreCase) ||
+            IsUnderDirectory(path, directory);
     }
 
     private static string GetContentType(string path)
@@ -736,6 +1258,18 @@ public class ServerSource : MonoBehaviour
         public string status;
         public bool listening;
         public string address;
+    }
+
+    private readonly struct PendingIdeaRequest
+    {
+        public readonly string slug;
+        public readonly string prompt;
+
+        public PendingIdeaRequest(string slug, string prompt)
+        {
+            this.slug = slug;
+            this.prompt = prompt;
+        }
     }
 }
 

@@ -27,22 +27,48 @@ public class ChatGenerator : MonoBehaviour
     private ISubGenerator[] _generators;
 
     private ChatManagerContext chatManagerContext;
+    private bool apiRegistered;
 
     private ConcurrentQueue<Idea> ideaQueue = new ConcurrentQueue<Idea>();
 
     private void Start()
     {
-        chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
-        if (isApiAccessible)
-            ServerSource.Instance?.RegisterGenerator(this);
+        ResolveManagerContext();
+        TryRegisterApi();
         StartCoroutine(UpdateQueue());
+    }
+
+    private void Update()
+    {
+        TryRegisterApi();
     }
 
     private void OnDestroy()
     {
-        if (isApiAccessible)
+        if (apiRegistered)
             ServerSource.Instance?.UnregisterGenerator(this);
         StopAllCoroutines();
+    }
+
+    private void ResolveManagerContext()
+    {
+        if (chatManagerContext != null)
+            return;
+
+        chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
+    }
+
+    private void TryRegisterApi()
+    {
+        if (!isApiAccessible || apiRegistered)
+            return;
+
+        ResolveManagerContext();
+        if (chatManagerContext == null || ServerSource.Instance == null)
+            return;
+
+        ServerSource.Instance.RegisterGenerator(this);
+        apiRegistered = true;
     }
 
     private IEnumerator UpdateQueue()
