@@ -31,6 +31,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     public SoccerAnnouncerService AnnouncerDiagnostics => announcerService;
 
     private const string GameScene = "3rdParty/FootballSimulator/_StartingScene";
+    private const string SportsDiscordChannel = "#sports";
 
     public event Action OnMatchStart;
     public event Action OnMatchEnd;
@@ -40,7 +41,9 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private readonly Dictionary<int, Scene> addedScenes = new Dictionary<int, Scene>();
     private readonly List<(Camera camera, string tag)> hostCameraTags = new List<(Camera camera, string tag)>();
+    private readonly List<(string channelKey, DiscordPostedMessage message)> soccerDiscordMessages = new List<(string channelKey, DiscordPostedMessage message)>();
     private Dictionary<string, string[]> lines = new Dictionary<string, string[]>();
+    private int soccerDiscordGeneration;
 
     [SerializeField]
     private ChatGenerator generator;
@@ -407,6 +410,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         queuedPregameMatchId = null;
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
+        DeleteSoccerDiscordMessages();
         matchStateService.BeginMatch(currentMatchId, homeActor, awayActor);
         OperatorTelemetry.CaptureMemorySnapshot("soccer_load_started");
 
@@ -799,13 +803,52 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void Emit(string log, bool push = true)
     {
         if (log.StartsWith("#") || log.StartsWith(":"))
-            DiscordManager.PutInQueue("#sports", log);
+            PostSoccerDiscordMessage(log);
         gameEventLog += log + "\n";
         matchStateService.AppendResidue(log);
         volume += 0.1f;
         if (push && !isGameLoaded)
             PushIdea(log);
         OnEmit?.Invoke(log);
+    }
+
+    private void PostSoccerDiscordMessage(string log)
+    {
+        if (string.IsNullOrWhiteSpace(log))
+            return;
+
+        var generation = soccerDiscordGeneration;
+        DiscordManager.PutInQueue(SportsDiscordChannel, new DiscordWebhookMessage(log, null, null), posted =>
+        {
+            if (posted == null)
+                return;
+
+            if (generation != soccerDiscordGeneration)
+            {
+                DiscordManager.DeleteWebhookMessageForContext(null, SportsDiscordChannel, posted.id);
+                return;
+            }
+
+            soccerDiscordMessages.Add((SportsDiscordChannel, posted));
+        });
+    }
+
+    private void DeleteSoccerDiscordMessages()
+    {
+        soccerDiscordGeneration++;
+
+        if (soccerDiscordMessages.Count == 0)
+            return;
+
+        foreach (var entry in soccerDiscordMessages)
+        {
+            if (entry.message == null || string.IsNullOrWhiteSpace(entry.message.id))
+                continue;
+
+            DiscordManager.DeleteWebhookMessageForContext(null, entry.channelKey, entry.message.id);
+        }
+
+        soccerDiscordMessages.Clear();
     }
 
     private void HandleAnnouncerEmit(string line)
@@ -891,6 +934,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (VideoCallUIManager.Instance != null)
             VideoCallUIManager.Instance.ShareScreenOff();
 
+        DeleteSoccerDiscordMessages();
         ReleaseHostScene();
         isSceneLoaded = false;
         isGameLoaded = false;

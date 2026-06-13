@@ -235,7 +235,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private void OnSocketMessage(DataFrame frame)
     {
-        if (frame == null || frame.Type != OpCode.Text || string.IsNullOrWhiteSpace(frame.Text))
+        if (frame.Type != OpCode.Text || string.IsNullOrWhiteSpace(frame.Text))
             return;
 
         _ = HandleGatewayMessageAsync(frame.Text);

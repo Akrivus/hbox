@@ -51,6 +51,7 @@ public sealed class SoccerInterruptService
         this.homeActor = homeActor;
         this.awayActor = awayActor;
         packetsByBank.Clear();
+        replenishing.Clear();
         pendingPacket = null;
         latestSeenSequence = 0;
         latestInjectedSequence = 0;
@@ -144,7 +145,10 @@ public sealed class SoccerInterruptService
 
         var injected = TryInjectPacket(packet);
         if (injected)
+        {
             packet.Consumed = true;
+            _ = Replenish(SoccerPacketBank.Pregame, generationVersion);
+        }
         return injected;
     }
 
@@ -228,8 +232,9 @@ public sealed class SoccerInterruptService
 
             var queue = packetsByBank[bank];
             var target = GetBankTarget(bank);
+            PruneQueue(queue);
 
-            while (queue.Count < target && !string.IsNullOrEmpty(currentMatchId) && generation == generationVersion)
+            while (CountReady(queue) < target && !string.IsNullOrEmpty(currentMatchId) && generation == generationVersion)
             {
                 var eventType = SelectSeedEventType(bank, queue.Count);
                 var packet = await BuildPacket(BuildSeedSummary(eventType, bank), generation);
@@ -494,6 +499,36 @@ public sealed class SoccerInterruptService
             !packet.Consumed &&
             !packet.Superseded &&
             packet.ExpiresAtUtc > DateTime.UtcNow);
+    }
+
+    private static int CountReady(Queue<SoccerInterruptPacket> queue)
+    {
+        if (queue == null)
+            return 0;
+
+        return queue.Count(packet =>
+            packet != null &&
+            !packet.Consumed &&
+            !packet.Superseded &&
+            packet.ExpiresAtUtc > DateTime.UtcNow);
+    }
+
+    private static void PruneQueue(Queue<SoccerInterruptPacket> queue)
+    {
+        if (queue == null || queue.Count == 0)
+            return;
+
+        var keep = queue
+            .Where(packet =>
+                packet != null &&
+                !packet.Consumed &&
+                !packet.Superseded &&
+                packet.ExpiresAtUtc > DateTime.UtcNow)
+            .ToArray();
+
+        queue.Clear();
+        for (var i = 0; i < keep.Length; i++)
+            queue.Enqueue(keep[i]);
     }
 
     private int GetBankTarget(SoccerPacketBank bank)

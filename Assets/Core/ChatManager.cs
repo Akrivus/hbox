@@ -179,11 +179,6 @@ public class ChatManager : MonoBehaviour
 
         try
         {
-            var expectedKey = chat?.ManagerContext?.Key ?? chat?.Key;
-
-            if (chat.IsLocked && chat.Nodes.Count < 2)
-                yield break;
-
             if (contexts.TryGetValue(chat.Key, out var context))
                 if (chat.ManagerContext == null)
                     chat.ManagerContext = context;
@@ -193,7 +188,7 @@ public class ChatManager : MonoBehaviour
             if (contexts.TryGetValue(chat.Key, out context) && context != null)
                 chat.ManagerContext = context;
 
-            expectedKey = chat?.ManagerContext?.Key ?? expectedKey;
+            var expectedKey = chat?.ManagerContext?.Key ?? chat?.Key;
             var generation = playbackGeneration;
 
             if (!IsPlaybackCurrent(chat, expectedKey, generation) || StopPlaying(chat))
@@ -311,7 +306,7 @@ public class ChatManager : MonoBehaviour
         SafeInvoke(OnChatLoaded, chat, nameof(OnChatLoaded));
 
         var chatActors = chat.Actors ?? Array.Empty<ActorContext>();
-        var fallbackSpawnPoints = new FallbackSpawnPointCursor(GetValidFallbackSpawnPoints(chat.ManagerContext));
+        var fallbackSpawnPoints = new FallbackSpawnPointCursor(GetValidFallbackSpawnPoints(chat.ManagerContext), actors);
         var activeActorReferences = new HashSet<Actor>();
         foreach (var actorController in actors)
         {
@@ -324,7 +319,8 @@ public class ChatManager : MonoBehaviour
             if (actor?.Reference == null || activeActorReferences.Contains(actor.Reference))
                 continue;
 
-            yield return AddActor(actor, fallbackSpawnPoints.GetNext(), true);
+            var fallbackSpawnPoint = fallbackSpawnPoints.GetNext();
+            yield return AddActor(actor, fallbackSpawnPoint.Transform, true, fallbackSpawnPoint.SharedIndex);
             if (!IsPlaybackCurrent(chat, expectedKey, generation))
                 yield break;
         }
@@ -449,7 +445,7 @@ public class ChatManager : MonoBehaviour
         yield return new WaitForSeconds(clip.length);
     }
 
-    private IEnumerator AddActor(ActorContext context, Transform spawnPointTransform, bool offsetSharedFallback = false)
+    private IEnumerator AddActor(ActorContext context, Transform spawnPointTransform, bool offsetSharedFallback = false, int sharedFallbackIndex = 0)
     {
         if (context == null || context.Reference == null) // another weird fluke
             yield break;
@@ -472,7 +468,6 @@ public class ChatManager : MonoBehaviour
             }
         }
 
-        var spawnPointChildCount = spawnPointTransform != null ? spawnPointTransform.childCount : 0;
         var obj = spawnPointTransform != null
             ? Instantiate(context.Reference.Prefab, spawnPointTransform)
             : Instantiate(context.Reference.Prefab);
@@ -484,8 +479,8 @@ public class ChatManager : MonoBehaviour
 
         obj.transform.localPosition = Vector3.zero;
         obj.transform.localRotation = Quaternion.identity;
-        if (offsetSharedFallback && spawnPointChildCount > 0)
-            obj.transform.localPosition = GetSharedFallbackOffset(spawnPointChildCount);
+        if (offsetSharedFallback && sharedFallbackIndex > 0)
+            obj.transform.localPosition = GetSharedFallbackOffset(sharedFallbackIndex);
 
         var controller = obj.GetComponent<ActorController>();
         if (controller == null)
@@ -821,28 +816,79 @@ public class ChatManager : MonoBehaviour
     private sealed class FallbackSpawnPointCursor
     {
         private readonly Transform[] spawnPoints;
+        private readonly Dictionary<Transform, int> occupiedCounts = new Dictionary<Transform, int>();
         private int nextOccupiedIndex;
 
-        public FallbackSpawnPointCursor(Transform[] spawnPoints)
+        public FallbackSpawnPointCursor(Transform[] spawnPoints, IEnumerable<ActorController> activeActors)
         {
             this.spawnPoints = spawnPoints ?? Array.Empty<Transform>();
+            for (var i = 0; i < this.spawnPoints.Length; i++)
+            {
+                var spawnPoint = this.spawnPoints[i];
+                if (spawnPoint != null)
+                    occupiedCounts[spawnPoint] = spawnPoint.childCount;
+            }
+
+            if (activeActors == null)
+                return;
+
+            foreach (var actor in activeActors)
+            {
+                var parent = actor != null ? actor.transform.parent : null;
+                if (parent == null || !occupiedCounts.ContainsKey(parent))
+                    continue;
+
+                occupiedCounts[parent] = Math.Max(occupiedCounts[parent], 1);
+            }
         }
 
-        public Transform GetNext()
+        public FallbackSpawnPoint GetNext()
         {
             for (var i = 0; i < spawnPoints.Length; i++)
             {
                 var fallback = spawnPoints[i];
-                if (fallback != null && fallback.childCount == 0)
-                    return fallback;
+                if (fallback != null && GetOccupiedCount(fallback) == 0)
+                    return Reserve(fallback);
             }
 
             if (spawnPoints.Length == 0)
-                return null;
+                return FallbackSpawnPoint.None;
 
             var occupiedFallback = spawnPoints[nextOccupiedIndex % spawnPoints.Length];
             nextOccupiedIndex++;
-            return occupiedFallback;
+            return Reserve(occupiedFallback);
+        }
+
+        private FallbackSpawnPoint Reserve(Transform spawnPoint)
+        {
+            if (spawnPoint == null)
+                return FallbackSpawnPoint.None;
+
+            var index = GetOccupiedCount(spawnPoint);
+            occupiedCounts[spawnPoint] = index + 1;
+            return new FallbackSpawnPoint(spawnPoint, index);
+        }
+
+        private int GetOccupiedCount(Transform spawnPoint)
+        {
+            if (spawnPoint == null)
+                return 0;
+
+            return occupiedCounts.TryGetValue(spawnPoint, out var count) ? count : spawnPoint.childCount;
+        }
+    }
+
+    private readonly struct FallbackSpawnPoint
+    {
+        public static readonly FallbackSpawnPoint None = new FallbackSpawnPoint(null, 0);
+
+        public readonly Transform Transform;
+        public readonly int SharedIndex;
+
+        public FallbackSpawnPoint(Transform transform, int sharedIndex)
+        {
+            Transform = transform;
+            SharedIndex = sharedIndex;
         }
     }
 
