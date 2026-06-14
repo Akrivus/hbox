@@ -23,7 +23,7 @@ public sealed class SoccerInterruptService
         nameof(RefereeShortWhistleEvent)
     };
 
-    private readonly HashSet<SoccerPacketBank> replenishing = new HashSet<SoccerPacketBank>();
+    private readonly HashSet<string> replenishing = new HashSet<string>();
     private const string InterruptNodeMarker = "[soccer-interrupt]";
     private readonly Dictionary<string, string[]> interruptSeeds = new Dictionary<string, string[]>();
 
@@ -32,9 +32,10 @@ public sealed class SoccerInterruptService
     private Actor homeActor;
     private Actor awayActor;
     private int generationVersion;
-    private long latestSeenSequence;
     private long latestInjectedSequence;
     private SoccerInterruptPacket pendingPacket;
+    private bool liveGenerationInProgress;
+    private SoccerEventSummary queuedGenerationSummary;
 
     public SoccerInterruptService(ChatGenerator generator)
     {
@@ -53,11 +54,11 @@ public sealed class SoccerInterruptService
         packetsByBank.Clear();
         replenishing.Clear();
         pendingPacket = null;
-        latestSeenSequence = 0;
+        liveGenerationInProgress = false;
+        queuedGenerationSummary = null;
         latestInjectedSequence = 0;
 
-        var generation = generationVersion;
-        PrimeSeedBanks(generation);
+        // Build interrupt packets only on demand. Background TTS clip creation can hitch the Unity main thread.
     }
 
     public void Configure(SoccerConfigs config)
@@ -71,23 +72,15 @@ public sealed class SoccerInterruptService
             interruptSeeds[pair.Key] = pair.Value;
     }
 
-    public async Task Prewarm(int timeoutMs, int goalPackets = 1, int whistlePackets = 1)
+    public Task Prewarm(int timeoutMs, int goalPackets = 1, int whistlePackets = 1)
     {
-        var startedAt = DateTime.UtcNow;
-        while ((DateTime.UtcNow - startedAt).TotalMilliseconds < timeoutMs)
-        {
-            if (CountReady(SoccerPacketBank.Pregame) >= 1 &&
-                CountReady(SoccerPacketBank.LiveScoreSensitive) >= goalPackets &&
-                CountReady(SoccerPacketBank.LiveGeneric) >= whistlePackets)
-                return;
-
-            await Task.Delay(250);
-        }
+        return Task.CompletedTask;
     }
 
     public void EndMatch()
     {
         generationVersion++;
+        RemoveQueuedInterruptNodes();
         currentMatchId = null;
         matchState = null;
         homeActor = null;
@@ -95,17 +88,19 @@ public sealed class SoccerInterruptService
         packetsByBank.Clear();
         replenishing.Clear();
         pendingPacket = null;
-        latestSeenSequence = 0;
+        liveGenerationInProgress = false;
+        queuedGenerationSummary = null;
         latestInjectedSequence = 0;
     }
 
     public void Tick()
     {
-        if (pendingPacket == null || !CanInjectNow())
+        if (pendingPacket == null || !CanInjectNow(pendingPacket))
             return;
 
         if (IsStale(pendingPacket, pendingPacket.SeedEvent))
         {
+            PublishStatus($"Dropped stale queued soccer interrupt: {DescribeSummary(pendingPacket.SeedEvent)}", 4f);
             pendingPacket.Superseded = true;
             pendingPacket = null;
             return;
@@ -113,16 +108,18 @@ public sealed class SoccerInterruptService
 
         if (TryInjectPacket(pendingPacket))
         {
+            PublishStatus($"Injected queued soccer interrupt: {DescribeSummary(pendingPacket.SeedEvent)}", 4f);
             pendingPacket.Consumed = true;
             latestInjectedSequence = Math.Max(latestInjectedSequence, pendingPacket.Sequence);
-            var bank = pendingPacket.Bank;
             pendingPacket = null;
-            _ = Replenish(bank, generationVersion);
         }
     }
 
     public bool HasPendingInterrupt()
     {
+        if (liveGenerationInProgress || queuedGenerationSummary != null)
+            return true;
+
         if (pendingPacket != null)
             return true;
 
@@ -147,7 +144,6 @@ public sealed class SoccerInterruptService
         if (injected)
         {
             packet.Consumed = true;
-            _ = Replenish(SoccerPacketBank.Pregame, generationVersion);
         }
         return injected;
     }
@@ -158,21 +154,48 @@ public sealed class SoccerInterruptService
         if (!IsCurrent(summary, generation))
             return false;
 
-        latestSeenSequence = Math.Max(latestSeenSequence, summary.Sequence);
         FlushQueuedPackets(summary);
 
+        if (liveGenerationInProgress)
+        {
+            QueueGenerationSummary(summary);
+            return false;
+        }
+
+        liveGenerationInProgress = true;
+        try
+        {
+            return await TryInjectCore(summary, generation);
+        }
+        finally
+        {
+            liveGenerationInProgress = false;
+            TryStartQueuedGeneration(generation);
+        }
+    }
+
+    private async Task<bool> TryInjectCore(SoccerEventSummary summary, int generation)
+    {
         var bank = policy.GetBank(summary);
         var packet = Dequeue(bank, summary.EventType);
         if (packet == null)
             packet = await BuildPacket(summary, generation);
 
-        if (packet == null || packet.Nodes.Count == 0 || IsStale(packet, summary))
+        ApplySummary(packet, summary);
+
+        if (packet == null || packet.Nodes.Count == 0)
             return false;
 
-        if (!CanInjectNow())
+        if (IsStale(packet, summary))
+        {
+            PublishStatus($"Dropped stale soccer interrupt: {DescribeSummary(summary)}", 4f);
+            return false;
+        }
+
+        if (!CanInjectNow(packet))
         {
             QueuePending(packet);
-            _ = Replenish(bank, generation);
+            PublishStatus($"Queued soccer interrupt: {DescribeSummary(summary)}", 4f);
             return false;
         }
 
@@ -181,11 +204,14 @@ public sealed class SoccerInterruptService
         if (injected)
         {
             packet.Consumed = true;
-            packet.Sequence = summary.Sequence;
             latestInjectedSequence = Math.Max(latestInjectedSequence, packet.Sequence);
+            PublishStatus($"Injected soccer interrupt: {DescribeSummary(summary)}", 4f);
+        }
+        else
+        {
+            PublishStatus($"Could not inject soccer interrupt: {DescribeSummary(summary)}", 4f);
         }
 
-        _ = Replenish(bank, generation);
         return injected;
     }
 
@@ -194,20 +220,28 @@ public sealed class SoccerInterruptService
         if (!packetsByBank.TryGetValue(bank, out var queue))
             return null;
 
+        SoccerInterruptPacket match = null;
+        var remaining = new Queue<SoccerInterruptPacket>();
         while (queue.Count > 0)
         {
             var next = queue.Dequeue();
             if (next == null || next.Consumed || next.Superseded || next.ExpiresAtUtc <= DateTime.UtcNow)
                 continue;
 
-            if (!string.Equals(next.TriggerEventType, eventType, StringComparison.Ordinal) && !next.IsTemplatePacket)
+            var matches = string.Equals(next.TriggerEventType, eventType, StringComparison.Ordinal) || next.IsTemplatePacket;
+            if (match == null && matches)
+            {
+                match = next;
                 continue;
+            }
 
-            if (next.TriggerEventType == eventType || next.IsTemplatePacket)
-                return next;
+            remaining.Enqueue(next);
         }
 
-        return null;
+        while (remaining.Count > 0)
+            queue.Enqueue(remaining.Dequeue());
+
+        return match;
     }
 
     private void PrimeSeedBanks(int generation)
@@ -219,35 +253,40 @@ public sealed class SoccerInterruptService
         }
     }
 
-    private async Task Replenish(SoccerPacketBank bank, int generation)
+    private async Task Replenish(SoccerPacketBank bank, int generation, string eventType = null)
     {
-        if (string.IsNullOrEmpty(currentMatchId) || replenishing.Contains(bank) || generation != generationVersion)
+        var replenishKey = BuildReplenishKey(bank, eventType);
+        if (string.IsNullOrEmpty(currentMatchId) || replenishing.Contains(replenishKey) || generation != generationVersion)
             return;
 
-        replenishing.Add(bank);
+        replenishing.Add(replenishKey);
         try
         {
             if (!packetsByBank.ContainsKey(bank))
                 packetsByBank[bank] = new Queue<SoccerInterruptPacket>();
 
             var queue = packetsByBank[bank];
-            var target = GetBankTarget(bank);
+            var target = string.IsNullOrEmpty(eventType) ? GetBankTarget(bank) : policy.GetTargetCount(bank, eventType);
             PruneQueue(queue);
+            var attemptsRemaining = Math.Max(target * 3, 3);
 
-            while (CountReady(queue) < target && !string.IsNullOrEmpty(currentMatchId) && generation == generationVersion)
+            while (CountReady(queue, eventType) < target &&
+                attemptsRemaining-- > 0 &&
+                !string.IsNullOrEmpty(currentMatchId) &&
+                generation == generationVersion)
             {
-                var eventType = SelectSeedEventType(bank, queue.Count);
-                var packet = await BuildPacket(BuildSeedSummary(eventType, bank), generation);
+                var seedEventType = string.IsNullOrEmpty(eventType) ? SelectSeedEventType(bank, queue.Count) : eventType;
+                var packet = await BuildPacket(BuildSeedSummary(seedEventType, bank), generation);
                 if (generation != generationVersion)
                     break;
                 if (packet == null || packet.Nodes.Count == 0)
-                    break;
+                    continue;
                 queue.Enqueue(packet);
             }
         }
         finally
         {
-            replenishing.Remove(bank);
+            replenishing.Remove(replenishKey);
         }
     }
 
@@ -293,6 +332,8 @@ public sealed class SoccerInterruptService
             Topic = summary.RawLog ?? summary.ScoreLine
         };
 
+        PublishStatus($"Generating soccer interrupt: {DescribeSummary(summary)}", 6f);
+
         var prompt = new PromptResolver(generator.ManagerContext, "Soccer Mode", "Dialogue Generation");
         await prompt.Resolve(BuildMatchEvent(summary), string.Join(", ", speakers.Select(actor => actor.Name)));
         if (!IsCurrent(summary, generation))
@@ -310,6 +351,7 @@ public sealed class SoccerInterruptService
 
         if (sentimentTagger != null)
         {
+            PublishStatus("Tagging soccer interrupt sentiment", 4f);
             var sentimentPrompt = new PromptResolver(generator.ManagerContext, "Soccer Mode", "Sentiment Tagger");
             foreach (var node in nodes)
             {
@@ -321,6 +363,7 @@ public sealed class SoccerInterruptService
 
         if (ttsGenerator != null)
         {
+            PublishStatus("Generating soccer interrupt audio", 4f);
             foreach (var node in nodes)
             {
                 if (!IsCurrent(summary, generation))
@@ -328,6 +371,8 @@ public sealed class SoccerInterruptService
                 await ttsGenerator.GenerateTextToSpeech(node);
             }
         }
+
+        PublishStatus("Soccer interrupt ready", 3f);
 
         return new SoccerInterruptPacket
         {
@@ -427,6 +472,25 @@ public sealed class SoccerInterruptService
             $"Recent Residue:\n- {string.Join("\n- ", summary.RecentResidue ?? Array.Empty<string>())}";
     }
 
+    private void PublishStatus(string message, float lifetimeSeconds)
+    {
+        if (generator?.ManagerContext == null || string.IsNullOrWhiteSpace(message))
+            return;
+
+        UiEventBus.Publish(generator.ManagerContext, message, lifetimeSeconds);
+    }
+
+    private static string DescribeSummary(SoccerEventSummary summary)
+    {
+        if (summary == null)
+            return "match event";
+
+        if (summary.IsScoreSensitive)
+            return $"{summary.EventType} ({summary.ScoreLine})";
+
+        return string.IsNullOrWhiteSpace(summary.EventType) ? "match event" : summary.EventType;
+    }
+
     private string BuildContext(SoccerEventSummary summary, IEnumerable<Actor> speakers)
     {
         var affinity = string.Join("\n", speakers.Select(actor => $"{actor.Name}: {BuildAffinity(actor, summary)}"));
@@ -469,15 +533,23 @@ public sealed class SoccerInterruptService
         if (packet == null)
             return true;
 
-        if (packet.IsTemplatePacket)
-            return false;
-
-        if (packet.Sequence < latestSeenSequence || packet.Sequence < latestInjectedSequence)
+        if (string.IsNullOrEmpty(currentMatchId) || packet.MatchId != currentMatchId)
         {
             packet.Superseded = true;
             return true;
         }
 
+        if (packet.IsTemplatePacket)
+            return false;
+
+        if (packet.ExpiresAtUtc <= DateTime.UtcNow)
+        {
+            packet.Superseded = true;
+            return true;
+        }
+
+        // Match events arrive much faster than LLM/TTS can finish. A newer event does not
+        // make this packet stale unless the packet depends on world state that changed.
         if (!packet.IsScoreSensitive || matchState == null)
             return false;
 
@@ -501,7 +573,7 @@ public sealed class SoccerInterruptService
             packet.ExpiresAtUtc > DateTime.UtcNow);
     }
 
-    private static int CountReady(Queue<SoccerInterruptPacket> queue)
+    private static int CountReady(Queue<SoccerInterruptPacket> queue, string eventType = null)
     {
         if (queue == null)
             return 0;
@@ -510,7 +582,8 @@ public sealed class SoccerInterruptService
             packet != null &&
             !packet.Consumed &&
             !packet.Superseded &&
-            packet.ExpiresAtUtc > DateTime.UtcNow);
+            packet.ExpiresAtUtc > DateTime.UtcNow &&
+            (string.IsNullOrEmpty(eventType) || string.Equals(packet.TriggerEventType, eventType, StringComparison.Ordinal)));
     }
 
     private static void PruneQueue(Queue<SoccerInterruptPacket> queue)
@@ -566,19 +639,60 @@ public sealed class SoccerInterruptService
         return SoccerPacketBank.LiveGeneric;
     }
 
+    private static string BuildReplenishKey(SoccerPacketBank bank, string eventType)
+    {
+        return string.IsNullOrEmpty(eventType) ? $"{bank}:*" : $"{bank}:{eventType}";
+    }
+
     private bool TryInjectPacket(SoccerInterruptPacket packet)
     {
+        if (packet == null || IsStale(packet, packet.SeedEvent))
+            return false;
+
+        RemoveSupersededInterruptNodes(packet);
+
         return ChatManager.Instance != null &&
             ChatManager.Instance.InjectNodes(ChatManager.Instance.NowPlaying, packet.Nodes);
     }
 
     private bool CanInjectNow()
     {
-        var chat = ChatManager.Instance?.NowPlaying;
+        return CanInjectNow(null);
+    }
+
+    private bool CanInjectNow(SoccerInterruptPacket packet)
+    {
+        if (string.IsNullOrEmpty(currentMatchId))
+            return false;
+
+        var manager = ChatManager.Instance;
+        if (manager == null || !manager.ReadyForAction || ChatManager.IsPaused)
+            return false;
+
+        var chat = manager.NowPlaying;
         if (chat == null)
             return false;
 
-        return !chat.Nodes.Any(node => node != null && node.New && node.Notes == InterruptNodeMarker);
+        if (!HasQueuedInterruptNodes(chat))
+            return true;
+
+        return packet != null && CanSupersedeQueuedInterrupt(packet);
+    }
+
+    private void ApplySummary(SoccerInterruptPacket packet, SoccerEventSummary summary)
+    {
+        if (packet == null || summary == null)
+            return;
+
+        packet.MatchId = summary.MatchId;
+        packet.TriggerEventType = summary.EventType;
+        packet.Bank = policy.GetBank(summary);
+        packet.Priority = summary.Priority;
+        packet.SeedEvent = summary;
+        packet.Sequence = summary.Sequence;
+        packet.WorldFingerprint = summary.WorldFingerprint;
+        packet.IsScoreSensitive = summary.IsScoreSensitive;
+        packet.IsTemplatePacket = false;
     }
 
     private void QueuePending(SoccerInterruptPacket packet)
@@ -595,6 +709,102 @@ public sealed class SoccerInterruptService
         else
         {
             packet.Superseded = true;
+        }
+    }
+
+    private void QueueGenerationSummary(SoccerEventSummary summary)
+    {
+        if (summary == null)
+            return;
+
+        if (queuedGenerationSummary == null || ShouldSupersede(summary, queuedGenerationSummary))
+            queuedGenerationSummary = summary;
+    }
+
+    private void TryStartQueuedGeneration(int generation)
+    {
+        var summary = queuedGenerationSummary;
+        queuedGenerationSummary = null;
+
+        if (summary == null || generation != generationVersion || !IsCurrent(summary, generation))
+            return;
+
+        _ = TryInject(summary);
+    }
+
+    private static bool ShouldSupersede(SoccerEventSummary candidate, SoccerEventSummary existing)
+    {
+        if (candidate == null)
+            return false;
+        if (existing == null)
+            return true;
+
+        if (candidate.Priority > existing.Priority)
+            return true;
+        if (candidate.Priority < existing.Priority)
+            return false;
+
+        if (candidate.IsScoreSensitive && !existing.IsScoreSensitive)
+            return true;
+        if (!candidate.IsScoreSensitive && existing.IsScoreSensitive)
+            return false;
+
+        if (candidate.Sequence > existing.Sequence)
+            return true;
+        if (candidate.Sequence < existing.Sequence)
+            return false;
+
+        return candidate.CreatedAtUtc >= existing.CreatedAtUtc;
+    }
+
+    private void RemoveQueuedInterruptNodes()
+    {
+        var chat = ChatManager.Instance?.NowPlaying;
+        if (chat?.Nodes == null)
+            return;
+
+        RemoveQueuedInterruptNodes(chat);
+    }
+
+    private void RemoveSupersededInterruptNodes(SoccerInterruptPacket packet)
+    {
+        if (packet == null || !CanSupersedeQueuedInterrupt(packet))
+            return;
+
+        var manager = ChatManager.Instance;
+        manager?.InterruptActiveNode(InterruptNodeMarker);
+
+        var chat = manager?.NowPlaying;
+        if (chat?.Nodes == null)
+            return;
+
+        RemoveQueuedInterruptNodes(chat);
+    }
+
+    private static bool HasQueuedInterruptNodes(Chat chat)
+    {
+        return chat?.Nodes != null &&
+            chat.Nodes.Any(node => node != null && node.New && node.Notes == InterruptNodeMarker);
+    }
+
+    private bool CanSupersedeQueuedInterrupt(SoccerInterruptPacket packet)
+    {
+        return packet != null && !packet.IsTemplatePacket && packet.Sequence > latestInjectedSequence;
+    }
+
+    private static void RemoveQueuedInterruptNodes(Chat chat)
+    {
+        if (chat?.Nodes == null)
+            return;
+
+        for (var i = chat.Nodes.Count - 1; i >= 0; i--)
+        {
+            var node = chat.Nodes[i];
+            if (node == null || !node.New || node.Notes != InterruptNodeMarker)
+                continue;
+
+            node.ReleaseRuntimeAudio();
+            chat.Nodes.RemoveAt(i);
         }
     }
 

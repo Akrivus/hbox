@@ -68,6 +68,21 @@ HBOx embeds football matches inside the live polbots scene instead of letting th
 - Uses the Football Simulator `MainCamera` singleton instead of Unity `Camera.main` when capturing transition frames.
 - This prevents transition effects from briefly stealing or rendering through the host polbots camera.
 
+## Conditional Vendor Patches
+
+These patches have been useful during embedded startup debugging, but they should be treated as conditional when applying a fresh vendor package. Reapply them only if normal, non-dry-run soccer startup still hits renderer-pool null references after the HBOx `GameOnStart` readiness gate is in place.
+
+### [`MatchEngineLoader.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/MatchEngine/MatchEngineLoader.cs)
+
+- Waits briefly for `ShadowRenderer` and `FootShadowRenderer` to exist and initialize after stadium scene loading.
+- This was added after player creation hit `ShadowRenderer.Current.Get()` / `FootShadowRenderer.Current.Get()` null references.
+- Later testing showed dry-run startup/destruction could also trigger these nulls, so this patch is defensive rather than a confirmed first-pass requirement.
+
+### [`AbstractEventRenderer.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/3rdParty/FootballSimulator/Code/MatchEngine/Graphics/EventRenderer/AbstractEventRenderer.cs)
+
+- Exposes `IsReady` once the renderer pool has been initialized.
+- `MatchEngineLoader` uses this for the conditional event-renderer startup wait above.
+
 ## HBOx Integration Hooks Depending On These Patches
 
 ### [`SoccerGameSource.cs`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/Scenes/polbots/Scripts/Integrations/SoccerGameSource.cs)
@@ -79,6 +94,7 @@ HBOx embeds football matches inside the live polbots scene instead of letting th
 - Rebinds the football camera to the polbots broadcast render texture and watches for dropped `targetTexture` assignments during runtime.
 - Explicitly destroys tracked football `DontDestroyOnLoad` objects during normal match end and abrupt host-scene teardown.
 - Treats only the configured soccer game scene unload as soccer teardown; unrelated additive scene unloads must not disable `PreserveHostScene`.
+- Defers `GameOnStart` until the polbots context is live and `ChatManager.ReadyForAction` is true; this prevents dry-run/context-population passes from starting and then destroying a real match.
 
 ## If The Vendor Asset Is Updated
 
@@ -94,5 +110,7 @@ Reapply these changes first:
 8. singleton cache refresh / clear on disable-destroy
 9. idempotent single-addressable prefab loading
 10. `MatchManager` null-safety around late-update offside calculations
+
+Then run a normal embedded soccer startup. Only reapply the conditional event-renderer readiness wait if player creation still hits `ShadowRenderer` or `FootShadowRenderer` nulls outside dry-run teardown.
 
 If the asset is moved to a private submodule, keep this file in the main repo so the integration contract stays documented.

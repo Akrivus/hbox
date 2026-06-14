@@ -59,7 +59,16 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
                 return;
             }
 
-            var response = await RequestFromGoogle(node.Say, node.Actor.Voice);
+            HttpResponseMessage response;
+            await TTS.WaitForRequestSlot();
+            try
+            {
+                response = await RequestFromGoogle(node.Say, node.Actor.Voice);
+            }
+            finally
+            {
+                TTS.ReleaseRequestSlot();
+            }
             success = response.IsSuccessStatusCode;
             error = success ? string.Empty : response.ReasonPhrase;
 
@@ -115,7 +124,16 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
             return null;
         Debug.Log("Requesting Google TTS: " + text);
         var stopwatch = Stopwatch.StartNew();
-        var response = await RequestFromGoogle(text, voice);
+        HttpResponseMessage response;
+        await TTS.WaitForRequestSlot();
+        try
+        {
+            response = await RequestFromGoogle(text, voice);
+        }
+        finally
+        {
+            TTS.ReleaseRequestSlot();
+        }
         if (!response.IsSuccessStatusCode)
         {
             stopwatch.Stop();
@@ -142,10 +160,19 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var clip = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
-                voice: new OpenAI.Voice(voice),
-                model: new OpenAI.Models.Model("gpt-4o-mini-tts"),
-                responseFormat: SpeechResponseFormat.PCM));
+            AudioClip clip;
+            await TTS.WaitForRequestSlot();
+            try
+            {
+                clip = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
+                    voice: new OpenAI.Voice(voice),
+                    model: new OpenAI.Models.Model("gpt-4o-mini-tts"),
+                    responseFormat: SpeechResponseFormat.PCM));
+            }
+            finally
+            {
+                TTS.ReleaseRequestSlot();
+            }
             stopwatch.Stop();
             RecordTtsUsage(context, episodeSlug, "gpt-4o-mini-tts", text, voice, attempts, clip != null, stopwatch.ElapsedMilliseconds, clip == null ? "No audio clip returned." : string.Empty);
             return clip;

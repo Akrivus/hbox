@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using OpenAI;
@@ -24,6 +25,9 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
     public static OpenAIClient API => _api ??= new OpenAIClient(new OpenAIAuthentication(OPENAI_API_KEY), new OpenAISettings(OPENAI_API_URI));
     private static OpenAIClient _api;
+    private static int maxConcurrentRequests = 2;
+    private static readonly object requestGateSync = new object();
+    private static SemaphoreSlim requestGate = new SemaphoreSlim(maxConcurrentRequests, maxConcurrentRequests);
 
     public void Configure(OpenAIConfigs c)
     {
@@ -33,6 +37,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
         SLOW_MODEL = c.SlowModel;
         FAST_MODEL = c.FastModel;
         MODEL_PROFILES = BuildModelProfiles(c);
+        ConfigureConcurrency(c.MaxConcurrentRequests);
 
         LlmCallTelemetry.Configure(c.PersistUsage, c.UsageLogPath, c.ModelPrices, c.Budgets);
 
@@ -76,7 +81,16 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             if (prompt != null)
                 await prompt.SaveInput();
 
-            var request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+            ChatResponse request;
+            await requestGate.WaitAsync();
+            try
+            {
+                request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+            }
+            finally
+            {
+                requestGate.Release();
+            }
 
             RemainingRequests = request.RemainingRequests;
             RemainingTokens = request.RemainingTokens;
@@ -129,8 +143,17 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
         try
         {
-            var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text, EMBEDDING_MODEL, "me", dimensions));
-            var embedding = request.Data.FirstOrDefault().Embedding.ToArray();
+            double[] embedding;
+            await requestGate.WaitAsync();
+            try
+            {
+                var request = await API.EmbeddingsEndpoint.CreateEmbeddingAsync(new EmbeddingsRequest(text, EMBEDDING_MODEL, "me", dimensions));
+                embedding = request.Data.FirstOrDefault().Embedding.ToArray();
+            }
+            finally
+            {
+                requestGate.Release();
+            }
             stopwatch.Stop();
             RecordMeteredUsage(ChatManagerContext.Current, new LlmCallRecord
             {
@@ -215,6 +238,19 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
         return profile == LlmProfile.Fast || profile == LlmProfile.Utility || profile == LlmProfile.PostProcess || profile == LlmProfile.Sentiment
             ? FAST_MODEL
             : SLOW_MODEL;
+    }
+
+    private static void ConfigureConcurrency(int maxConcurrent)
+    {
+        var normalized = Math.Max(1, maxConcurrent);
+        lock (requestGateSync)
+        {
+            if (normalized == maxConcurrentRequests)
+                return;
+
+            maxConcurrentRequests = normalized;
+            requestGate = new SemaphoreSlim(maxConcurrentRequests, maxConcurrentRequests);
+        }
     }
 
     private static int EstimateMessageChars(List<Message> messages)

@@ -117,7 +117,7 @@ public sealed class SoccerMatchStateService
         if (!scoreSensitive)
             return $"{eventType}|generic";
 
-        return $"{eventType}|{homeScore}-{awayScore}|{minute}";
+        return $"{eventType}|{homeScore}-{awayScore}"; // why did we remove minute?
     }
 
     private static bool IsScoreSensitive(string eventType)

@@ -18,6 +18,7 @@ using FStudio.UI.MatchThemes;
 using FStudio.UI.MatchThemes.MatchEvents;
 using Shared.Responses;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -67,7 +68,13 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private RenderTexture matchBroadcastTexture;
 
     [SerializeField]
+    private bool resizeBroadcastTextureToMediaScreen = true;
+
+    [SerializeField]
     private float broadcastWatchdogInterval = 0.25f;
+
+    [SerializeField]
+    private float duplicateSystemSuppressInterval = 2f;
 
     [SerializeField]
     private bool waitForInterruptPrewarm = true;
@@ -92,10 +99,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private string currentMatchId;
     private string startedMatchId;
-    private string queuedPregameMatchId;
     private float lastGameTime;
     private float lastBroadcastWatchdogTime;
+    private float lastDuplicateSystemSuppressTime;
     private string gameEventLog;
+    private RenderTexture runtimeMatchBroadcastTexture;
 
     private SoccerConfigs config;
     private SoccerInterruptService interruptService;
@@ -108,7 +116,9 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private bool emissionEventsRegistered;
     private bool announcerEmitBound;
     private bool gameOnStartTriggered;
+    private bool gameOnStartQueued;
     private bool preserveHostSceneLockHeld;
+    private EventSystem hostEventSystem;
 
     public void Configure(SoccerConfigs config)
     {
@@ -129,11 +139,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (config.GameOnBatchEnd)
             boundContext.OnChatQueueEmpty += BreakTheSilence;
 
-        if (config.GameOnStart && !gameOnStartTriggered)
-        {
-            gameOnStartTriggered = true;
-            StartCoroutine(StartConfiguredGame());
-        }
+        QueueGameOnStartIfNeeded();
 
         eventsBound = true;
         SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -158,18 +164,56 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private IEnumerator StartConfiguredGame()
     {
+        gameOnStartQueued = true;
         yield return null;
+        yield return new WaitUntilTimer(() => IsReadyForGameOnStart() && !isLoadingGame && !isStartingGame && !isUnloadingGame, 30);
 
-        if (config?.GameOnStart != true || isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame)
+        if (config?.GameOnStart != true ||
+            !IsReadyForGameOnStart() ||
+            isGameLoaded ||
+            isLoadingGame ||
+            isStartingGame ||
+            isUnloadingGame)
+        {
+            gameOnStartQueued = false;
             yield break;
+        }
 
         if (!TrySelectDefaultActors())
         {
             Debug.LogWarning("SoccerGameSource.GameOnStart could not start because two soccer-capable actors were not available.");
+            gameOnStartQueued = false;
             yield break;
         }
 
+        gameOnStartTriggered = true;
         yield return LoadGame();
+        yield return new WaitUntilTimer(() => isGameLoaded || (!isLoadingGame && !isStartingGame && !isUnloadingGame), 30);
+
+        if (!isGameLoaded)
+            gameOnStartTriggered = false;
+
+        gameOnStartQueued = false;
+    }
+
+    private void QueueGameOnStartIfNeeded()
+    {
+        if (config?.GameOnStart != true || gameOnStartTriggered || gameOnStartQueued || isGameLoaded)
+            return;
+
+        StartCoroutine(StartConfiguredGame());
+    }
+
+    private bool IsReadyForGameOnStart()
+    {
+        var manager = ChatManager.Instance;
+        if (manager == null || !manager.ReadyForAction)
+            return false;
+
+        return boundContext != null &&
+            !boundContext.Dead &&
+            boundContext.IsActive &&
+            manager.CurrentContext == boundContext;
     }
 
     public void IncrementVolume()
@@ -245,6 +289,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         interruptService?.Tick();
         announcerService?.Tick(interruptService?.HasPendingInterrupt() ?? false);
         TickBroadcastWatchdog();
+        TickDuplicateSceneSystemSuppressor();
+        QueueGameOnStartIfNeeded();
     }
 
     private void TryRegisterRuntimeBindings()
@@ -271,6 +317,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             OnEmit += HandleAnnouncerEmit;
             announcerEmitBound = true;
         }
+
+        QueueGameOnStartIfNeeded();
     }
 
     private void TriggerGame(Chat chat)
@@ -407,7 +455,6 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         currentMatchId = Guid.NewGuid().ToString("N");
         startedMatchId = null;
-        queuedPregameMatchId = null;
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
         DeleteSoccerDiscordMessages();
@@ -436,6 +483,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             return;
 
         DisableFootballBoot(scene);
+        DisableEmbeddedSceneUiConflicts(scene);
         isSceneLoaded = true;
 
         if (!isGameLoaded && !isStartingGame && !isUnloadingGame)
@@ -465,12 +513,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             var match = new MatchCreateRequest(homeTeam, awayTeam);
             interruptService.BeginMatch(matchStateService, homeActor, awayActor);
             announcerService?.BeginMatch();
-            QueuePregameIdeaOnce();
-
-            if (waitForInterruptPrewarm)
-                yield return interruptService.Prewarm(Mathf.CeilToInt(interruptPrewarmTimeoutSeconds * 1000f)).AsCoroutine();
-
-            yield return interruptService.TryInjectPregame().AsCoroutine();
+            StartCoroutine(InjectPregameWhenReady(currentMatchId));
 
             yield return MatchEngineLoader.CreateMatch(match).AsCoroutine();
             SuppressUpcomingMatchUi();
@@ -481,8 +524,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
             matchStateService.MarkLive();
 
-            ConfigureBroadcastCamera();
             VideoCallUIManager.Instance.ShareScreenOn();
+            ConfigureBroadcastCamera();
             isGameLoaded = true;
             isBroadcastSignalHealthy = true;
             lastBroadcastWatchdogTime = Time.unscaledTime;
@@ -495,6 +538,20 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         {
             isStartingGame = false;
         }
+    }
+
+    private IEnumerator InjectPregameWhenReady(string matchId)
+    {
+        if (string.IsNullOrWhiteSpace(matchId) || interruptService == null)
+            yield break;
+
+        if (waitForInterruptPrewarm)
+            yield return interruptService.Prewarm(Mathf.CeilToInt(interruptPrewarmTimeoutSeconds * 1000f)).AsCoroutine();
+
+        if (isUnloadingGame || currentMatchId != matchId)
+            yield break;
+
+        yield return interruptService.TryInjectPregame().AsCoroutine();
     }
 
     private void SuppressUpcomingMatchUi()
@@ -521,7 +578,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private async Task UnloadGame()
     {
-        if (isUnloadingGame || !isGameLoaded || MatchEngineLoader.Current == null)
+        if (isUnloadingGame || (!isGameLoaded && !isSceneLoaded && addedScenes.Count == 0))
             return;
 
         isUnloadingGame = true;
@@ -530,9 +587,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         {
             interruptService.EndMatch();
             announcerService?.EndMatch();
-            await MatchEngineLoader.Current.UnloadMatch();
+            if (MatchEngineLoader.Current != null)
+                await MatchEngineLoader.Current.UnloadMatch();
             ClearBroadcastCamera();
             RestoreHostMainCameras();
+            VideoCallUIManager.Instance?.ShareScreenOff();
 
             if (config.ClearSceneOnGameEnd)
                 await UnloadGameScenes();
@@ -611,6 +670,75 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         }
     }
 
+    private void DisableEmbeddedSceneUiConflicts(Scene scene)
+    {
+        foreach (var root in scene.GetRootGameObjects())
+        {
+            if (root == null)
+                continue;
+
+            foreach (var eventSystem in root.GetComponentsInChildren<EventSystem>(true))
+                DisableEventSystem(eventSystem);
+
+            foreach (var inputModule in root.GetComponentsInChildren<BaseInputModule>(true))
+                inputModule.enabled = false;
+        }
+    }
+
+    private void SuppressDuplicateSceneSystems()
+    {
+        if (!isSceneLoaded && !isLoadingGame && !isStartingGame && !isGameLoaded)
+            return;
+
+        var systems = Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        if (systems == null || systems.Length <= 1)
+            return;
+
+        if (hostEventSystem == null || !hostEventSystem || !hostEventSystem.enabled)
+        {
+            hostEventSystem = systems.FirstOrDefault(system =>
+                system != null && !addedScenes.ContainsKey(system.gameObject.scene.handle)) ??
+                EventSystem.current ??
+                systems.FirstOrDefault(system => system != null);
+        }
+
+        foreach (var system in systems)
+        {
+            if (system == null || system == hostEventSystem)
+                continue;
+
+            DisableEventSystem(system);
+        }
+
+        if (hostEventSystem != null && hostEventSystem.enabled)
+            EventSystem.current = hostEventSystem;
+    }
+
+    private void TickDuplicateSceneSystemSuppressor()
+    {
+        if (!isSceneLoaded && !isLoadingGame && !isStartingGame && !isGameLoaded)
+            return;
+
+        var interval = Mathf.Max(0.25f, duplicateSystemSuppressInterval);
+        if (Time.unscaledTime - lastDuplicateSystemSuppressTime < interval)
+            return;
+
+        lastDuplicateSystemSuppressTime = Time.unscaledTime;
+        SuppressDuplicateSceneSystems();
+    }
+
+    private static void DisableEventSystem(EventSystem eventSystem)
+    {
+        if (eventSystem == null)
+            return;
+
+        foreach (var inputModule in eventSystem.GetComponents<BaseInputModule>())
+            inputModule.enabled = false;
+
+        eventSystem.enabled = false;
+        eventSystem.gameObject.SetActive(false);
+    }
+
     private void ClaimFootballMainCamera()
     {
         RestoreHostMainCameras();
@@ -647,14 +775,17 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void ConfigureBroadcastCamera()
     {
-        if (matchBroadcastTexture == null)
+        var broadcastTexture = GetBroadcastTexture();
+        if (broadcastTexture == null)
             return;
 
         var footballCamera = MainCamera.Current?.Camera;
         if (footballCamera == null)
             return;
 
-        footballCamera.targetTexture = matchBroadcastTexture;
+        footballCamera.targetTexture = broadcastTexture;
+        VideoCallUIManager.Instance?.ShareScreenUIManager?.SetMediaTexture(broadcastTexture);
+        DisableFootballAudioListener(footballCamera);
         if (footballCamera.gameObject.CompareTag("MainCamera"))
             footballCamera.gameObject.tag = "Untagged";
     }
@@ -662,16 +793,18 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void ClearBroadcastCamera()
     {
         var footballCamera = MainCamera.Current?.Camera;
-        if (footballCamera == null)
-            return;
-
-        if (footballCamera.targetTexture == matchBroadcastTexture)
+        var broadcastTexture = GetActiveBroadcastTexture();
+        if (footballCamera != null && footballCamera.targetTexture == broadcastTexture)
             footballCamera.targetTexture = null;
+
+        VideoCallUIManager.Instance?.ShareScreenUIManager?.SetMediaTexture(matchBroadcastTexture);
+        ReleaseRuntimeBroadcastTexture();
     }
 
     private void TickBroadcastWatchdog()
     {
-        if (!isGameLoaded || matchBroadcastTexture == null)
+        var broadcastTexture = GetBroadcastTexture();
+        if (!isGameLoaded || broadcastTexture == null)
             return;
 
         if (Time.unscaledTime - lastBroadcastWatchdogTime < broadcastWatchdogInterval)
@@ -686,7 +819,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             return;
         }
 
-        if (footballCamera.targetTexture == matchBroadcastTexture)
+        if (footballCamera.targetTexture == broadcastTexture)
         {
             if (!isBroadcastSignalHealthy)
             {
@@ -698,13 +831,73 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         }
 
         MarkBroadcastSignalLost();
-        footballCamera.targetTexture = matchBroadcastTexture;
+        footballCamera.targetTexture = broadcastTexture;
+        VideoCallUIManager.Instance?.ShareScreenUIManager?.SetMediaTexture(broadcastTexture);
+        DisableFootballAudioListener(footballCamera);
 
-        if (footballCamera.targetTexture == matchBroadcastTexture)
+        if (footballCamera.targetTexture == broadcastTexture)
         {
             isBroadcastSignalHealthy = true;
             OnBroadcastSignalRestored?.Invoke();
         }
+    }
+
+    private RenderTexture GetBroadcastTexture()
+    {
+        if (!resizeBroadcastTextureToMediaScreen)
+            return matchBroadcastTexture;
+
+        var mediaSize = VideoCallUIManager.Instance?.ShareScreenUIManager?.ActiveMediaScreenSize ?? Vector2.zero;
+        var width = Mathf.Max(1, Mathf.RoundToInt(mediaSize.x));
+        var height = Mathf.Max(1, Mathf.RoundToInt(mediaSize.y));
+        if (width <= 1 || height <= 1)
+            return matchBroadcastTexture;
+
+        if (runtimeMatchBroadcastTexture != null &&
+            runtimeMatchBroadcastTexture.width == width &&
+            runtimeMatchBroadcastTexture.height == height)
+        {
+            return runtimeMatchBroadcastTexture;
+        }
+
+        ReleaseRuntimeBroadcastTexture();
+
+        var descriptor = matchBroadcastTexture != null
+            ? matchBroadcastTexture.descriptor
+            : new RenderTextureDescriptor(width, height, RenderTextureFormat.ARGB32, 24);
+        descriptor.width = width;
+        descriptor.height = height;
+
+        runtimeMatchBroadcastTexture = new RenderTexture(descriptor)
+        {
+            name = "Soccer Match Broadcast Runtime",
+            filterMode = matchBroadcastTexture != null ? matchBroadcastTexture.filterMode : FilterMode.Bilinear,
+            wrapMode = matchBroadcastTexture != null ? matchBroadcastTexture.wrapMode : TextureWrapMode.Clamp
+        };
+        runtimeMatchBroadcastTexture.Create();
+        return runtimeMatchBroadcastTexture;
+    }
+
+    private RenderTexture GetActiveBroadcastTexture()
+    {
+        return runtimeMatchBroadcastTexture != null ? runtimeMatchBroadcastTexture : matchBroadcastTexture;
+    }
+
+    private void ReleaseRuntimeBroadcastTexture()
+    {
+        if (runtimeMatchBroadcastTexture == null)
+            return;
+
+        runtimeMatchBroadcastTexture.Release();
+        Destroy(runtimeMatchBroadcastTexture);
+        runtimeMatchBroadcastTexture = null;
+    }
+
+    private static void DisableFootballAudioListener(Camera footballCamera)
+    {
+        var listener = footballCamera != null ? footballCamera.GetComponent<AudioListener>() : null;
+        if (listener != null)
+            listener.enabled = false;
     }
 
     private void MarkBroadcastSignalLost()
@@ -887,15 +1080,6 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         generator.AddIdeaToQueue(new Idea(ideaText));
     }
 
-    private void QueuePregameIdeaOnce()
-    {
-        if (string.IsNullOrWhiteSpace(currentMatchId) || queuedPregameMatchId == currentMatchId)
-            return;
-
-        queuedPregameMatchId = currentMatchId;
-        ideaService.QueuePregameIdea(homeActor, awayActor, currentMatchId);
-    }
-
     private void EmergencyTeardown()
     {
         if (isTearingDown)
@@ -910,7 +1094,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         {
             interruptService?.EndMatch();
             announcerService?.EndMatch();
-            SnapManager.Clear();
+            SafeClearSnapManager();
             FStudio.Utilities.DontDestroy.DestroyTracked();
             addedScenes.Clear();
             isLoadingGame = false;
@@ -921,6 +1105,18 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         finally
         {
             isTearingDown = false;
+        }
+    }
+
+    private static void SafeClearSnapManager()
+    {
+        try
+        {
+            SnapManager.Clear();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"SoccerGameSource teardown skipped SnapManager.Clear after vendor UI disposal: {ex.Message}");
         }
     }
 
@@ -938,8 +1134,9 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         ReleaseHostScene();
         isSceneLoaded = false;
         isGameLoaded = false;
+        gameOnStartTriggered = false;
+        gameOnStartQueued = false;
         startedMatchId = null;
-        queuedPregameMatchId = null;
         currentMatchId = null;
         matchStateService.EndMatch();
         announcerService?.EndMatch();

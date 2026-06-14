@@ -8,6 +8,7 @@ public class OpenAIConfigs : IConfig
     public string ApiKey { get; set; }
     public string SlowModel { get; set; }
     public string FastModel { get; set; }
+    public int MaxConcurrentRequests { get; set; } = 2;
     public Dictionary<string, string> ModelProfiles { get; set; } = new Dictionary<string, string>();
     public Dictionary<string, LlmModelPrice> ModelPrices { get; set; } = new Dictionary<string, LlmModelPrice>();
     public bool PersistUsage { get; set; } = true;

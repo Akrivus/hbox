@@ -1,19 +1,51 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class UIGridLayoutGroup : GridLayoutGroup
 {
     public int MaxChildren = 12;
+    public bool PlacePartialHorizontalRowAtBottom = true;
+    public GameObject ExcludedChild { get; set; }
+    private int lastChildCount = -1;
+    private int lastMaxChildren = -1;
+    private GameObject lastExcludedChild;
 
     private void Update()
     {
+        if (lastChildCount == rectTransform.childCount &&
+            lastMaxChildren == MaxChildren &&
+            lastExcludedChild == ExcludedChild)
+            return;
+
         UpdateChildren();
     }
 
     public void UpdateChildren()
     {
+        lastChildCount = rectTransform.childCount;
+        lastMaxChildren = MaxChildren;
+        lastExcludedChild = ExcludedChild;
+
+        var visibleIndex = 0;
         for (int i = 0; i < rectTransform.childCount; i++)
-            rectTransform.GetChild(i).gameObject.SetActive(i < MaxChildren);
+        {
+            var child = rectTransform.GetChild(i).gameObject;
+            if (ExcludedChild != null && child == ExcludedChild)
+            {
+                SetActiveIfChanged(child, false);
+                continue;
+            }
+
+            SetActiveIfChanged(child, visibleIndex < MaxChildren);
+            visibleIndex++;
+        }
+    }
+
+    private static void SetActiveIfChanged(GameObject child, bool active)
+    {
+        if (child != null && child.activeSelf != active)
+            child.SetActive(active);
     }
 
     public override void SetLayoutHorizontal()
@@ -28,12 +60,13 @@ public class UIGridLayoutGroup : GridLayoutGroup
 
     private void SetCellsAlongAxis(int axis)
     {
-        var count = rectChildren.Count;
+        var children = GetLayoutChildren();
+        var count = children.Count;
         if (axis == 0)
         {
             for (int i = 0; i < count; i++)
             {
-                RectTransform rect = rectChildren[i];
+                RectTransform rect = children[i];
 
                 m_Tracker.Add(this, rect,
                     DrivenTransformProperties.Anchors |
@@ -143,11 +176,33 @@ public class UIGridLayoutGroup : GridLayoutGroup
 
             if (cornerX == 1)
                 positionX = actualCellCountX - 1 - positionX;
-            if (cornerY == 1)
+            if (cornerY == 1 && !ShouldKeepPartialHorizontalRowAtBottom(lastCellsCount))
                 positionY = actualCellCountY - 1 - positionY;
 
-            SetChildAlongAxis(rectChildren[i], 0, cellStartOffset.x + (cellSize[0] + spacing[0]) * positionX, cellSize[0]);
-            SetChildAlongAxis(rectChildren[i], 1, cellStartOffset.y + (cellSize[1] + spacing[1]) * positionY, cellSize[1]);
+            SetChildAlongAxis(children[i], 0, cellStartOffset.x + (cellSize[0] + spacing[0]) * positionX, cellSize[0]);
+            SetChildAlongAxis(children[i], 1, cellStartOffset.y + (cellSize[1] + spacing[1]) * positionY, cellSize[1]);
         }
+    }
+
+    private bool ShouldKeepPartialHorizontalRowAtBottom(int lastCellsCount)
+    {
+        return PlacePartialHorizontalRowAtBottom &&
+            startAxis == Axis.Horizontal &&
+            lastCellsCount > 0;
+    }
+
+    private List<RectTransform> GetLayoutChildren()
+    {
+        var children = new List<RectTransform>(rectChildren.Count);
+        for (var i = 0; i < rectChildren.Count; i++)
+        {
+            var child = rectChildren[i];
+            if (child == null || ExcludedChild != null && child.gameObject == ExcludedChild)
+                continue;
+
+            children.Add(child);
+        }
+
+        return children;
     }
 }

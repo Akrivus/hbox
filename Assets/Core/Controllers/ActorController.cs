@@ -38,6 +38,7 @@ public class ActorController : MonoBehaviour
 
     private float talkTime = 0.0f;
     private float averageVolume = 1.0f;
+    private int activationVersion;
 
     public ActorContext Context
     {
@@ -107,10 +108,22 @@ public class ActorController : MonoBehaviour
 
     public IEnumerator Activate(ChatNode node)
     {
-        yield return new WaitForSeconds(node.Delay);
+        var activation = activationVersion;
+        var delay = node.Delay;
+        while (delay > 0f)
+        {
+            if (activation != activationVersion)
+                yield break;
+
+            delay -= Time.deltaTime;
+            yield return null;
+        }
 
         if (OnActivation != null)
             yield return OnActivation(node);
+        if (activation != activationVersion)
+            yield break;
+
         foreach (var subNode in sub_Nodes)
             subNode.Activate(node);
 
@@ -136,8 +149,23 @@ public class ActorController : MonoBehaviour
 
             if (node.Text.EndsWith("—\"") || node.Text.EndsWith("—"))
                 seconds -= 0.5f;
-            yield return new WaitForSeconds(seconds);
+
+            while (seconds > 0f)
+            {
+                if (activation != activationVersion)
+                    yield break;
+
+                seconds -= Time.deltaTime;
+                yield return null;
+            }
         }
+    }
+
+    public void InterruptActivation()
+    {
+        activationVersion++;
+        if (voice != null)
+            voice.Stop();
     }
 
     public IEnumerator Initialize(Chat chat)

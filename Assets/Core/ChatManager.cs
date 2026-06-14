@@ -70,6 +70,8 @@ public class ChatManager : MonoBehaviour
     private int playbackGeneration = 0;
     private DiscordPostedMessage nowPlayingDiscordMessage;
     private bool lastPlayInterrupted = false;
+    private ChatNode activeNode;
+    private ActorController activeActor;
 
     [SerializeField]
     private EventSystem primaryEventSystem;
@@ -370,10 +372,31 @@ public class ChatManager : MonoBehaviour
             Debug.LogWarning($"ChatManager.Activate skipped because no actor controller is available for '{node.Actor?.Name ?? "unknown"}'.");
             yield break;
         }
+        activeNode = node;
+        activeActor = actor;
         yield return actor.Activate(node);
+        if (activeNode != node)
+            yield break;
+
+        activeNode = null;
+        activeActor = null;
         if (!IsPlaybackCurrent(chat, expectedKey, generation))
             yield break;
         yield return SetActorReactions(actor, node);
+    }
+
+    public bool InterruptActiveNode(string notes)
+    {
+        if (activeNode == null)
+            return false;
+        if (!string.IsNullOrEmpty(notes) && activeNode.Notes != notes)
+            return false;
+
+        activeActor?.InterruptActivation();
+        activeNode.New = false;
+        activeNode = null;
+        activeActor = null;
+        return true;
     }
 
     private IEnumerator SetActorReactions(ActorController actor, ChatNode node)

@@ -1064,10 +1064,10 @@ RectTransform:
   m_Children:
   - {fileID: 8042676488348066303}
   - {fileID: 120022757238505156}
-  - {fileID: 8696345723008607473}
-  - {fileID: 5642358135581792624}
   - {fileID: 8022882881120516830}
   - {fileID: 8815153226516025946}
+  - {fileID: 8696345723008607473}
+  - {fileID: 5642358135581792624}
   - {fileID: 6832981526017365179}
   - {fileID: 6096123831782736878}
   - {fileID: 4947499421515438006}
@@ -1115,10 +1115,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e225f64d8af0b024ba042d414ef325e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  activeVideoRail: 0
   _gridLayoutGroup: {fileID: 4065687736377402286}
   _shareScreenPrefab: {fileID: 1083639468753880464}
   maxVideoScreens: 12
   minVideoScreens: 4
+  activeMediaScreenSize: {x: 1440, y: 800}
+  activeMediaScreenOffset: {x: -200, y: 0}
+  bottomRailMediaScreenSize: {x: 1670, y: 640}
+  bottomRailMediaScreenOffset: {x: 0, y: 138}
 --- !u!114 &6281047954218032634
 MonoBehaviour:
   m_ObjectHideFlags: 0
