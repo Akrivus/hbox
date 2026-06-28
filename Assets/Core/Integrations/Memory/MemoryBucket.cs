@@ -78,7 +78,10 @@ public class MemoryBucket
             try
             {
                 var json = await File.ReadAllTextAsync(path);
-                Memories = JsonConvert.DeserializeObject<List<Memory>>(json);
+                Memories = JsonConvert.DeserializeObject<List<Memory>>(json) ?? new List<Memory>();
+                foreach (var memory in Memories)
+                    if (memory != null)
+                        await memory.ResolvePrompt();
                 Touch();
             }
             catch (Exception e)
@@ -286,7 +289,20 @@ public class MemoryBucket
 public class Memory
 {
     [JsonIgnore]
-    public PromptResolver Prompt => _prompt ??= PromptResolver.FromPath(ChatManager.Instance.Contexts[ContextKey], Path);
+    public PromptResolver Prompt
+    {
+        get
+        {
+            if (_prompt != null)
+                return _prompt;
+
+            if (!TryResolveContext(out var context))
+                return null;
+
+            _prompt = PromptResolver.FromPath(context, Path);
+            return _prompt;
+        }
+    }
     public string ContextKey { get; private set; }
     public string Path { get; private set; }
     public double[] Embeddings { get; private set; }
@@ -295,6 +311,10 @@ public class Memory
     public string Text => Prompt == null ? string.Empty : Prompt.Text;
 
     private PromptResolver _prompt;
+
+    private Memory()
+    {
+    }
 
     public Memory(PromptResolver prompt, double[] embeddings)
     {
@@ -305,8 +325,27 @@ public class Memory
         Created = DateTime.Now;
     }
 
+    public async Task ResolvePrompt()
+    {
+        if (_prompt != null || string.IsNullOrWhiteSpace(Path))
+            return;
+        if (!TryResolveContext(out var context))
+            return;
+
+        _prompt = await PromptResolver.ResolveFromPath(context, Path);
+    }
+
     public void SetEmbeddings(double[] embeddings)
     {
         Embeddings = embeddings;
+    }
+
+    private bool TryResolveContext(out ChatManagerContext context)
+    {
+        context = null;
+        return !string.IsNullOrWhiteSpace(ContextKey) &&
+            ChatManager.Instance != null &&
+            ChatManager.Instance.Contexts.TryGetValue(ContextKey, out context) &&
+            context != null;
     }
 }

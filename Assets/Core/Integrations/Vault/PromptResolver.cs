@@ -195,6 +195,13 @@ public class PromptResolver
         return new PromptResolver(context, path, true);
     }
 
+    public static async Task<PromptResolver> ResolveFromPath(ChatManagerContext context, string path)
+    {
+        var resolver = FromPath(context, path);
+        await resolver.Nullable().Resolve();
+        return resolver;
+    }
+
     public static bool TryFind(ChatManagerContext context, string part, out PromptResolver resolver)
     {
         resolver = Find(context, part);
