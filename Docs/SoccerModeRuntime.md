@@ -68,7 +68,8 @@ Responsibilities:
 
 - prewarming packet banks before kickoff
 - maintaining pre-generated packet queues
-- building packets through prompt resolution + LLM + sentiment + TTS
+- building text-ready packets through prompt resolution + LLM + sentiment
+- generating TTS lazily only after a packet wins and is about to inject
 - assigning packets to banks
 - deciding whether a packet can inject now
 - holding one deferred pending packet when another interrupt is already live
@@ -123,8 +124,8 @@ The current embedded match flow is:
 5. Vendor `Boot` and `DefaultSceneLoader` are disabled.
 6. `SoccerInterruptService.BeginMatch(...)` starts packet-bank prewarming.
 7. `SoccerIdeaService.QueuePregameIdea(...)` queues the pregame full-scene idea.
-8. Optional prewarm wait runs before kickoff.
-9. One short pregame packet may inject before kickoff.
+8. Optional text-packet prewarm wait runs before kickoff.
+9. One short pregame packet may generate audio lazily and inject before kickoff.
 10. `MatchEngineLoader.CreateMatch(...)` and `StartMatchEngine(...)` start the simulator.
 11. Match phase flips to `Live`.
 12. Football camera is claimed and bound to the media-screen render texture.
@@ -141,12 +142,19 @@ The live path today is:
 3. The log is appended to `gameEventLog` and recent residue.
 4. `SoccerMatchStateService.BuildSummary(...)` produces a `SoccerEventSummary`.
 5. `SoccerInterruptService.TryInject(...)` looks for a ready packet in the matching bank.
-6. If needed, a packet is generated on demand.
-7. Stale or superseded packets are dropped.
+6. If needed, a text-ready packet is generated on demand.
+7. Stale or superseded packets are dropped before paying for audio.
 8. If another interrupt is already active, one pending packet can wait behind it.
-9. When the path is clear, the packet injects via [`ChatManager.InjectNodes(...)`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/Core/ChatManager.cs).
+9. When the path is clear, the selected packet generates TTS audio.
+10. After a second stale check, the packet injects via [`ChatManager.InjectNodes(...)`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/Core/ChatManager.cs).
 
 Injected interrupt nodes are marked internally so the service can detect “an interrupt is still pending/playing” without guessing from event timing.
+
+## Lazy Audio
+
+Packet banks are prewarmed as text and sentiment only. They deliberately do not generate TTS while sitting in the bank, because many packets are never selected: match state can move on, score-sensitive packets can go stale, and a stronger event can supersede a pending packet.
+
+TTS is generated only for the packet that is about to inject. Deferred pending packets also wait until `Tick()` sees a clear playback path before audio generation starts. This keeps bank prewarming responsive without spending audio work on packets that will be dropped.
 
 ## Packet Banks
 
@@ -160,11 +168,11 @@ Packet banks now exist conceptually and in code:
 Current usage:
 
 - `Pregame`
-  - short pre-kickoff beats
+  - short pre-kickoff beats, prewarmed as text and voiced only if selected
 - `LiveGeneric`
-  - whistles, tackles, near misses, saves, general procedural noise
+  - whistles, tackles, near misses, saves, general procedural noise, prewarmed as text
 - `LiveScoreSensitive`
-  - goals and other beats that should supersede older weaker packets
+  - goals and other beats that should supersede older weaker packets, with audio deferred until the score context still matches
 - `Broadcast`
   - reserved for feed-loss / screen-share incidents, not fully used yet
 

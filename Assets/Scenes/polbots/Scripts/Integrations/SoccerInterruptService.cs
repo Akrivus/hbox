@@ -34,6 +34,7 @@ public sealed class SoccerInterruptService
     private int generationVersion;
     private long latestInjectedSequence;
     private SoccerInterruptPacket pendingPacket;
+    private bool pendingInjectionInProgress;
     private bool liveGenerationInProgress;
     private SoccerEventSummary queuedGenerationSummary;
 
@@ -54,11 +55,12 @@ public sealed class SoccerInterruptService
         packetsByBank.Clear();
         replenishing.Clear();
         pendingPacket = null;
+        pendingInjectionInProgress = false;
         liveGenerationInProgress = false;
         queuedGenerationSummary = null;
         latestInjectedSequence = 0;
 
-        // Build interrupt packets only on demand. Background TTS clip creation can hitch the Unity main thread.
+        PrimeSeedBanks(generationVersion);
     }
 
     public void Configure(SoccerConfigs config)
@@ -72,9 +74,32 @@ public sealed class SoccerInterruptService
             interruptSeeds[pair.Key] = pair.Value;
     }
 
-    public Task Prewarm(int timeoutMs, int goalPackets = 1, int whistlePackets = 1)
+    public async Task Prewarm(int timeoutMs, int goalPackets = 1, int whistlePackets = 1)
     {
-        return Task.CompletedTask;
+        var generation = generationVersion;
+        if (string.IsNullOrEmpty(currentMatchId) || generation != generationVersion)
+            return;
+
+        var tasks = new List<Task>
+        {
+            Replenish(SoccerPacketBank.Pregame, generation),
+            Replenish(SoccerPacketBank.LiveGeneric, generation, nameof(RefereeShortWhistleEvent)),
+            Replenish(SoccerPacketBank.LiveScoreSensitive, generation, nameof(GoalScoredEvent))
+        };
+
+        if (goalPackets > 1)
+            tasks.Add(Replenish(SoccerPacketBank.LiveScoreSensitive, generation));
+        if (whistlePackets > 1)
+            tasks.Add(Replenish(SoccerPacketBank.LiveGeneric, generation));
+
+        var prewarm = Task.WhenAll(tasks);
+        if (timeoutMs <= 0)
+        {
+            await prewarm;
+            return;
+        }
+
+        await Task.WhenAny(prewarm, Task.Delay(timeoutMs));
     }
 
     public void EndMatch()
@@ -88,6 +113,7 @@ public sealed class SoccerInterruptService
         packetsByBank.Clear();
         replenishing.Clear();
         pendingPacket = null;
+        pendingInjectionInProgress = false;
         liveGenerationInProgress = false;
         queuedGenerationSummary = null;
         latestInjectedSequence = 0;
@@ -95,7 +121,7 @@ public sealed class SoccerInterruptService
 
     public void Tick()
     {
-        if (pendingPacket == null || !CanInjectNow(pendingPacket))
+        if (pendingInjectionInProgress || pendingPacket == null || !CanInjectNow(pendingPacket))
             return;
 
         if (IsStale(pendingPacket, pendingPacket.SeedEvent))
@@ -106,18 +132,45 @@ public sealed class SoccerInterruptService
             return;
         }
 
-        if (TryInjectPacket(pendingPacket))
+        var packet = pendingPacket;
+        pendingInjectionInProgress = true;
+        _ = PrepareAndInjectPendingPacket(packet, generationVersion);
+    }
+
+    private async Task PrepareAndInjectPendingPacket(SoccerInterruptPacket packet, int generation)
+    {
+        try
         {
-            PublishStatus($"Injected queued soccer interrupt: {DescribeSummary(pendingPacket.SeedEvent)}", 4f);
-            pendingPacket.Consumed = true;
-            latestInjectedSequence = Math.Max(latestInjectedSequence, pendingPacket.Sequence);
-            pendingPacket = null;
+            if (packet == null || packet != pendingPacket || !IsCurrent(packet.SeedEvent, generation))
+                return;
+
+            if (!await PreparePacketAudio(packet, generation))
+                return;
+
+            if (packet != pendingPacket || IsStale(packet, packet.SeedEvent) || !CanInjectNow(packet))
+                return;
+
+            if (TryInjectPacket(packet))
+            {
+                PublishStatus($"Injected queued soccer interrupt: {DescribeSummary(packet.SeedEvent)}", 4f);
+                packet.Consumed = true;
+                latestInjectedSequence = Math.Max(latestInjectedSequence, packet.Sequence);
+                pendingPacket = null;
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"SoccerInterruptService pending injection failed: {e}");
+        }
+        finally
+        {
+            pendingInjectionInProgress = false;
         }
     }
 
     public bool HasPendingInterrupt()
     {
-        if (liveGenerationInProgress || queuedGenerationSummary != null)
+        if (liveGenerationInProgress || pendingInjectionInProgress || queuedGenerationSummary != null)
             return true;
 
         if (pendingPacket != null)
@@ -131,7 +184,8 @@ public sealed class SoccerInterruptService
     {
         var summary = BuildSeedSummary("Pregame", SoccerPacketBank.Pregame);
         var packet = Dequeue(SoccerPacketBank.Pregame, summary.EventType) ??
-            await BuildPacket(summary, generationVersion);
+            await BuildPacket(summary, generationVersion, false);
+        _ = Replenish(SoccerPacketBank.Pregame, generationVersion, summary.EventType);
         if (packet == null || packet.Nodes.Count == 0)
             return false;
         if (!CanInjectNow())
@@ -139,6 +193,9 @@ public sealed class SoccerInterruptService
             QueuePending(packet);
             return false;
         }
+
+        if (!await PreparePacketAudio(packet, generationVersion))
+            return false;
 
         var injected = TryInjectPacket(packet);
         if (injected)
@@ -178,8 +235,10 @@ public sealed class SoccerInterruptService
     {
         var bank = policy.GetBank(summary);
         var packet = Dequeue(bank, summary.EventType);
+        if (packet != null)
+            _ = Replenish(bank, generation, summary.EventType);
         if (packet == null)
-            packet = await BuildPacket(summary, generation);
+            packet = await BuildPacket(summary, generation, false);
 
         ApplySummary(packet, summary);
 
@@ -196,6 +255,15 @@ public sealed class SoccerInterruptService
         {
             QueuePending(packet);
             PublishStatus($"Queued soccer interrupt: {DescribeSummary(summary)}", 4f);
+            return false;
+        }
+
+        if (!await PreparePacketAudio(packet, generation))
+            return false;
+
+        if (IsStale(packet, summary))
+        {
+            PublishStatus($"Dropped stale soccer interrupt after audio prep: {DescribeSummary(summary)}", 4f);
             return false;
         }
 
@@ -248,7 +316,7 @@ public sealed class SoccerInterruptService
     {
         foreach (var eventType in seedEventTypes)
         {
-            var bank = policy.GetBank(BuildSeedSummary(eventType, GetBankForSeed(eventType)));
+            var bank = GetBankForSeed(eventType);
             _ = Replenish(bank, generation);
         }
     }
@@ -276,7 +344,7 @@ public sealed class SoccerInterruptService
                 generation == generationVersion)
             {
                 var seedEventType = string.IsNullOrEmpty(eventType) ? SelectSeedEventType(bank, queue.Count) : eventType;
-                var packet = await BuildPacket(BuildSeedSummary(seedEventType, bank), generation);
+                var packet = await BuildPacket(BuildSeedSummary(seedEventType, bank), generation, false);
                 if (generation != generationVersion)
                     break;
                 if (packet == null || packet.Nodes.Count == 0)
@@ -297,7 +365,7 @@ public sealed class SoccerInterruptService
         return new SoccerEventSummary
         {
             MatchId = currentMatchId,
-            Phase = isPregame ? SoccerMatchPhase.Pregame : (matchState != null ? matchState.Phase : SoccerMatchPhase.Live),
+            Phase = isPregame ? SoccerMatchPhase.Pregame : SoccerMatchPhase.Live,
             EventType = eventType,
             Minute = manager != null ? Mathf.CeilToInt(manager.minutes) : 0,
             HomeTeam = homeActor?.Name ?? "Home",
@@ -316,7 +384,7 @@ public sealed class SoccerInterruptService
         };
     }
 
-    private async Task<SoccerInterruptPacket> BuildPacket(SoccerEventSummary summary, int generation)
+    private async Task<SoccerInterruptPacket> BuildPacket(SoccerEventSummary summary, int generation, bool includeAudio)
     {
         if (!IsCurrent(summary, generation))
             return null;
@@ -361,18 +429,25 @@ public sealed class SoccerInterruptService
             }
         }
 
-        if (ttsGenerator != null)
+        var audioPrepared = false;
+        var audioPreparationFailed = false;
+        if (includeAudio)
         {
-            PublishStatus("Generating soccer interrupt audio", 4f);
-            foreach (var node in nodes)
+            var packetForAudio = new SoccerInterruptPacket
             {
-                if (!IsCurrent(summary, generation))
-                    return null;
-                await ttsGenerator.GenerateTextToSpeech(node);
-            }
+                MatchId = summary.MatchId,
+                SeedEvent = summary,
+                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(10),
+                IsTemplatePacket = summary.Sequence == 0,
+                Nodes = nodes
+            };
+            audioPrepared = await PreparePacketAudio(packetForAudio, generation);
+            audioPreparationFailed = packetForAudio.AudioPreparationFailed;
+            if (!audioPrepared && audioPreparationFailed)
+                return null;
         }
 
-        PublishStatus("Soccer interrupt ready", 3f);
+        PublishStatus(includeAudio ? "Soccer interrupt ready with audio" : "Soccer interrupt text ready", 3f);
 
         return new SoccerInterruptPacket
         {
@@ -388,8 +463,46 @@ public sealed class SoccerInterruptService
             WorldFingerprint = summary.WorldFingerprint,
             IsScoreSensitive = summary.IsScoreSensitive,
             IsTemplatePacket = summary.Sequence == 0,
+            AudioPrepared = audioPrepared,
+            AudioPreparationFailed = audioPreparationFailed,
             Nodes = nodes
         };
+    }
+
+    private async Task<bool> PreparePacketAudio(SoccerInterruptPacket packet, int generation)
+    {
+        if (packet == null || packet.Nodes == null || packet.Nodes.Count == 0)
+            return false;
+
+        if (packet.AudioPrepared)
+            return true;
+
+        if (ttsGenerator == null)
+        {
+            packet.AudioPrepared = true;
+            return true;
+        }
+
+        PublishStatus($"Generating soccer interrupt audio: {DescribeSummary(packet.SeedEvent)}", 4f);
+        foreach (var node in packet.Nodes)
+        {
+            if (!IsCurrent(packet.SeedEvent, generation) || IsStale(packet, packet.SeedEvent))
+                return false;
+
+            if (node == null || node.AudioData != null || node.HasRuntimeAudioClip)
+                continue;
+
+            await ttsGenerator.GenerateTextToSpeech(node);
+        }
+
+        if (!IsCurrent(packet.SeedEvent, generation) || IsStale(packet, packet.SeedEvent))
+            return false;
+
+        packet.AudioPrepared = packet.Nodes.All(node => node == null || node.AudioData != null || node.HasRuntimeAudioClip);
+        packet.AudioPreparationFailed = !packet.AudioPrepared;
+        if (packet.AudioPreparationFailed)
+            PublishStatus($"Soccer interrupt audio incomplete: {DescribeSummary(packet.SeedEvent)}", 4f);
+        return packet.AudioPrepared;
     }
 
     private Actor[] ResolveSpeakers(SoccerEventSummary summary)
