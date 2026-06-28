@@ -124,6 +124,14 @@ public class ActorController : MonoBehaviour
         if (activation != activationVersion)
             yield break;
 
+        while (node.AudioGenerationPending)
+        {
+            if (activation != activationVersion)
+                yield break;
+
+            yield return null;
+        }
+
         foreach (var subNode in sub_Nodes)
             subNode.Activate(node);
 

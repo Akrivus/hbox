@@ -13,6 +13,7 @@ using Stopwatch = System.Diagnostics.Stopwatch;
 public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 {
     private static string[] OpenAiVoices = new string[] { "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse" };
+    private const int OpenAiPcmSampleRate = 24000;
 
     private static OpenAIClient api => _api ??= new OpenAIClient(new OpenAIAuthentication(TTS.OpenAiApiKey));
     private static OpenAIClient _api;
@@ -35,7 +36,30 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private async Task GenerateTextToSpeech(Chat chat, ChatNode node)
     {
-        if (node.AudioData != null) return;
+        if (node == null || node.HasPlayableAudio)
+            return;
+
+        var existingTask = node.AudioGenerationTask;
+        if (existingTask != null)
+        {
+            await existingTask;
+            return;
+        }
+
+        var task = GenerateTextToSpeechCore(chat, node);
+        node.SetAudioGenerationTask(task);
+        try
+        {
+            await task;
+        }
+        finally
+        {
+            node.ClearAudioGenerationTask(task);
+        }
+    }
+
+    private async Task GenerateTextToSpeechCore(Chat chat, ChatNode node)
+    {
         if (OpenAiVoices.Contains(node.Actor.Voice))
             await GenerateWithOpenAI(chat, node);
         else
@@ -92,11 +116,11 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     {
         try
         {
-            var clip = await GetClipFromOpenAI(node.Say, node.Actor.Voice, chat?.ManagerContext, chat?.FileName, attempts);
-            if (clip == null)
-                throw new Exception("No audio clip returned.");
-            node.Frequency = clip.frequency;
-            node.AudioClip = clip;
+            var audio = await GetAudioDataFromOpenAI(node.Say, node.Actor.Voice, chat?.ManagerContext, chat?.FileName, attempts);
+            if (audio == null || string.IsNullOrEmpty(audio.AudioData))
+                throw new Exception("No audio data returned.");
+            node.Frequency = audio.Frequency;
+            node.AudioData = audio.AudioData;
 
             node.New = true;
         }
@@ -119,6 +143,12 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     }
 
     public static async Task<AudioClip> GetClipFromGoogle(string text, string voice)
+    {
+        var audio = await GetAudioDataFromGoogle(text, voice);
+        return audio?.AudioData.ToAudioClip(audio.Frequency);
+    }
+
+    public static async Task<GeneratedAudioData> GetAudioDataFromGoogle(string text, string voice)
     {
         if (string.IsNullOrEmpty(TTS.GoogleApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
             return null;
@@ -144,15 +174,16 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         var output = JsonConvert.DeserializeObject<Output>(json);
         stopwatch.Stop();
         RecordTtsUsage(ChatManagerContext.Current, null, "google-standard-tts", text, voice, 0, true, stopwatch.ElapsedMilliseconds, string.Empty);
-        return output.AudioData.ToAudioClip();
+        return new GeneratedAudioData(output.AudioData, 48000);
     }
 
     public static async Task<AudioClip> GetClipFromOpenAI(string text, string voice)
     {
-        return await GetClipFromOpenAI(text, voice, ChatManagerContext.Current, null, 0);
+        var audio = await GetAudioDataFromOpenAI(text, voice, ChatManagerContext.Current, null, 0);
+        return audio?.AudioData.ToAudioClip(audio.Frequency);
     }
 
-    private static async Task<AudioClip> GetClipFromOpenAI(string text, string voice, ChatManagerContext context, string episodeSlug, int attempts)
+    private static async Task<GeneratedAudioData> GetAudioDataFromOpenAI(string text, string voice, ChatManagerContext context, string episodeSlug, int attempts)
     {
         if (string.IsNullOrEmpty(TTS.OpenAiApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
             return null;
@@ -160,11 +191,11 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            AudioClip clip;
+            SpeechClip speechClip;
             await TTS.WaitForRequestSlot();
             try
             {
-                clip = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
+                speechClip = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
                     voice: new OpenAI.Voice(voice),
                     model: new OpenAI.Models.Model("gpt-4o-mini-tts"),
                     responseFormat: SpeechResponseFormat.PCM));
@@ -174,8 +205,11 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
                 TTS.ReleaseRequestSlot();
             }
             stopwatch.Stop();
-            RecordTtsUsage(context, episodeSlug, "gpt-4o-mini-tts", text, voice, attempts, clip != null, stopwatch.ElapsedMilliseconds, clip == null ? "No audio clip returned." : string.Empty);
-            return clip;
+            var audioData = speechClip?.AudioData.ToArray();
+            var hasAudio = audioData != null && audioData.Length > 0;
+            speechClip?.Dispose();
+            RecordTtsUsage(context, episodeSlug, "gpt-4o-mini-tts", text, voice, attempts, hasAudio, stopwatch.ElapsedMilliseconds, hasAudio ? string.Empty : "No audio data returned.");
+            return hasAudio ? new GeneratedAudioData(Convert.ToBase64String(audioData), OpenAiPcmSampleRate) : null;
         }
         catch (Exception e)
         {
@@ -249,5 +283,17 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
     {
         [JsonProperty("audioContent")]
         public string AudioData { get; set; }
+    }
+
+    public sealed class GeneratedAudioData
+    {
+        public string AudioData { get; }
+        public int Frequency { get; }
+
+        public GeneratedAudioData(string audioData, int frequency)
+        {
+            AudioData = audioData;
+            Frequency = frequency;
+        }
     }
 }

@@ -17,6 +17,7 @@ public sealed class SoccerInterruptPacket
     public bool IsTemplatePacket;
     public List<ChatNode> Nodes = new List<ChatNode>();
     public bool AudioPrepared;
+    public bool AudioPreparationInProgress;
     public bool AudioPreparationFailed;
     public bool Consumed;
     public bool Superseded;

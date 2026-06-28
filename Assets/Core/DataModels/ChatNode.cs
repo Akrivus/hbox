@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -58,6 +59,21 @@ public class ChatNode
     public bool HasRuntimeAudioClip => _audioClip != null;
 
     [JsonIgnore]
+    public bool HasAudioData => !string.IsNullOrEmpty(AudioData);
+
+    [JsonIgnore]
+    public bool HasPlayableAudio => HasAudioData || HasRuntimeAudioClip;
+
+    [JsonIgnore]
+    public Task AudioGenerationTask { get; private set; }
+
+    [JsonIgnore]
+    public bool AudioGenerationPending => AudioGenerationTask != null && !AudioGenerationTask.IsCompleted;
+
+    [JsonIgnore]
+    public bool AudioGenerationFailed => AudioGenerationTask != null && AudioGenerationTask.IsFaulted;
+
+    [JsonIgnore]
     private AudioClip _audioClip;
 
     public ChatNode()
@@ -106,6 +122,17 @@ public class ChatNode
     public void ReleaseRuntimeAudio()
     {
         DestroyRuntimeAudioClip();
+    }
+
+    public void SetAudioGenerationTask(Task task)
+    {
+        AudioGenerationTask = task;
+    }
+
+    public void ClearAudioGenerationTask(Task task)
+    {
+        if (AudioGenerationTask == task)
+            AudioGenerationTask = null;
     }
 
     public bool ShouldSerializeItem() => !string.IsNullOrEmpty(Item);

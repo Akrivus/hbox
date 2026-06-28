@@ -125,7 +125,7 @@ The current embedded match flow is:
 6. `SoccerInterruptService.BeginMatch(...)` starts packet-bank prewarming.
 7. `SoccerIdeaService.QueuePregameIdea(...)` queues the pregame full-scene idea.
 8. Optional text-packet prewarm wait runs before kickoff.
-9. One short pregame packet may generate audio lazily and inject before kickoff.
+9. One short pregame packet generates audio for its first line lazily, injects, and warms the rest of the packet in the background.
 10. `MatchEngineLoader.CreateMatch(...)` and `StartMatchEngine(...)` start the simulator.
 11. Match phase flips to `Live`.
 12. Football camera is claimed and bound to the media-screen render texture.
@@ -145,8 +145,9 @@ The live path today is:
 6. If needed, a text-ready packet is generated on demand.
 7. Stale or superseded packets are dropped before paying for audio.
 8. If another interrupt is already active, one pending packet can wait behind it.
-9. When the path is clear, the selected packet generates TTS audio.
+9. When the path is clear, the selected packet generates TTS audio for its first line.
 10. After a second stale check, the packet injects via [`ChatManager.InjectNodes(...)`](C:/Users/akriv/OneDrive/Desktop/HBOx/Assets/Core/ChatManager.cs).
+11. Remaining packet lines generate audio in the background; playback waits on a line only if it catches up before that line finishes.
 
 Injected interrupt nodes are marked internally so the service can detect “an interrupt is still pending/playing” without guessing from event timing.
 
@@ -154,7 +155,9 @@ Injected interrupt nodes are marked internally so the service can detect “an i
 
 Packet banks are prewarmed as text and sentiment only. They deliberately do not generate TTS while sitting in the bank, because many packets are never selected: match state can move on, score-sensitive packets can go stale, and a stronger event can supersede a pending packet.
 
-TTS is generated only for the packet that is about to inject. Deferred pending packets also wait until `Tick()` sees a clear playback path before audio generation starts. This keeps bank prewarming responsive without spending audio work on packets that will be dropped.
+TTS is generated only for the packet that is about to inject. Deferred pending packets also wait until `Tick()` sees a clear playback path before audio generation starts. The selected packet only blocks injection on the first line's audio; after injection succeeds, the remaining lines warm in the background and `ActorController` waits on any node whose audio task is still in flight.
+
+Generated TTS is stored as serialized PCM/base64 data on `ChatNode.AudioData`. `AudioClip` creation is now a playback-time concern: `ChatNode.AudioClip` hydrates from `AudioData` only when something asks to play the node. That keeps packet prewarming and lazy audio generation from creating Unity runtime clips before they are actually needed.
 
 ## Packet Banks
 
