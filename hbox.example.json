@@ -1,5 +1,9 @@
 [
 	{
+		"Type": "channels",
+		"Enabled": ["polbots", "romebots", "spacedrivel", "appydays"]
+	},
+	{
 		"Type": "openai",
 		"ApiUri": "https://api.openai.com",
 		"ApiKey": "YOUR_OPENAI_API_KEY",

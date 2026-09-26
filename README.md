@@ -9,6 +9,12 @@ The current project is split into two main layers:
 - `Assets/Scenes`
   Show-specific scenes, actors, prefabs, audio, and scene adapters.
 
+## What is defined here and what is generated
+
+The repository defines the Unity runtime, prompts in `Vault`, show-specific casts, scenes and assets, configuration, and systems for sourcing ideas, staging, playback, and interactions such as `polbots` soccer. These provide the structure and material from which each chat is made.
+
+At runtime, an LLM uses an `Idea` and those prompts to generate a `Chat`, including topic, cast and location choices, dialogue, reactions, voice lines, and related metadata. `ChatManager` and `ActorController` stage and perform that generated material with the repository's actors and assets. Chats can also be saved as JSON and replayed.
+
 ## How it works
 
 At a high level, the pipeline looks like this:
@@ -64,7 +70,16 @@ Also uses the shared core runtime with its own cast, prefabs, and assets, with n
 
 ## Configuration
 
-The project loads `config.json` from the executable root path through `ConfigManager`.
+The project loads shared settings from `hbox.json` and overlays the active channel's config file through `ConfigManager`.
+
+The shared `channels` entry controls which channels are loaded during startup. Only listed channel keys are added to the guide and warmed into memory. If the entry or `Enabled` property is omitted, all channels remain enabled; an empty list enables none. Changes take effect the next time HBOx starts.
+
+```json
+{
+  "Type": "channels",
+  "Enabled": ["polbots", "romebots", "spacedrivel", "appydays"]
+}
+```
 
 Each config entry must contain a `Type` field. Only the systems present in your scene/context need to be configured.
 

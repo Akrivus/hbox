@@ -113,6 +113,21 @@ public class ConfigManager : MonoBehaviour
         return JArray.Parse(json);
     }
 
+    public static T LoadConfig<T>(string path, string type) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(type))
+            return null;
+
+        var configs = LoadConfigArray(path);
+        if (configs == null) return null;
+
+        foreach (var token in configs)
+            if (token is JObject config && string.Equals(config["Type"]?.Value<string>(), type, StringComparison.OrdinalIgnoreCase))
+                return config.ToObject<T>();
+
+        return null;
+    }
+
     private static void MergeConfigArrayInto(JArray source, Dictionary<string, JObject> mergedConfigs, List<string> configOrder)
     {
         foreach (var token in source)

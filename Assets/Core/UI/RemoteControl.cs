@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,6 +10,11 @@ using UnityEngine.UI;
 
 public class RemoteControl : MonoBehaviour
 {
+    public class ChannelConfigs
+    {
+        public List<string> Enabled { get; set; }
+    }
+
     [Serializable]
     public class ChannelEntry
     {
@@ -37,6 +43,7 @@ public class RemoteControl : MonoBehaviour
 
     [Header("Channels")]
     [SerializeField] private List<ChannelEntry> channels = new();
+    [SerializeField] private string sharedConfigPath = "hbox.json";
     [SerializeField] private int defaultChannel = -1;
     [SerializeField] private string defaultScenePath = "Reset";
 
@@ -196,7 +203,8 @@ public class RemoteControl : MonoBehaviour
     {
         StartCoroutine(LoadAllChannels());
         PopulateGuide();
-        SelectChannel(selectedChannel);
+        if (channels.Count > 0)
+            SelectChannel(selectedChannel);
     }
 
     private void PopulateGuide()
@@ -350,6 +358,7 @@ public class RemoteControl : MonoBehaviour
 
     private IEnumerator LoadAllChannels()
     {
+        SelectEnabledChannels();
         StartCoroutine(LoadIntroSequence());
 
         foreach (var entry in channels)
@@ -359,8 +368,32 @@ public class RemoteControl : MonoBehaviour
 
         _initalized = true;
 
-        if (defaultChannel > -1)
+        if (defaultChannel > -1 && defaultChannel < channels.Count)
             SwitchScene(channels[defaultChannel]);
+    }
+
+    private void SelectEnabledChannels()
+    {
+        var config = ConfigManager.LoadConfig<ChannelConfigs>(sharedConfigPath, "channels");
+        if (config?.Enabled == null)
+            return;
+
+        var enabled = new HashSet<string>(
+            config.Enabled.Where(key => !string.IsNullOrWhiteSpace(key)),
+            StringComparer.OrdinalIgnoreCase);
+        var known = new HashSet<string>(
+            channels.Where(channel => channel != null).Select(channel => channel.codeName),
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var key in enabled)
+            if (!known.Contains(key))
+                Debug.LogWarning($"Enabled channel '{key}' is not configured in RemoteControl.");
+
+        channels = channels
+            .Where(channel => channel != null && enabled.Contains(channel.codeName))
+            .ToList();
+
+        Debug.Log($"Enabled channels: {(channels.Count == 0 ? "none" : string.Join(", ", channels.Select(channel => channel.codeName)))}");
     }
 
     private static int Mod(int a, int b) => (a % b + b) % b;
