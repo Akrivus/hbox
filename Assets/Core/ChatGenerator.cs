@@ -107,7 +107,8 @@ public class ChatGenerator : MonoBehaviour
             var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
             await resolver.SaveOutput(idea.Prompt);
             var chat = await GenerateAndSave(idea);
-            ChatManager.Instance.AddToPlayList(chat);
+            if (chat != null)
+                ChatManager.Instance.AddToPlayList(chat);
         }
         finally
         {
@@ -133,6 +134,7 @@ public class ChatGenerator : MonoBehaviour
         {
             OperatorTelemetry.RecordGenerationFailed(this, idea, e);
             Debug.LogError(e);
+            return null;
         }
         if (chat != null && chat.IsLocked)
             OperatorTelemetry.RecordGenerationCompleted(chat);

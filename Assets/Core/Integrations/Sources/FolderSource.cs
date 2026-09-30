@@ -836,6 +836,7 @@ public sealed class ReplayManifestEntry
 [Serializable]
 public sealed class ReplayStatusRecord
 {
+    public List<EpisodeRecording> recordings = new List<EpisodeRecording>();
     public string slug;
     public string title;
     public string channelKey;

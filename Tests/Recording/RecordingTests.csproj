@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>../../Temp/RecordingTests/bin/</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Core/Integrations/ObsRecordingSession.cs" />
+    <Compile Include="../../Assets/Core/Integrations/ObsWebSocketClient.cs" />
+    <Compile Include="RecordingTests.cs" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(NewtonsoftPath)</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

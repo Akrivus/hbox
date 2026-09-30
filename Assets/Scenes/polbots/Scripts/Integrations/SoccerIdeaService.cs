@@ -22,10 +22,11 @@ public sealed class SoccerIdeaService
         string matchId,
         string score,
         string rawLog,
-        string[] recentResidue)
+        string[] recentResidue,
+        string rosterContext = "")
     {
         foreach (var idea in await composer.BuildPostgameIdeas(homeActor, awayActor, matchId, score, rawLog, recentResidue))
-            QueueIdea(idea);
+            QueueIdea(idea + "\n\nStory and on-field rosters:\n" + rosterContext);
     }
 
     private void QueueIdea(string ideaText)

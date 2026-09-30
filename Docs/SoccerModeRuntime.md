@@ -115,10 +115,40 @@ This file currently still contains several hard-coded strings that are good cand
 
 ## Match Lifecycle
 
+### Story-aware rosters
+
+Before dialogue generation, the blocking `SoccerRosterGeneration` component captures the skit's idea,
+scenario, and context. It is installed on all three polbots scene generators and only runs for
+soccer scenarios. `SoccerRosterService` uses the Vault `Soccer Mode/Roster Generation`
+prompt to choose both teams' player names. Story figures take priority; historical and
+contemporary figures may share a team. This does not perform current-officeholder research.
+The existing team assets still supply formations and player attributes.
+
+The generated response must fill every simulator slot, with unique names and no speaking
+cast names. Generation awaits the model through the normal LLM request handling, without a
+separate roster timeout or abandoned request. Invalid output or request failure fails generation;
+failed skits are not queued for playback. The roster and story are serialized in the chat's generic
+`GeneratedData` map under `soccer.roster` and included in dialogue context. Match startup only
+reads and validates this prepared data; it makes no roster-generation network request. Legacy
+skits without saved rosters and manually started matches use `Actor.Players` with a warning,
+padding missing slots. A malformed saved roster prevents match startup.
+The chosen rosters and story are retained in match state, passed to pregame/live interrupt
+prompts, postgame ideas, and continuity snapshots. Named-player events generate specific
+reactions instead of consuming generic prewarmed dialogue; unnamed events retain the bank path.
+
+Roster figures are silent players, not scene actors. Live interrupt parsing already accepts
+only selected speakers. Full-scene cast selection is guided by the Vault scenario, editor,
+and dialogue prompts: only listed characters speak, while roster figures remain subjects
+of their reactions. The shared dialogue generator keeps its normal unknown-speaker/X fallback
+and contains no soccer-specific speaker policy. Reddit soccer pitches retain relevant source names.
+
+Run `Tests/Soccer/Run.ps1` for roster validation/fallback checks. Vault files are local and
+ignored by the repository; deploy the updated soccer/defaults/Reddit pitch prompts with code.
+
 The current embedded match flow is:
 
 1. `SoccerGameSource` decides to start a match from scene context.
-2. Teams are selected and renamed to match current actors.
+2. Teams are selected and receive story-aware rosters, with fixed actor lists as fallback.
 3. `SoccerMatchStateService.BeginMatch(...)` sets pregame state.
 4. Football startup scene loads additively.
 5. Vendor `Boot` and `DefaultSceneLoader` are disabled.

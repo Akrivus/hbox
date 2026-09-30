@@ -637,6 +637,8 @@ public sealed class SoccerInterruptService
             $"Score: {summary.ScoreLine}\n" +
             $"Primary Actor: {summary.PrimaryActor}\n" +
             $"Match Log: {summary.RawLog}\n" +
+            $"Story and on-field rosters:\n{matchState?.RosterContext}\n" +
+            "When an event does not name a player, do not attribute it to a roster figure.\n" +
             $"Recent Residue:\n- {string.Join("\n- ", summary.RecentResidue ?? Array.Empty<string>())}";
     }
 

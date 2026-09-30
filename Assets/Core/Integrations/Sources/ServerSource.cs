@@ -416,7 +416,13 @@ public class ServerSource : MonoBehaviour
         var query = ParseQueryString(context.Request.Url.Query);
         var limit = ParseLimit(query, 50);
         query.TryGetValue("channelKey", out var channelKey);
-        return WriteJsonAsync(context.Response, FolderSource.GetReplayStatus(channelKey, limit));
+        var rows = FolderSource.GetReplayStatus(channelKey, limit);
+        var recordings = RecordingCatalog.Default.ReadAll();
+        foreach (var row in rows)
+            row.recordings = recordings.Where(record => record.episodes.Any(episode =>
+                string.Equals(episode.channelKey, row.channelKey, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(episode.slug, row.slug, StringComparison.OrdinalIgnoreCase))).ToList();
+        return WriteJsonAsync(context.Response, rows);
     }
 
     private Task GetPitchStatusAsync(HttpListenerContext context)

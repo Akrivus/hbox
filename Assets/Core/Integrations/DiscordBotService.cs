@@ -44,9 +44,8 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
     private string applicationId;
     private string[] slashCommandGuildIds = Array.Empty<string>();
     private bool enableIdeaCommand = true;
-    private int defaultDailyIdeaLimit = 3;
-    private int boosterDailyIdeaLimit = 10;
-    private HashSet<string> boosterRoleIds = new HashSet<string>(StringComparer.Ordinal);
+    private DiscordParticipationPolicy participation = new DiscordParticipationPolicy(null);
+    private DiscordReactionVotes reactionVotes;
 
     private CancellationTokenSource lifetimeCts;
     private CancellationTokenSource heartbeatCts;
@@ -77,10 +76,9 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             .Distinct(StringComparer.Ordinal)
             .ToArray() ?? Array.Empty<string>();
         enableIdeaCommand = config?.EnableIdeaCommand ?? true;
-        defaultDailyIdeaLimit = Mathf.Max(1, config?.DefaultDailyIdeaLimit ?? 3);
-        boosterDailyIdeaLimit = Mathf.Max(defaultDailyIdeaLimit, config?.BoosterDailyIdeaLimit ?? 10);
-        boosterRoleIds = new HashSet<string>((config?.BoosterRoleIds ?? Array.Empty<string>())
-            .Where(id => !string.IsNullOrWhiteSpace(id)), StringComparer.Ordinal);
+        participation.Configure(config);
+        reactionVotes = reactionVotes ?? new DiscordReactionVotes(
+            Path.Combine(Application.persistentDataPath, "hbox-discord-votes.json"), message => Debug.LogWarning(message));
 
         if (enableBot && !string.IsNullOrWhiteSpace(botToken))
         {
@@ -304,6 +302,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private async Task HandleDispatchAsync(string eventType, JToken payload)
     {
+        participation.HandleGuildEvent(eventType, payload);
         switch (eventType)
         {
             case "READY":
@@ -329,31 +328,38 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
     private void HandleReactionEvent(JToken payload, bool isAdd)
     {
         var userId = payload?["user_id"]?.Value<string>();
+        if (string.IsNullOrWhiteSpace(userId) || payload?["burst"]?.Value<bool>() == true ||
+            payload?["type"]?.Value<int>() == 1)
+            return;
         if (!string.IsNullOrWhiteSpace(selfUserId) && string.Equals(userId, selfUserId, StringComparison.Ordinal))
             return;
 
         var messageId = payload?["message_id"]?.Value<string>();
         var channelId = payload?["channel_id"]?.Value<string>();
         var emojiName = payload?["emoji"]?["name"]?.Value<string>();
+        if (string.IsNullOrWhiteSpace(messageId) || string.IsNullOrWhiteSpace(channelId))
+            return;
 
         var binding = FolderSource.FindReplayByDiscordMessage(messageId, channelId);
         var voteKind = GetVoteKind(emojiName);
         if (voteKind == ReplayVoteKind.None)
             return;
 
-        var upDelta = voteKind == ReplayVoteKind.Up ? (isAdd ? 1 : -1) : 0;
-        var downDelta = voteKind == ReplayVoteKind.Down ? (isAdd ? 1 : -1) : 0;
+        var weight = participation.VoteWeight(payload?["guild_id"]?.Value<string>(), userId, payload?["member"]);
         var source = isAdd ? "discord-reaction-add" : "discord-reaction-remove";
-
-        if (binding != null)
+        reactionVotes.Apply(channelId, messageId, userId, voteKind.ToString(), isAdd, weight, delta =>
         {
-            var updated = FolderSource.ApplyVote(binding.channelKey, binding.slug, upDelta, downDelta, source, messageId);
-            if (updated != null)
-                Debug.Log($"Discord replay vote updated: {binding.slug} -> up {updated.upVotes}, down {updated.downVotes}, score {updated.voteScore}");
-            return;
-        }
-
-        PitchCandidateStore.TryApplyVote(messageId, channelId, upDelta, downDelta, source);
+            var upDelta = voteKind == ReplayVoteKind.Up ? delta : 0;
+            var downDelta = voteKind == ReplayVoteKind.Down ? delta : 0;
+            if (binding != null)
+            {
+                var updated = FolderSource.ApplyVote(binding.channelKey, binding.slug, upDelta, downDelta, source, messageId);
+                if (updated != null)
+                    Debug.Log($"Discord replay vote updated: {binding.slug} -> up {updated.upVotes}, down {updated.downVotes}, score {updated.voteScore}");
+                return updated != null;
+            }
+            return PitchCandidateStore.TryApplyVote(messageId, channelId, upDelta, downDelta, source);
+        });
     }
 
     private ReplayVoteKind GetVoteKind(string emojiName)
@@ -506,10 +512,8 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             return;
         }
 
-        var memberRoles = payload?["member"]?["roles"]?.Values<string>()?.Where(role => !string.IsNullOrWhiteSpace(role)).ToArray() ?? Array.Empty<string>();
         var userId = payload?["member"]?["user"]?["id"]?.Value<string>() ?? payload?["user"]?["id"]?.Value<string>();
-        var isBooster = memberRoles.Any(role => boosterRoleIds.Contains(role));
-        var limit = isBooster ? boosterDailyIdeaLimit : defaultDailyIdeaLimit;
+        var limit = participation.DailyIdeaLimit(payload?["guild_id"]?.Value<string>(), userId, payload?["member"]);
 
         if (!TryConsumeIdeaQuota(userId, limit, out var used, out var resetAt))
         {

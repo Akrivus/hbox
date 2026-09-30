@@ -22,9 +22,11 @@ public sealed class SoccerMatchStateService
     public string CurrentMatchId { get; private set; }
     public SoccerMatchPhase Phase { get; private set; }
     public long LatestSequence { get; private set; }
+    public string RosterContext { get; private set; } = string.Empty;
 
-    public void BeginMatch(string matchId, Actor homeActor, Actor awayActor)
+    public void BeginMatch(string matchId, Actor homeActor, Actor awayActor, string rosterContext = "")
     {
+        RosterContext = rosterContext;
         CurrentMatchId = matchId;
         this.homeActor = homeActor;
         this.awayActor = awayActor;
@@ -47,6 +49,7 @@ public sealed class SoccerMatchStateService
 
     public void EndMatch()
     {
+        RosterContext = string.Empty;
         CurrentMatchId = null;
         homeActor = null;
         awayActor = null;

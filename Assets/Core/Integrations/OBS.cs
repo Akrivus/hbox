@@ -1,260 +1,136 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Text;
-using System.Threading;
+using System;
+using System.Collections;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using UnityEngine;
 
 public class OBS : MonoBehaviour, IConfigurable<OBSConfigs>
 {
-    [SerializeField]
-    private string VideosFolder;
-    [SerializeField]
-    private string OBSWebSocketURI = "ws://localhost:4455";
-    [SerializeField]
-    private bool IsStreaming = false;
-    [SerializeField]
-    private bool IsRecording = false;
-    [SerializeField]
-    private bool DoSplitRecording = false;
-    [SerializeField]
-    private bool OnlyNewEpisodes = true;
-
-    private bool isObsRecording = false;
-    private bool isObsStreaming = false;
-
+    [SerializeField] private string VideosFolder;
+    [SerializeField] private string OBSWebSocketURI = "ws://localhost:4455";
+    [SerializeField] private bool IsStreaming;
+    [SerializeField] private bool IsRecording;
+    [SerializeField] private bool DoSplitRecording;
+    [SerializeField] private bool OnlyNewEpisodes = true;
+    private string password;
+    private ChatManager manager;
+    private string configuredChannelKey;
+    private bool hasConfiguration;
+    private bool shuttingDown;
+    private readonly ObsRecordingSession recording = new ObsRecordingSession();
+    private Task operations = Task.CompletedTask;
     public static string ProductionCode = null;
 
     public void Configure(OBSConfigs c)
     {
-        VideosFolder = c.VideosFolder;
+        var connectionChanged = OBSWebSocketURI != c.OBSWebSocketURI || password != c.OBSWebSocketPassword;
+        var updateStream = !hasConfiguration || connectionChanged || IsStreaming != c.IsStreaming;
+        if (connectionChanged) StopRecording();
+        hasConfiguration = true;
+        VideosFolder = c.VideosFolder; // Legacy setting; actual paths now come from OBS.
         OBSWebSocketURI = c.OBSWebSocketURI;
+        password = c.OBSWebSocketPassword;
         IsStreaming = c.IsStreaming;
         IsRecording = c.IsRecording;
         DoSplitRecording = c.DoSplitRecording;
         OnlyNewEpisodes = c.OnlyNewEpisodes;
-
-        if (IsStreaming)
-            StartStreaming();
-        else
-            StopStreaming();
-
-        if (IsRecording)
+        if (updateStream)
         {
-            ChatManagerContext.Current.AfterIntermission += StopOrStartRecording;
-            ChatManagerContext.Current.OnChatQueueEmpty += StopRecording;
-
-            if (DoSplitRecording)
-                ChatManagerContext.Current.BeforeIntermission += SplitRecording;
-            else
-                ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
+            if (IsStreaming) StartStreaming(); else StopStreaming();
         }
-        else
-        {
-            ChatManagerContext.Current.AfterIntermission -= StopOrStartRecording;
-            ChatManagerContext.Current.OnChatQueueEmpty -= StopRecording;
-            ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
-        }
+        if (!IsRecording) StopRecording();
     }
 
     private void Start()
     {
-        ChatManager.Instance.OnContextChanged += OnContextChanged;
+        manager = ChatManager.Instance;
+        manager.OnContextChanged += OnContextChanged;
+        manager.OnPlaybackPreparing += PrepareRecording;
+        manager.OnChatQueueEmpty += StopRecording;
+        if (manager.CurrentContext != null) OnContextChanged(manager.CurrentContext);
     }
 
     private void OnDestroy()
     {
-        if (IsStreaming)
-            StopStreaming();
-        if (IsRecording)
+        shuttingDown = true;
+        if (manager != null)
         {
-            ChatManagerContext.Current.AfterIntermission -= StopOrStartRecording;
-            ChatManagerContext.Current.OnChatQueueEmpty -= StopRecording;
-            ChatManagerContext.Current.BeforeIntermission -= SplitRecording;
-
-            StopRecording();
+            manager.OnContextChanged -= OnContextChanged;
+            manager.OnPlaybackPreparing -= PrepareRecording;
+            manager.OnChatQueueEmpty -= StopRecording;
         }
+        StopRecording();
+        if (IsStreaming) StopStreaming();
     }
 
     private void OnContextChanged(ChatManagerContext context)
     {
-        context.ConfigManager.RegisterConfig(typeof(OBSConfigs), "obs", (_config) => Configure((OBSConfigs)_config));
-    }
-
-    public async void StartRecording()
-    {
-        if (isObsRecording)
-            return;
-        isObsRecording = true;
-        await SendRequestAsync("StartRecord");
-    }
-
-    public async void StopRecording()
-    {
-        if (!isObsRecording)
-            return;
-        isObsRecording = false;
-        await SendRequestAsync("StopRecord");
-        await WaitForVideoFile();
-    }
-
-    public void StopOrStartRecording(Chat chat)
-    {
-        if (chat.NewEpisode && OnlyNewEpisodes)
-            StartRecording();
-        else if (OnlyNewEpisodes)
-            StopRecording();
-        else if (!isObsRecording)
-            StartRecording();
-    }
-
-    public async void SplitRecording()
-    {
-        if (!isObsRecording)
-            return;
-        await SendRequestAsync("SplitRecordFile");
-        await WaitForVideoFile();
-    }
-
-    public async void StartStreaming()
-    {
-        if (isObsStreaming)
-            return;
-        isObsStreaming = true;
-        await SendRequestAsync("StartStreaming");
-    }
-
-    public async void StopStreaming()
-    {
-        if (!isObsStreaming)
-            return;
-        isObsStreaming = false;
-        await SendRequestAsync("StopStreaming");
-    }
-
-    public async Task SendRequestAsync(string requestType, int attempts = 0)
-    {
-        using (var client = new ClientWebSocket())
+        // ChatManager raises this even for consecutive episodes in the same channel.
+        if (!string.Equals(configuredChannelKey, context.Key, StringComparison.OrdinalIgnoreCase))
         {
-            try
+            StopRecording(); // The session retains its original connection until finalized.
+            configuredChannelKey = context.Key;
+            hasConfiguration = false;
+        }
+        IsRecording = false; // A channel without an OBS config must not inherit recording.
+        context.ConfigManager.RegisterConfig(typeof(OBSConfigs), "obs", config => Configure((OBSConfigs)config));
+    }
+
+    private IEnumerator PrepareRecording(Chat chat)
+    {
+        var pending = QueueEpisode(chat);
+        // Wait for OBS acknowledgement before the first dialogue is performed.
+        while (!pending.IsCompleted) yield return null;
+    }
+
+    private Task QueueEpisode(Chat chat)
+    {
+        var episode = chat == null ? null : new RecordedEpisode
+        {
+            channelKey = chat.Key, slug = chat.FileName, title = chat.Title
+        };
+        var shouldRecord = IsRecording && chat != null && (!OnlyNewEpisodes || chat.NewEpisode);
+        var split = DoSplitRecording;
+        var client = CreateClient();
+        return Queue(async () =>
+        {
+            if (!shouldRecord || shuttingDown || manager == null || manager.NowPlaying != chat)
+                await recording.StopAsync();
+            else
             {
-                await ConnectAsync(client);
-
-                if (client.State.HasFlag(WebSocketState.Open))
-                    await SendAsync(client, new Message<Request<object>>(6, new Request<object>(requestType)));
+                await recording.BeginAsync(episode, split, client.RequestAsync);
+                if (shuttingDown || manager == null || manager.NowPlaying != chat)
+                    await recording.StopAsync();
             }
-            catch (WebSocketException e)
-            {
-                Debug.LogError(e);
-                if (attempts > 10)
-                    return;
-                await SendRequestAsync(requestType, ++attempts);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError(e);
-            }
-        }
+        });
     }
 
-    private async Task SendAsync<T>(ClientWebSocket client, Message<T> m)
-    {
-        await SendStringAsync(client, JsonConvert.SerializeObject(m));
-    }
+    public void StopOrStartRecording(Chat chat) => QueueEpisode(chat);
+    public void StartRecording() => QueueEpisode(ChatManager.Instance?.NowPlaying);
+    public void StopRecording() => Queue(() => recording.StopAsync());
+    // Legacy Unity event entry point; the next intermission starts the new file.
+    public void SplitRecording() => StopRecording();
+    public void StartStreaming() => SetStreaming(true);
+    public void StopStreaming() => SetStreaming(false);
 
-    private async Task SendStringAsync(ClientWebSocket client, string message)
+    private void SetStreaming(bool active)
     {
-        var bytes = new ArraySegment<byte>(Encoding.UTF8.GetBytes(message));
-        await client.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
-    }
-
-    private async Task<string> ReceiveAsync(ClientWebSocket client, int bufferSize = 1024)
-    {
-        var buffer = new ArraySegment<byte>(new byte[bufferSize]);
-        var result = await client.ReceiveAsync(buffer, CancellationToken.None);
-        return Encoding.UTF8.GetString(buffer.Array, 0, result.Count);
-    }
-
-    private async Task ConnectAsync(ClientWebSocket client)
-    {
-        await client.ConnectAsync(new Uri(OBSWebSocketURI), CancellationToken.None)
-            .ContinueWith(async (_) => await ReceiveAsync(client))
-            .ContinueWith(async (_) => await SendAsync(client, new Message<Handshake>(1, new Handshake())))
-            .ContinueWith(async (_) => await ReceiveAsync(client));
-    }
-
-    private async Task WaitForVideoFile(int attempts = 0)
-    {
-        if (attempts > 60)
-            return;
-        try
+        var client = CreateClient();
+        Queue(async () =>
         {
-            var files = Directory.EnumerateFiles(VideosFolder)
-                .Where(file => file.EndsWith(".mkv") || file.EndsWith(".mp4"))
-                .ToList();
-            var latest = files.OrderByDescending(f => File.GetLastWriteTime(f)).FirstOrDefault();
-            if (latest == null)
-                throw new Exception();
-            var fileName = Path.GetFileNameWithoutExtension(latest);
-            var fileExt = Path.GetExtension(latest);
-            if (fileName.Length == "1234-12-12 12-12-12".Length)
-            {
-                var inst = ChatManager.Instance;
-                var newName = $"{fileName}-{inst.NowPlaying.FileName}{fileExt}";
-                var newPath = Path.Combine(VideosFolder, newName);
-
-                if (File.Exists(newPath))
-                    return;
-                File.Move(latest, newPath);
-            }
-        }
-        catch
-        {
-            await Task.Delay(1000);
-            await WaitForVideoFile(++attempts);
-        }
+            var status = await client.RequestAsync("GetStreamStatus");
+            if (status.Value<bool>("outputActive") != active)
+                await client.RequestAsync(active ? "StartStream" : "StopStream");
+        });
     }
 
-    private class Message<T>
+    private ObsWebSocketClient CreateClient() => new ObsWebSocketClient(OBSWebSocketURI, password);
+
+    private Task Queue(Func<Task> operation) => operations = RunAfterAsync(operations, operation);
+
+    private static async Task RunAfterAsync(Task previous, Func<Task> operation)
     {
-        public int op { get; set; }
-        public T d { get; set; }
-
-        public Message(int op, T d)
-        {
-            this.op = op;
-            this.d = d;
-        }
-    }
-
-    private class Request<T>
-    {
-        public string requestType { get; set; }
-        public string requestId { get; set; } = Guid.NewGuid().ToString();
-        public T requestData { get; set; }
-
-        public Request(string requestType, T requestData)
-        {
-            this.requestType = requestType;
-            this.requestData = requestData;
-        }
-
-        public Request(string requestType)
-        {
-            this.requestType = requestType;
-        }
-
-        public bool ShouldSerializeData()
-        {
-            return requestData != null;
-        }
-    }
-
-    private class Handshake
-    {
-        public int rpcVersion = 1;
+        await previous;
+        try { await operation(); }
+        catch (Exception error) { Debug.LogError($"OBS: {error.Message}"); }
     }
 }

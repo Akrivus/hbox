@@ -7,25 +7,28 @@
 		"Type": "openai",
 		"ApiUri": "https://api.openai.com",
 		"ApiKey": "YOUR_OPENAI_API_KEY",
-		"SlowModel": "gpt-5-mini",
-		"FastModel": "gpt-5-nano",
+		"SlowModel": "gpt-5.4",
+		"FastModel": "gpt-5.4-mini",
 		"ModelProfiles": {
-			"slow": "gpt-5-mini",
-			"fast": "gpt-5-nano"
+			"Utility": "gpt-5.4-nano",
+			"PostProcess": "gpt-5.4-mini",
+			"Sentiment": "gpt-5.4-nano",
+			"Dialogue": "gpt-5.4",
+			"SceneReasoning": "gpt-5.4"
 		},
 		"ModelPrices": {
 		  "gpt-5.4": {
 		    "InputPerMillion": 2.50,
 		    "CachedInputPerMillion": 0.25,
-		    "OutputPerMillion": 4.50
+		    "OutputPerMillion": 15.00
 		  },
 		  "gpt-5.4-mini": {
-		    "InputPerMillion": 0.20,
-		    "CachedInputPerMillion": 0.02,
-		    "OutputPerMillion": 1.25
+		    "InputPerMillion": 0.75,
+		    "CachedInputPerMillion": 0.075,
+		    "OutputPerMillion": 4.50
 		  },
 		  "gpt-5.4-nano": {
-		    "InputPerMillion": 0.75,
+		    "InputPerMillion": 0.20,
 		    "CachedInputPerMillion": 0.02,
 		    "OutputPerMillion": 1.25
 		  },
@@ -71,6 +74,9 @@
 		"EnableIdeaCommand": true,
 		"DefaultDailyIdeaLimit": 1,
 		"BoosterDailyIdeaLimit": 24,
-		"BoosterRoleIds": []
+		"BoosterRoleIds": [],
+		"AdminDailyIdeaLimit": 30,
+		"AdminRoleIds": [],
+		"AdminUserIds": []
 	}
 ]

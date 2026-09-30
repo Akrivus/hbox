@@ -14,4 +14,7 @@ public class DiscordConfigs : IConfig
     public int DefaultDailyIdeaLimit { get; set; } = 3;
     public int BoosterDailyIdeaLimit { get; set; } = 10;
     public string[] BoosterRoleIds { get; set; }
+    public int AdminDailyIdeaLimit { get; set; } = 30;
+    public string[] AdminRoleIds { get; set; }
+    public string[] AdminUserIds { get; set; }
 }

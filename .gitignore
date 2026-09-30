@@ -88,3 +88,16 @@ appydays.json
 polbots.json
 romebots.json
 spacedrivel.json
+
+# Standalone OBS regression harness
+!/Tests/Recording/RecordingTests.csproj
+
+/Tests/Recording/obj/
+
+# Standalone soccer regression harness
+!/Tests/Soccer/SoccerTests.csproj
+/Tests/Soccer/obj/
+
+# Standalone Discord regression harness
+!/Tests/Discord/DiscordTests.csproj
+/Tests/Discord/obj/

@@ -27,6 +27,7 @@ public class Chat
     public ActorContext[] Actors { get; set; }
     public List<ChatNode> Nodes { get; set; }
     public Idea Idea { get; set; }
+    public Dictionary<string, string> GeneratedData { get; set; } = new Dictionary<string, string>();
 
     public string Vibe { get; set; }
 

@@ -2133,6 +2133,11 @@
 							<span class="replay-chip ${statusClass}">${escapeHtml(cooldownLabel)}</span>
 							<span class="replay-chip" title="Times replayed">${item.timesReplayed ?? 0} replays</span>
 						</div>
+						<div class="feed-copy">${(item.recordings || []).map(recording => {
+                            const label = recording.status === 'completed' ? 'Recorded' : 'Unconfirmed / in progress';
+                            const scope = (recording.episodes || []).length > 1 ? ' (shared recording)' : '';
+                            return `<div>${escapeHtml(label + scope)}: ${escapeHtml(recording.outputPath || recording.error || recording.startedAt || '')}</div>`;
+                        }).join('') || 'No linked recordings'}</div>
 						<div class="replay-votes">
 							<button class="replay-vote up" type="button" data-vote="up" data-channel-key="${escapeHtml(item.channelKey || '')}" data-slug="${escapeHtml(item.slug || '')}" aria-label="Thumbs up" title="Thumbs up" ${isVoting ? 'disabled' : ''}><span class="vote-icon">&#128077;</span><span>Up</span><small>${item.upVotes ?? 0}</small></button>
 							<button class="replay-vote down" type="button" data-vote="down" data-channel-key="${escapeHtml(item.channelKey || '')}" data-slug="${escapeHtml(item.slug || '')}" aria-label="Thumbs down" title="Thumbs down" ${isVoting ? 'disabled' : ''}><span class="vote-icon">&#128078;</span><span>Down</span><small>${item.downVotes ?? 0}</small></button>

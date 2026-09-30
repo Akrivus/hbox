@@ -104,15 +104,15 @@ Example:
 		  "gpt-5.4": {
 		    "InputPerMillion": 2.50,
 		    "CachedInputPerMillion": 0.25,
-		    "OutputPerMillion": 4.50
+		    "OutputPerMillion": 15.00
 		  },
 		  "gpt-5.4-mini": {
-		    "InputPerMillion": 0.20,
-		    "CachedInputPerMillion": 0.02,
-		    "OutputPerMillion": 1.25
+		    "InputPerMillion": 0.75,
+		    "CachedInputPerMillion": 0.075,
+		    "OutputPerMillion": 4.50
 		  },
 		  "gpt-5.4-nano": {
-		    "InputPerMillion": 0.75,
+		    "InputPerMillion": 0.20,
 		    "CachedInputPerMillion": 0.02,
 		    "OutputPerMillion": 1.25
 		  },
@@ -162,7 +162,10 @@ Example:
     "EnableIdeaCommand": true,
     "DefaultDailyIdeaLimit": 3,
     "BoosterDailyIdeaLimit": 10,
-    "BoosterRoleIds": ["BOOSTER_ROLE_ID"]
+    "BoosterRoleIds": ["BOOSTER_ROLE_ID"],
+    "AdminDailyIdeaLimit": 30,
+    "AdminRoleIds": [],
+    "AdminUserIds": []
   },
   {
     "Type": "folder",
@@ -237,6 +240,11 @@ Example:
 
 ### Notes
 
+- Discord replay and pitch reactions count as **3 votes for administrators, 2 for boosters, and 1 for everyone else** (the highest tier wins). Both thumbs-up and thumbs-down use these weights, including pitch minimum-vote and approval-score thresholds. Discord's visible reaction counter still counts people, while HBOx stores weighted totals. Super-reactions do not add extra votes.
+- Administrators are detected from server ownership or roles with Discord's Administrator permission. `discord.AdminRoleIds` can designate additional roles, and `discord.AdminUserIds` can designate individual accounts for solo testing. Use ID strings, not display names. Boosters are detected from Discord boost membership/role metadata or the existing `BoosterRoleIds` list.
+- `/idea` uses the same tier detection: `DefaultDailyIdeaLimit` defaults to 3, `BoosterDailyIdeaLimit` to 10, and `AdminDailyIdeaLimit` to 30. Higher tiers never receive a lower quota than lower tiers. Quotas reset at local midnight and remain in memory, as before.
+- Reaction weights are saved in `hbox-discord-votes.json` under Unity's persistent data directory. Removing a tracked reaction reverses its original weight, even after a role change or restart; repeated add/remove deliveries are ignored. Existing votes are not retroactively reweighted, and untracked legacy removals subtract 1. Keep this file with the replay/pitch manifests when retaining vote history. Gateway events missed while the bot is offline are not reconciled.
+
 - Remove a config block entirely to disable that integration.
 - `folder` is the active replay loader type registered at runtime.
 - `reddit.SubReddits` is a dictionary, not a simple string array.
@@ -272,7 +280,7 @@ Example:
 - `Utility`, `PostProcess`, and `Sentiment`: cheap/default profiles for low-reasoning work.
 - `Dialogue` and `SceneReasoning`: higher-capability profiles for chain stages that benefit from stronger reasoning.
 
-`ModelPrices` is keyed by model id. Exact model ids are matched first; versioned response ids such as `gpt-5.4-mini-03-26` fall back to the longest configured prefix such as `gpt-5.4-mini`. The values in the example above are illustrative; update them when model pricing changes. Costs are calculated from response usage metadata when available:
+`ModelPrices` is keyed by model id. Exact model ids are matched first; versioned response ids such as `gpt-5.4-mini-03-26` fall back to the longest configured prefix such as `gpt-5.4-mini`. The GPT-5.4 model ids, profile mappings, and prices in the example above and `hbox.example.json` are aligned with the reference table below; keep both examples and the table in sync when updating these models or prices. Costs are calculated from response usage metadata when available:
 
 - `InputPerMillion`: uncached input token price.
 - `CachedInputPerMillion`: cached input token price.

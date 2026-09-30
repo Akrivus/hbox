@@ -86,6 +86,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private Actor awayActor;
     private TeamEntry homeTeam;
     private TeamEntry awayTeam;
+    private string rosterContext = string.Empty;
     private float volume;
 
     private bool isSceneLoaded;
@@ -344,7 +345,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         awayActor = ResolveActor(awayName) ?? GetChatActor(chat, 1);
 
         if (homeActor != null && awayActor != null)
-            StartCoroutine(LoadGame());
+            StartCoroutine(LoadGame(chat));
     }
 
     private Actor ResolveActor(string actorName)
@@ -384,7 +385,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         return homeActor != null && awayActor != null && homeActor != awayActor;
     }
 
-    private static bool IsSoccerMode(Chat chat)
+    public static bool IsSoccerMode(Chat chat)
     {
         return IsSoccerMode(chat?.Topic) || IsSoccerMode(chat?.Idea?.Prompt);
     }
@@ -395,7 +396,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         return string.Equals(mode, "Soccer", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string FindMetadata(string text, string key)
+    public static string FindMetadata(string text, string key)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(key))
             return string.Empty;
@@ -428,7 +429,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         boundContext = null;
     }
 
-    private IEnumerator LoadGame()
+    private IEnumerator LoadGame(Chat trigger = null)
     {
         if (isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame)
             yield break;
@@ -450,15 +451,53 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         homeTeam = teams.Sample();
         awayTeam = teams.Except(new[] { homeTeam }).Sample();
 
-        RenameTeam(homeTeam, homeActor);
-        RenameTeam(awayTeam, awayActor);
-
+        trigger ??= ChatManager.Instance?.NowPlaying;
+        var story = $"Original story / idea:\n{trigger?.Idea?.Prompt}\nScenario:\n{trigger?.Topic}\nScene context:\n{trigger?.Context}";
+        var castNames = (boundContext?.ActorsSearch?.List ?? new List<Actor>())
+            .Where(actor => actor != null).SelectMany(actor => (actor.Aliases ?? Array.Empty<string>()).Append(actor.Name)).ToArray();
+        SoccerPreparedRoster prepared = null;
+        try
+        {
+            prepared = IsSoccerMode(trigger) ? SoccerPreparedRoster.Read(trigger) : null;
+            if (prepared != null)
+            {
+                if (prepared.Home != homeActor.Name || prepared.Away != awayActor.Name || prepared.Names?.Length != 2)
+                    throw new FormatException("Prepared soccer roster does not match the selected teams.");
+                SoccerRosterService.Parse(Newtonsoft.Json.JsonConvert.SerializeObject(new
+                {
+                    home = prepared.Names[0], away = prepared.Names[1]
+                }), homeTeam.Players.Length, awayTeam.Players.Length, castNames);
+            }
+        }
+        catch (Exception error)
+        {
+            Debug.LogError($"Cannot start match with invalid prepared roster: {error.Message}");
+            ReleaseHostScene();
+            isLoadingGame = false;
+            yield break;
+        }
+        if (prepared == null)
+        {
+            Debug.LogWarning("No prepared soccer roster (legacy skit or manual match); using fixed actor names.");
+            prepared = new SoccerPreparedRoster
+            {
+                Home = homeActor.Name, Away = awayActor.Name, Story = story,
+                Names = new[]
+                {
+                    SoccerRosterService.Fallback(homeActor.Name, homeActor.Players, homeTeam.Players.Length),
+                    SoccerRosterService.Fallback(awayActor.Name, awayActor.Players, awayTeam.Players.Length)
+                }
+            };
+        }
+        RenameTeam(homeTeam, homeActor, prepared.Names[0]);
+        RenameTeam(awayTeam, awayActor, prepared.Names[1]);
+        rosterContext = prepared.Context;
         currentMatchId = Guid.NewGuid().ToString("N");
         startedMatchId = null;
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
         DeleteSoccerDiscordMessages();
-        matchStateService.BeginMatch(currentMatchId, homeActor, awayActor);
+        matchStateService.BeginMatch(currentMatchId, homeActor, awayActor, rosterContext);
         OperatorTelemetry.CaptureMemorySnapshot("soccer_load_started");
 
         try
@@ -936,7 +975,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             currentMatchId,
             Score,
             gameEventLog,
-            matchStateService.GetRecentResidue());
+            matchStateService.GetRecentResidue(), rosterContext);
 
         StartCoroutine(CloseGame());
     }
@@ -1056,6 +1095,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             $"Home: {homeActor?.Name}\n" +
             $"Away: {awayActor?.Name}\n" +
             $"Score: {Score}\n" +
+            $"{rosterContext}\n" +
             $"Recent live residue:\n- {string.Join("\n- ", matchStateService.GetRecentResidue())}";
     }
 
@@ -1148,9 +1188,10 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         }
     }
 
-    private void RenameTeam(TeamEntry team, Actor actor)
+    private void RenameTeam(TeamEntry team, Actor actor, string[] names)
     {
-        team.Players.Zip(actor.Players, (player, name) => player.Name = name).ToList();
+        for (var i = 0; i < team.Players.Length; i++)
+            team.Players[i].Name = names[i];
         team.TeamLogo.TeamLogoColor1 = actor.Color1;
         team.TeamLogo.TeamLogoColor2 = actor.Color2;
         team.TeamName = actor.Name;

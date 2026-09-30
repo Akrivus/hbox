@@ -36,6 +36,7 @@ public class ChatManager : MonoBehaviour
 
     public event Func<Chat, IEnumerator> OnChatQueueTaken;
 
+    public event Func<Chat, IEnumerator> OnPlaybackPreparing;
     public event Func<Chat, IEnumerator> OnIntermission;
 
     public event Action BeforeIntermission;
@@ -294,6 +295,10 @@ public class ChatManager : MonoBehaviour
             spawnPointManager = activeSpawnPoints.Where(s => s != null).Shuffle().FirstOrDefault();
         if (spawnPointManager != null)
             spawnPointManager.Register();
+
+        yield return RunEventCoroutines(OnPlaybackPreparing, chat, generation, expectedKey, nameof(OnPlaybackPreparing));
+        if (!IsPlaybackCurrent(chat, expectedKey, generation))
+            yield break;
 
         SafeInvoke(BeforeIntermission, nameof(BeforeIntermission));
         yield return SubtitleManager.Instance?.StartSplashScreen(chat);

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>../../Temp/DiscordTests/bin/</OutputPath>
+    <NoWarn>SYSLIB0014;CS0649;CS0067</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Core/Integrations/DiscordParticipationPolicy.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordReactionVotes.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordBotService.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/DiscordConfigs.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/IConfig.cs" />
+    <Compile Include="DiscordTests.cs" />
+    <Compile Include="RuntimeStubs.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>
