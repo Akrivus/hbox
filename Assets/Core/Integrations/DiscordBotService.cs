@@ -537,20 +537,20 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             return;
         }
 
-        if (!ServerSource.QueueIdea(generatorSlug, prompt))
+        await RespondToInteractionAsync(payload, DeferredChannelMessageWithSourceResponseType, new { flags = 64 });
+
+        if (!await ServerSource.QueueIdea(generatorSlug, prompt))
         {
-            await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
+            await EditInteractionResponseAsync(payload, new
             {
-                content = $"Generator `{generatorSlug}` is not available right now.",
-                flags = 64
+                content = $"Generator `{generatorSlug}` is not available right now."
             });
             return;
         }
 
-        await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
+        await EditInteractionResponseAsync(payload, new
         {
-            content = $"Queued your idea for `{target.slug}`. Usage: {used}/{limit} today.",
-            flags = 64
+            content = $"Queued your idea for `{target.slug}`. Usage: {used}/{limit} today."
         });
     }
 
@@ -655,6 +655,17 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
                 type = responseType,
                 data
             });
+    }
+
+    private Task EditInteractionResponseAsync(JToken interaction, object data)
+    {
+        var responseApplicationId = interaction?["application_id"]?.Value<string>() ?? applicationId;
+        var interactionToken = interaction?["token"]?.Value<string>();
+        if (string.IsNullOrWhiteSpace(responseApplicationId) || string.IsNullOrWhiteSpace(interactionToken))
+            return Task.CompletedTask;
+
+        return SendRestRequestAsync(
+            $"https://discord.com/api/v10/webhooks/{responseApplicationId}/{interactionToken}/messages/@original", "PATCH", data);
     }
 
     private void StartHeartbeatLoop()

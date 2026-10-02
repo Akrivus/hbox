@@ -32,6 +32,7 @@ public class ServerSource : MonoBehaviour
     private readonly Dictionary<string, GeneratorRuntimeInfo> generators = new Dictionary<string, GeneratorRuntimeInfo>(StringComparer.OrdinalIgnoreCase);
     private readonly object pendingIdeaLock = new object();
     private readonly Queue<PendingIdeaRequest> pendingIdeaRequests = new Queue<PendingIdeaRequest>();
+    private bool acceptingIdeas = true;
     private IReadOnlyList<GeneratorRuntimeInfo> cachedGeneratorSnapshot = Array.Empty<GeneratorRuntimeInfo>();
 
     private HttpListener listener;
@@ -88,6 +89,14 @@ public class ServerSource : MonoBehaviour
     private void OnDestroy()
     {
         IsListening = false;
+        lock (pendingIdeaLock)
+        {
+            acceptingIdeas = false;
+            while (pendingIdeaRequests.Count > 0)
+                pendingIdeaRequests.Dequeue().completion.TrySetResult(false);
+        }
+        if (Instance == this)
+            Instance = null;
         cts.Cancel();
 
         if (listener != null)
@@ -219,11 +228,17 @@ public class ServerSource : MonoBehaviour
         lock (generatorLock)
             generators[info.slug] = info;
 
-        AddRoute("POST", $"/api/channels/{info.slug}/ideas", context => ProcessBodyString(context, body =>
+        AddRoute("POST", $"/api/channels/{info.slug}/ideas", async context =>
         {
-            EnqueueIdeaRequest(info.slug, body);
-            return Task.CompletedTask;
-        }));
+            var body = await ReadBodyAsStringAsync(context.Request);
+            if (await EnqueueIdeaRequest(info.slug, body))
+                await context.Response.WriteStringAsync("OK", "text/plain; charset=utf-8");
+            else
+            {
+                context.Response.StatusCode = 503;
+                await WriteJsonAsync(context.Response, new ApiErrorResponse("generator_unavailable", "The idea could not be delivered to the generator."));
+            }
+        });
     }
 
     public void UnregisterGenerator(ChatGenerator generator)
@@ -248,28 +263,35 @@ public class ServerSource : MonoBehaviour
         }
     }
 
-    public static bool QueueIdea(string slug, string prompt)
+    // Success means AddPromptToQueue has returned on the Unity main thread.
+    public static Task<bool> QueueIdea(string slug, string prompt)
     {
-        if (Instance == null || string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
-            return false;
-
-        lock (Instance.generatorLock)
-        {
-            if (!Instance.generators.ContainsKey(slug))
-                return false;
-        }
-
-        Instance.EnqueueIdeaRequest(slug, prompt);
-        return true;
+        var source = Instance;
+        return ReferenceEquals(source, null)
+            ? Task.FromResult(false)
+            : source.EnqueueIdeaRequest(slug, prompt);
     }
 
-    private void EnqueueIdeaRequest(string slug, string prompt)
+    private Task<bool> EnqueueIdeaRequest(string slug, string prompt)
     {
         if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
-            return;
+            return Task.FromResult(false);
 
-        lock (pendingIdeaLock)
-            pendingIdeaRequests.Enqueue(new PendingIdeaRequest(slug, prompt));
+        lock (generatorLock)
+        {
+            if (!generators.TryGetValue(slug, out var target))
+                return Task.FromResult(false);
+
+            lock (pendingIdeaLock)
+            {
+                if (!acceptingIdeas)
+                    return Task.FromResult(false);
+
+                var request = new PendingIdeaRequest(slug, prompt, target);
+                pendingIdeaRequests.Enqueue(request);
+                return request.completion.Task;
+            }
+        }
     }
 
     private void ProcessPendingIdeaRequests()
@@ -285,12 +307,25 @@ public class ServerSource : MonoBehaviour
                 request = pendingIdeaRequests.Dequeue();
             }
 
-            ChatGenerator generator = null;
-            lock (generatorLock)
-                if (generators.TryGetValue(request.slug, out var info))
-                    generator = info.generator;
-
-            generator?.AddPromptToQueue(request.prompt);
+            var delivered = false;
+            try
+            {
+                lock (generatorLock)
+                {
+                    // Do not redirect an old submission to a replacement with the same slug.
+                    if (generators.TryGetValue(request.slug, out var target) &&
+                        ReferenceEquals(target, request.target) && target.generator != null)
+                    {
+                        target.generator.AddPromptToQueue(request.prompt);
+                        delivered = true;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogException(e);
+            }
+            request.completion.TrySetResult(delivered);
         }
     }
 
@@ -1271,10 +1306,15 @@ public class ServerSource : MonoBehaviour
         public readonly string slug;
         public readonly string prompt;
 
-        public PendingIdeaRequest(string slug, string prompt)
+        public readonly GeneratorRuntimeInfo target;
+        public readonly TaskCompletionSource<bool> completion;
+
+        public PendingIdeaRequest(string slug, string prompt, GeneratorRuntimeInfo target)
         {
             this.slug = slug;
             this.prompt = prompt;
+            this.target = target;
+            completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         }
     }
 }

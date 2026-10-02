@@ -1,0 +1,5 @@
+{
+    "name": "Hbox.IdeaDelivery.EditorTests",
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

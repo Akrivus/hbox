@@ -66,7 +66,7 @@ public class Channel { public bool active; public string slug; public string nam
 public static class ServerSource
 {
     public static Channel[] GetChannelSnapshot() => Array.Empty<Channel>();
-    public static bool QueueIdea(string slug, string prompt) => true;
+    public static Task<bool> QueueIdea(string slug, string prompt) => Task.FromResult(true);
 }
 public static class DiscordRateLimit
 {
