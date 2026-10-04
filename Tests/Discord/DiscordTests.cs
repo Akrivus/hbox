@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -78,6 +79,36 @@ static class Tests
         var total = 0;
         ledger.Apply("c", "m", "u", "Up", true, 3, delta => { total += delta; return true; });
         Check(total == 3, "unknown message does not consume reaction");
+
+        var currentPitch = new DiscordPostedMessage { channel_id = "c", id = "current" };
+        var previousPitches = new[]
+        {
+            new DiscordMessageRef { channelId = "c", messageId = "old-1" },
+            new DiscordMessageRef { channelId = "c", messageId = "deleted" },
+            new DiscordMessageRef { channelId = "c", messageId = "old-2" },
+            new DiscordMessageRef { channelId = "c", messageId = "current" },
+            null,
+            new DiscordMessageRef { channelId = "c", messageId = " " }
+        };
+        var pinBot = new PinTestBot();
+        var rotation = RotatePitch(pinBot, currentPitch, previousPitches);
+        Check(pinBot.Calls.Count == 1 && pinBot.Calls[0] == "pin:c/current", "old pins untouched while new pin is pending");
+        pinBot.PinCompletion.SetResult(true);
+        await rotation;
+        Check(pinBot.Pinned.SetEquals(new[] { "c/current" }), "current pitch stays pinned and previous pitches are unpinned");
+        Check(string.Join(",", pinBot.Calls) == "pin:c/current,unpin:c/old-1,unpin:c/deleted,unpin:c/old-2", "deleted prior message does not abort remaining unpins; current and invalid refs skipped");
+
+        pinBot = new PinTestBot();
+        rotation = RotatePitch(pinBot, currentPitch, previousPitches);
+        pinBot.PinCompletion.SetException(new Exception("pin failed"));
+        await rotation;
+        Check(pinBot.Calls.Count == 1 && pinBot.Pinned.SetEquals(new[] { "c/old-1", "c/old-2" }), "failed new pin preserves previous pins");
+
+        pinBot = new PinTestBot();
+        rotation = RotatePitch(pinBot, currentPitch, null);
+        pinBot.PinCompletion.SetResult(true);
+        await rotation;
+        Check(pinBot.Pinned.Contains("c/current") && pinBot.Calls.Count == 1, "first pitch pins without previous messages");
         Console.WriteLine($"{checks} Discord regression checks passed.");
     }
     static JObject Member(params string[] roles) => new JObject { ["roles"] = new JArray(roles) };
@@ -85,5 +116,27 @@ static class Tests
     { ["guild_id"] = "g", ["channel_id"] = "c", ["message_id"] = message, ["user_id"] = user, ["emoji"] = new JObject { ["name"] = emoji }, ["member"] = member };
     static Task Dispatch(DiscordBotService bot, string type, JToken payload) => (Task)typeof(DiscordBotService)
         .GetMethod("HandleDispatchAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { type, payload });
+    static Task RotatePitch(DiscordBotService bot, DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previous) => (Task)typeof(DiscordBotService)
+        .GetMethod("PinPitchMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { message, previous });
+    sealed class PinTestBot : DiscordBotService
+    {
+        public readonly List<string> Calls = new List<string>();
+        public readonly HashSet<string> Pinned = new HashSet<string> { "c/old-1", "c/old-2" };
+        public readonly TaskCompletionSource<bool> PinCompletion = new TaskCompletionSource<bool>();
+        protected override async Task PinMessageAsync(string channelId, string messageId)
+        {
+            Calls.Add($"pin:{channelId}/{messageId}");
+            await PinCompletion.Task;
+            Pinned.Add($"{channelId}/{messageId}");
+        }
+        protected override Task UnpinMessageAsync(string channelId, string messageId)
+        {
+            Calls.Add($"unpin:{channelId}/{messageId}");
+            if (messageId == "deleted")
+                throw new Exception("message deleted");
+            Pinned.Remove($"{channelId}/{messageId}");
+            return Task.CompletedTask;
+        }
+    }
     static void Check(bool passed, string message) { if (!passed) throw new Exception(message); checks++; }
 }

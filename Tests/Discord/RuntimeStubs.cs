@@ -46,7 +46,7 @@ public class ChatManagerContext
 }
 public class ConfigManager { public void RegisterConfig(Type type, string key, Action<IConfig> configure) { } }
 public class DiscordPostedMessage { public string id; public string channel_id; }
-public class DiscordMessageRef { }
+public class DiscordMessageRef { public string channelId; public string messageId; }
 public class ReplayDiscordBinding { public string channelKey = "test"; public string slug = "replay"; }
 public class ReplayStatusRecord { public int upVotes; public int downVotes; public int voteScore => upVotes - downVotes; }
 public static class FolderSource

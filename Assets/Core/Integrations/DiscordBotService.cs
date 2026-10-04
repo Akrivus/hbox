@@ -399,6 +399,28 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         catch (Exception e)
         {
             Debug.LogWarning($"Discord bot failed to pin pitch message: {e.Message}");
+            return;
+        }
+
+        if (previousPitchMessages == null)
+            return;
+
+        foreach (var previous in previousPitchMessages)
+        {
+            if (previous == null || string.IsNullOrWhiteSpace(previous.channelId) ||
+                string.IsNullOrWhiteSpace(previous.messageId) ||
+                (string.Equals(previous.channelId, message.channel_id, StringComparison.Ordinal) &&
+                 string.Equals(previous.messageId, message.id, StringComparison.Ordinal)))
+                continue;
+
+            try
+            {
+                await UnpinMessageAsync(previous.channelId, previous.messageId);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Discord bot failed to unpin previous pitch message {previous.channelId}/{previous.messageId}: {e.Message}");
+            }
         }
     }
 
@@ -782,12 +804,12 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/messages/{messageId}/reactions/{encodedEmoji}/@me", "PUT");
     }
 
-    private Task PinMessageAsync(string channelId, string messageId)
+    protected virtual Task PinMessageAsync(string channelId, string messageId)
     {
         return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/pins/{messageId}", "PUT");
     }
 
-    private Task UnpinMessageAsync(string channelId, string messageId)
+    protected virtual Task UnpinMessageAsync(string channelId, string messageId)
     {
         return SendRestRequestAsync($"https://discord.com/api/v10/channels/{channelId}/pins/{messageId}", "DELETE");
     }
