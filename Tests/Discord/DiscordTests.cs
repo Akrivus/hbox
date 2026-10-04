@@ -81,34 +81,28 @@ static class Tests
         Check(total == 3, "unknown message does not consume reaction");
 
         var currentPitch = new DiscordPostedMessage { channel_id = "c", id = "current" };
-        var previousPitches = new[]
-        {
-            new DiscordMessageRef { channelId = "c", messageId = "old-1" },
-            new DiscordMessageRef { channelId = "c", messageId = "deleted" },
-            new DiscordMessageRef { channelId = "c", messageId = "old-2" },
-            new DiscordMessageRef { channelId = "c", messageId = "current" },
-            null,
-            new DiscordMessageRef { channelId = "c", messageId = " " }
-        };
         var pinBot = new PinTestBot();
-        var rotation = RotatePitch(pinBot, currentPitch, previousPitches);
+        var rotation = RotatePitch(pinBot, currentPitch);
         Check(pinBot.Calls.Count == 1 && pinBot.Calls[0] == "pin:c/current", "old pins untouched while new pin is pending");
         pinBot.PinCompletion.SetResult(true);
         await rotation;
-        Check(pinBot.Pinned.SetEquals(new[] { "c/current" }), "current pitch stays pinned and previous pitches are unpinned");
-        Check(string.Join(",", pinBot.Calls) == "pin:c/current,unpin:c/old-1,unpin:c/deleted,unpin:c/old-2", "deleted prior message does not abort remaining unpins; current and invalid refs skipped");
+        Check(pinBot.Pinned.SetEquals(new[] { "c/current", "c/old-1", "c/old-2" }), "successful pin keeps prior pitch pins in place");
 
         pinBot = new PinTestBot();
-        rotation = RotatePitch(pinBot, currentPitch, previousPitches);
+        rotation = RotatePitch(pinBot, currentPitch);
         pinBot.PinCompletion.SetException(new Exception("pin failed"));
         await rotation;
         Check(pinBot.Calls.Count == 1 && pinBot.Pinned.SetEquals(new[] { "c/old-1", "c/old-2" }), "failed new pin preserves previous pins");
 
         pinBot = new PinTestBot();
-        rotation = RotatePitch(pinBot, currentPitch, null);
+        rotation = RotatePitch(pinBot, currentPitch);
         pinBot.PinCompletion.SetResult(true);
         await rotation;
         Check(pinBot.Pinned.Contains("c/current") && pinBot.Calls.Count == 1, "first pitch pins without previous messages");
+        await UnpinPitch(pinBot, "c", "old-1");
+        Check(!pinBot.Pinned.Contains("c/old-1") && pinBot.Calls.Contains("unpin:c/old-1"), "accepted pitch can be unpinned independently");
+        await UnpinPitch(pinBot, "c", "deleted");
+        Check(pinBot.Pinned.Contains("c/old-2"), "deleted pitch unpin failure does not disturb other pins");
         Console.WriteLine($"{checks} Discord regression checks passed.");
     }
     static JObject Member(params string[] roles) => new JObject { ["roles"] = new JArray(roles) };
@@ -116,8 +110,10 @@ static class Tests
     { ["guild_id"] = "g", ["channel_id"] = "c", ["message_id"] = message, ["user_id"] = user, ["emoji"] = new JObject { ["name"] = emoji }, ["member"] = member };
     static Task Dispatch(DiscordBotService bot, string type, JToken payload) => (Task)typeof(DiscordBotService)
         .GetMethod("HandleDispatchAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { type, payload });
-    static Task RotatePitch(DiscordBotService bot, DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previous) => (Task)typeof(DiscordBotService)
-        .GetMethod("PinPitchMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { message, previous });
+    static Task RotatePitch(DiscordBotService bot, DiscordPostedMessage message) => (Task)typeof(DiscordBotService)
+        .GetMethod("PinPitchMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { message });
+    static Task UnpinPitch(DiscordBotService bot, string channelId, string messageId) => (Task)typeof(DiscordBotService)
+        .GetMethod("UnpinPitchMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(bot, new object[] { channelId, messageId });
     sealed class PinTestBot : DiscordBotService
     {
         public readonly List<string> Calls = new List<string>();

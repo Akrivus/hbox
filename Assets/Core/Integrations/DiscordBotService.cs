@@ -124,14 +124,24 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         _ = AddDefaultReplayReactionsAsync(message);
     }
 
-    public void PinPitchMessage(DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previousPitchMessages = null)
+    public void PinPitchMessage(DiscordPostedMessage message)
     {
         if (message == null || string.IsNullOrWhiteSpace(message.id) || string.IsNullOrWhiteSpace(message.channel_id))
             return;
         if (!enableBot || string.IsNullOrWhiteSpace(botToken))
             return;
 
-        _ = PinPitchMessageAsync(message, previousPitchMessages);
+        _ = PinPitchMessageAsync(message);
+    }
+
+    public void UnpinPitchMessage(string channelId, string messageId)
+    {
+        if (string.IsNullOrWhiteSpace(channelId) || string.IsNullOrWhiteSpace(messageId))
+            return;
+        if (!enableBot || string.IsNullOrWhiteSpace(botToken))
+            return;
+
+        _ = UnpinPitchMessageAsync(channelId, messageId);
     }
 
     public void PinNowPlayingMessage(DiscordPostedMessage message)
@@ -390,7 +400,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         }
     }
 
-    private async Task PinPitchMessageAsync(DiscordPostedMessage message, IEnumerable<DiscordMessageRef> previousPitchMessages)
+    private async Task PinPitchMessageAsync(DiscordPostedMessage message)
     {
         try
         {
@@ -399,28 +409,18 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         catch (Exception e)
         {
             Debug.LogWarning($"Discord bot failed to pin pitch message: {e.Message}");
-            return;
         }
+    }
 
-        if (previousPitchMessages == null)
-            return;
-
-        foreach (var previous in previousPitchMessages)
+    private async Task UnpinPitchMessageAsync(string channelId, string messageId)
+    {
+        try
         {
-            if (previous == null || string.IsNullOrWhiteSpace(previous.channelId) ||
-                string.IsNullOrWhiteSpace(previous.messageId) ||
-                (string.Equals(previous.channelId, message.channel_id, StringComparison.Ordinal) &&
-                 string.Equals(previous.messageId, message.id, StringComparison.Ordinal)))
-                continue;
-
-            try
-            {
-                await UnpinMessageAsync(previous.channelId, previous.messageId);
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"Discord bot failed to unpin previous pitch message {previous.channelId}/{previous.messageId}: {e.Message}");
-            }
+            await UnpinMessageAsync(channelId, messageId);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"Discord bot failed to unpin pitch message {channelId}/{messageId}: {e.Message}");
         }
     }
 

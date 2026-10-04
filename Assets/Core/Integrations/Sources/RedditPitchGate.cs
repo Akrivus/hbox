@@ -349,6 +349,7 @@ public sealed class PitchCandidateStore
             return;
 
         candidate.status = PitchStatus.QueuedAsIdea;
+        DiscordBotService.Instance?.UnpinPitchMessage(candidate.discordChannelId, candidate.discordMessageId);
         candidate.queuedAtUtc = DateTime.UtcNow.ToString("O");
         generator.AddIdeaToQueue(PitchToIdeaConverter.Convert(candidate));
         OperatorTelemetry.RecordEvent(eventName, $"Queued pitch: {PitchCandidateText.GetTitle(candidate)}", context, context.Key);
@@ -545,11 +546,10 @@ public static class PitchDiscordPublisher
         {
             if (posted != null)
             {
-                var previousPitchMessages = store.GetPostedPitchMessages(posted.channel_id, posted.id);
                 candidate.discordMessageId = posted.id;
                 candidate.discordChannelId = posted.channel_id;
                 store.Save(candidate);
-                DiscordBotService.Instance?.PinPitchMessage(posted, previousPitchMessages);
+                DiscordBotService.Instance?.PinPitchMessage(posted);
                 DiscordBotService.Instance?.AddDefaultPitchReactions(posted);
             }
         });
