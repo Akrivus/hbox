@@ -7,6 +7,7 @@ public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
     public static string GoogleApiKey;
     public static string OpenAiApiKey;
     public static int MaxConcurrentRequests = 1;
+    public static TTSConfigs Settings { get; private set; } = new TTSConfigs();
 
     private static readonly object requestGateSync = new object();
     private static SemaphoreSlim requestGate = new SemaphoreSlim(MaxConcurrentRequests, MaxConcurrentRequests);
@@ -15,6 +16,7 @@ public class TTS : MonoBehaviour, IConfigurable<TTSConfigs>
 
     public void Configure(TTSConfigs config)
     {
+        Settings = config;
         GoogleApiKey = config.GoogleApiKey;
         OpenAiApiKey = config.OpenAiApiKey;
         ConfigureConcurrency(config.MaxConcurrentRequests);

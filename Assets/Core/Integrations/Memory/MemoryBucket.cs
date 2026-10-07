@@ -189,6 +189,7 @@ public class MemoryBucket
         var remaining = length;
         var memory = texts
             .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.Ordinal)
             .Where(s =>
             {
                 if (remaining <= s.Length && exact)

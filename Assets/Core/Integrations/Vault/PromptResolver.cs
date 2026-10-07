@@ -89,12 +89,24 @@ public class PromptResolver
             Resolved = true;
             return this;
         }
-        Text = await File.ReadAllTextAsync(Path);
-        for (var i = 0; i < args.Length; ++i)
-            if (args[i] != null)
-                Text = Text.Replace("{" + i + "}", args[i].ToString());
+        var template = await File.ReadAllTextAsync(Path);
+        // Substitute only template placeholders, not placeholder-like text inside supplied context.
+        Text = Regex.Replace(template, @"\{(\d+)\}", match =>
+            int.TryParse(match.Groups[1].Value, out var index) && index < args.Length && args[index] != null
+                ? args[index].ToString() : match.Value);
         Resolved = true;
         return this;
+    }
+
+    // Each parallel actor/node request owns its resolved text and saved output reference.
+    public PromptResolver Fork()
+    {
+        var copy = (PromptResolver)MemberwiseClone();
+        copy.Text = string.Empty;
+        copy.Resolved = false;
+        copy.InputPath = string.Empty;
+        copy.Output = null;
+        return copy;
     }
 
     public void Reset()
@@ -123,7 +135,7 @@ public class PromptResolver
     public async Task SaveInput()
     {
         var folder = System.IO.Path.Combine(BasePath, FolderName, BaseInputPath, Part);
-        var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
+        var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss") + "-" + Guid.NewGuid().ToString("N");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
         InputPath = path;
         await Save(path, Text);
@@ -134,7 +146,7 @@ public class PromptResolver
     public async Task SaveOutput(string text)
     {
         var folder = System.IO.Path.Combine(BasePath, FolderName, BaseOutputPath, Part);
-        var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss");
+        var timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH-mm-ss") + "-" + Guid.NewGuid().ToString("N");
         var path = System.IO.Path.Combine(folder, timestamp + ".md");
 
         Output = FromPath(ManagerContext, path);

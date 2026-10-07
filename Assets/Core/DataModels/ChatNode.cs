@@ -17,6 +17,7 @@ public class ChatNode
     public string Item { get; set; }
 
     public string Say { get; set; }
+    public string VoiceInstructions { get; set; }
     public string Thoughts { get; set; }
     public string Notes { get; set; }
 

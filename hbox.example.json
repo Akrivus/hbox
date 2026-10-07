@@ -1,82 +1,113 @@
 [
-	{
-		"Type": "channels",
-		"Enabled": ["polbots", "romebots", "spacedrivel", "appydays"]
-	},
-	{
-		"Type": "openai",
-		"ApiUri": "https://api.openai.com",
-		"ApiKey": "YOUR_OPENAI_API_KEY",
-		"SlowModel": "gpt-5.4",
-		"FastModel": "gpt-5.4-mini",
-		"ModelProfiles": {
-			"Utility": "gpt-5.4-nano",
-			"PostProcess": "gpt-5.4-mini",
-			"Sentiment": "gpt-5.4-nano",
-			"Dialogue": "gpt-5.4",
-			"SceneReasoning": "gpt-5.4"
-		},
-		"ModelPrices": {
-		  "gpt-5.4": {
-		    "InputPerMillion": 2.50,
-		    "CachedInputPerMillion": 0.25,
-		    "OutputPerMillion": 15.00
-		  },
-		  "gpt-5.4-mini": {
-		    "InputPerMillion": 0.75,
-		    "CachedInputPerMillion": 0.075,
-		    "OutputPerMillion": 4.50
-		  },
-		  "gpt-5.4-nano": {
-		    "InputPerMillion": 0.20,
-		    "CachedInputPerMillion": 0.02,
-		    "OutputPerMillion": 1.25
-		  },
-		  "text-embedding-3-small": {
-		    "InputPerMillion": 0.02,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 0
-		  },
-		  "gpt-4o-mini-tts": {
-		    "InputPerMillion": 0.60,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 12.00
-		  },
-		  "google-standard-tts": {
-		    "InputPerMillion": 0.000004,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 0
-		  }
-		},
-		"UseEmbeddings": true,
-		"PersistUsage": true,
-		"UsageLogPath": "Logs/llm-usage",
-		"Budgets": {
-			"DailyUsd": 0,
-			"PerEpisodeUsd": 0,
-			"WarnAtPercent": 80,
-			"EnableUiWarnings": true,
-			"EnableDiscordWarnings": false,
-			"DiscordChannel": null
-		}
-	},
-	{
-		"Type": "tts",
-		"GoogleApiKey": "YOUR_GOOGLE_TTS_API_KEY",
-		"OpenAiApiKey": "YOUR_OPENAI_API_KEY"
-	},
-	{
-		"Type": "discord",
-		"EnableBot": true,
-		"BotToken": "YOUR_DISCORD_BOT_TOKEN",
-		"ApplicationId": "YOUR_DISCORD_APPLICATION_ID",
-		"SlashCommandGuildIds": [],
-		"EnableIdeaCommand": true,
-		"DefaultDailyIdeaLimit": 1,
-		"BoosterDailyIdeaLimit": 24,
-		"BoosterRoleIds": [],
-		"AdminDailyIdeaLimit": 30,
-		"AdminRoleIds": [],
-		"AdminUserIds": []
-	}
+  {
+    "Type": "channels",
+    "Enabled": [
+      "polbots",
+      "romebots",
+      "spacedrivel",
+      "appydays"
+    ]
+  },
+  {
+    "Type": "openai",
+    "ApiUri": "https://api.openai.com",
+    "ApiKey": "YOUR_OPENAI_API_KEY",
+    "SlowModel": "gpt-6.1-sol",
+    "FastModel": "gpt-5.6-terra",
+    "ModelProfiles": {
+      "Utility": "gpt-5.6-terra",
+      "PostProcess": "gpt-5.6-terra",
+      "Sentiment": "gpt-5.6-terra",
+      "Dialogue": "gpt-6.1-sol",
+      "SceneReasoning": "gpt-6.1-sol"
+    },
+    "ModelPrices": {
+      "gpt-6.1-sol": {
+        "InputPerMillion": 2.0,
+        "CachedInputPerMillion": 0.1,
+        "OutputPerMillion": 10.0
+      },
+      "gpt-6-luna": {
+        "InputPerMillion": 0.1,
+        "CachedInputPerMillion": 0.01,
+        "OutputPerMillion": 0.5
+      },
+      "text-embedding-3-small": {
+        "InputPerMillion": 0.02,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 0
+      },
+      "gemini-2.5-flash-tts": {
+        "InputPerMillion": 0.5,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 10.0
+      },
+      "gemini-2.5-pro-tts": {
+        "InputPerMillion": 1.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-4o-mini-tts": {
+        "InputPerMillion": 0.6,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 12.0
+      },
+      "google-standard-tts": {
+        "InputPerMillion": 4.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 0
+      },
+      "gemini-3.1-flash-tts-preview": {
+        "InputPerMillion": 1.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-5.6-sol": {
+        "InputPerMillion": 4.0,
+        "CachedInputPerMillion": 0.4,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-5.6-terra": {
+        "InputPerMillion": 2.0,
+        "CachedInputPerMillion": 0.2,
+        "OutputPerMillion": 12.0
+      },
+      "gpt-5.6-luna": {
+        "InputPerMillion": 0.2,
+        "CachedInputPerMillion": 0.02,
+        "OutputPerMillion": 1.2
+      }
+    },
+    "UseEmbeddings": true,
+    "PersistUsage": true,
+    "UsageLogPath": "Logs/llm-usage",
+    "Budgets": {
+      "DailyUsd": 0,
+      "PerEpisodeUsd": 0,
+      "WarnAtPercent": 80,
+      "EnableUiWarnings": true,
+      "EnableDiscordWarnings": false,
+      "DiscordChannel": null
+    }
+  },
+  {
+    "Type": "tts",
+    "GoogleApiKey": "YOUR_GOOGLE_TTS_API_KEY",
+    "OpenAiApiKey": "YOUR_OPENAI_API_KEY",
+    "GoogleGeminiModel": "gemini-3.1-flash-tts-preview"
+  },
+  {
+    "Type": "discord",
+    "EnableBot": true,
+    "BotToken": "YOUR_DISCORD_BOT_TOKEN",
+    "ApplicationId": "YOUR_DISCORD_APPLICATION_ID",
+    "SlashCommandGuildIds": [],
+    "EnableIdeaCommand": true,
+    "DefaultDailyIdeaLimit": 1,
+    "BoosterDailyIdeaLimit": 24,
+    "BoosterRoleIds": [],
+    "AdminDailyIdeaLimit": 30,
+    "AdminRoleIds": [],
+    "AdminUserIds": []
+  }
 ]

@@ -452,7 +452,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         awayTeam = teams.Except(new[] { homeTeam }).Sample();
 
         trigger ??= ChatManager.Instance?.NowPlaying;
-        var story = $"Original story / idea:\n{trigger?.Idea?.Prompt}\nScenario:\n{trigger?.Topic}\nScene context:\n{trigger?.Context}";
+        var story = trigger?.Idea?.Prompt ?? string.Empty;
         var castNames = (boundContext?.ActorsSearch?.List ?? new List<Actor>())
             .Where(actor => actor != null).SelectMany(actor => (actor.Aliases ?? Array.Empty<string>()).Append(actor.Name)).ToArray();
         SoccerPreparedRoster prepared = null;

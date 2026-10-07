@@ -250,7 +250,8 @@ public class RemoteControl : MonoBehaviour
 
     private void SwitchScene(ChannelEntry entry)
     {
-        if (entry == null || entry.context == ChatManagerContext.Current)
+        if (entry == null || (entry.context == ChatManagerContext.Current &&
+            SceneManager.GetActiveScene().path == $"Assets/{entry.scenePath}.unity"))
             return;
 
         if (zapTitle)
@@ -353,7 +354,7 @@ public class RemoteControl : MonoBehaviour
     private IEnumerator WaitUntilIntroSequenceEnds()
     {
 
-        yield return new WaitUntil(() => audioSource?.isPlaying == false);
+        yield return new WaitUntil(() => audioSource == null || !audioSource.isPlaying);
     }
 
     private IEnumerator LoadAllChannels()

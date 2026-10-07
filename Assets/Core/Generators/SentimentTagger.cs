@@ -31,7 +31,8 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
     private async Task GenerateForChat(PromptResolver prompt, Chat chat, string[] names, string context)
     {
-        var sentiment = await GetSentiment(prompt, chat, names, chat.Log, "Analyze initial conversation state based on context.", chat.Context, string.Empty);
+        prompt = prompt.Fork();
+        var sentiment = await GetSentiment(prompt, chat, names, chat.Log, "Analyze initial conversation state based on context.", context, string.Empty);
         var reactions = ParseReactions(chat, sentiment, names);
         foreach (var reaction in reactions)
             if (chat.Actors.TryGet(reaction.Actor, out var actor))
@@ -40,6 +41,7 @@ public class SentimentTagger : MonoBehaviour, ISubGenerator
 
     public async Task GenerateForNode(PromptResolver prompt, Chat chat, ChatNode node, string[] names)
     {
+        prompt = prompt.Fork();
         var actor = chat.Actors.Get(node.Actor);
         await actor.SetPrompt();
 

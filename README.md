@@ -91,46 +91,71 @@ Example:
     "Type": "openai",
     "ApiUri": "https://api.openai.com",
     "ApiKey": "YOUR_OPENAI_API_KEY",
-    "SlowModel": "gpt-5.4",
-    "FastModel": "gpt-5.4-mini",
+    "SlowModel": "gpt-6.1-sol",
+    "FastModel": "gpt-5.6-terra",
     "ModelProfiles": {
-      "Utility": "gpt-5.4-nano",
-      "PostProcess": "gpt-5.4-mini",
-      "Sentiment": "gpt-5.4-nano",
-      "Dialogue": "gpt-5.4",
-      "SceneReasoning": "gpt-5.4"
+      "Utility": "gpt-5.6-terra",
+      "PostProcess": "gpt-5.6-terra",
+      "Sentiment": "gpt-5.6-terra",
+      "Dialogue": "gpt-6.1-sol",
+      "SceneReasoning": "gpt-6.1-sol"
     },
     "ModelPrices": {
-		  "gpt-5.4": {
-		    "InputPerMillion": 2.50,
-		    "CachedInputPerMillion": 0.25,
-		    "OutputPerMillion": 15.00
-		  },
-		  "gpt-5.4-mini": {
-		    "InputPerMillion": 0.75,
-		    "CachedInputPerMillion": 0.075,
-		    "OutputPerMillion": 4.50
-		  },
-		  "gpt-5.4-nano": {
-		    "InputPerMillion": 0.20,
-		    "CachedInputPerMillion": 0.02,
-		    "OutputPerMillion": 1.25
-		  },
-		  "text-embedding-3-small": {
-		    "InputPerMillion": 0.02,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 0
-		  },
-		  "gpt-4o-mini-tts": {
-		    "InputPerMillion": 0.60,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 12.00
-		  },
-		  "google-standard-tts": {
-		    "InputPerMillion": 0.000004,
-		    "CachedInputPerMillion": 0,
-		    "OutputPerMillion": 0
-		  }
+      "gpt-6.1-sol": {
+        "InputPerMillion": 2.0,
+        "CachedInputPerMillion": 0.1,
+        "OutputPerMillion": 10.0
+      },
+      "gpt-6-luna": {
+        "InputPerMillion": 0.1,
+        "CachedInputPerMillion": 0.01,
+        "OutputPerMillion": 0.5
+      },
+      "text-embedding-3-small": {
+        "InputPerMillion": 0.02,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 0
+      },
+      "gemini-2.5-flash-tts": {
+        "InputPerMillion": 0.5,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 10.0
+      },
+      "gemini-2.5-pro-tts": {
+        "InputPerMillion": 1.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-4o-mini-tts": {
+        "InputPerMillion": 0.6,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 12.0
+      },
+      "google-standard-tts": {
+        "InputPerMillion": 4.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 0
+      },
+      "gemini-3.1-flash-tts-preview": {
+        "InputPerMillion": 1.0,
+        "CachedInputPerMillion": 0,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-5.6-sol": {
+        "InputPerMillion": 4.0,
+        "CachedInputPerMillion": 0.4,
+        "OutputPerMillion": 20.0
+      },
+      "gpt-5.6-terra": {
+        "InputPerMillion": 2.0,
+        "CachedInputPerMillion": 0.2,
+        "OutputPerMillion": 12.0
+      },
+      "gpt-5.6-luna": {
+        "InputPerMillion": 0.2,
+        "CachedInputPerMillion": 0.02,
+        "OutputPerMillion": 1.2
+      }
     },
     "PersistUsage": true,
     "UsageLogPath": "Logs/llm-usage",
@@ -147,7 +172,8 @@ Example:
   {
     "Type": "tts",
     "GoogleApiKey": "YOUR_GOOGLE_TTS_KEY",
-    "OpenAiApiKey": "YOUR_OPENAI_TTS_KEY"
+    "OpenAiApiKey": "YOUR_OPENAI_TTS_KEY",
+    "GoogleGeminiModel": "gemini-3.1-flash-tts-preview"
   },
   {
     "Type": "discord",
@@ -158,11 +184,15 @@ Example:
     "EnableBot": true,
     "BotToken": "YOUR_BOT_TOKEN",
     "ApplicationId": "YOUR_APP_ID",
-    "SlashCommandGuildIds": ["YOUR_TEST_GUILD_ID"],
+    "SlashCommandGuildIds": [
+      "YOUR_TEST_GUILD_ID"
+    ],
     "EnableIdeaCommand": true,
     "DefaultDailyIdeaLimit": 3,
     "BoosterDailyIdeaLimit": 10,
-    "BoosterRoleIds": ["BOOSTER_ROLE_ID"],
+    "BoosterRoleIds": [
+      "BOOSTER_ROLE_ID"
+    ],
     "AdminDailyIdeaLimit": 30,
     "AdminRoleIds": [],
     "AdminUserIds": []
@@ -280,26 +310,30 @@ Example:
 - `Utility`, `PostProcess`, and `Sentiment`: cheap/default profiles for low-reasoning work.
 - `Dialogue` and `SceneReasoning`: higher-capability profiles for chain stages that benefit from stronger reasoning.
 
-`ModelPrices` is keyed by model id. Exact model ids are matched first; versioned response ids such as `gpt-5.4-mini-03-26` fall back to the longest configured prefix such as `gpt-5.4-mini`. The GPT-5.4 model ids, profile mappings, and prices in the example above and `hbox.example.json` are aligned with the reference table below; keep both examples and the table in sync when updating these models or prices. Costs are calculated from response usage metadata when available:
+`ModelPrices` is keyed by model id. Exact model ids are matched first; versioned response ids (when supplied by the API) fall back to the longest configured prefix such as `gpt-6.1-sol`. The GPT-5.6/GPT-6 model ids, profile mappings, and prices in the example above and `hbox.example.json` are aligned with the reference table below; keep both examples and the table in sync when updating these models or prices. Costs are calculated from response usage metadata when available:
 
 - `InputPerMillion`: uncached input token price.
 - `CachedInputPerMillion`: cached input token price.
 - `OutputPerMillion`: output token price.
 
-Embeddings and TTS use the same `ModelPrices` table so the dashboard can show them in the budget widget without a separate cost pipeline. For embeddings, `InputPerMillion` is applied to estimated input tokens. For TTS, `InputPerMillion` is applied to input characters, so configure model ids such as `gpt-4o-mini-tts` and `google-standard-tts` with per-1M-character prices if you want speech cost included.
+Embeddings and TTS use the same `ModelPrices` table so the dashboard can show them in the budget widget without a separate cost pipeline. For embeddings, `InputPerMillion` is applied to estimated input tokens. For legacy TTS, `InputPerMillion` is applied to input characters, so configure model ids such as `gpt-4o-mini-tts` and `google-standard-tts` with per-1M-character prices if you want speech cost included. Gemini uses estimated text/audio tokens instead; see [Google Gemini TTS](Docs/GoogleGeminiTTS.md).
 
 Current standard API prices for the main text generation models, in USD per 1M tokens:
 
 | Model | InputPerMillion | CachedInputPerMillion | OutputPerMillion | Notes |
 | --- | ---: | ---: | ---: | --- |
-| `gpt-5.5` | 5.00 | 0.50 | 30.00 | Short-context standard price. Long-context pricing is higher. |
-| `gpt-5.5-pro` | 30.00 | 0.00 | 180.00 | No cached input price is listed. Long-context pricing is higher. |
-| `gpt-5.4` | 2.50 | 0.25 | 15.00 | Short-context standard price. Long-context pricing is higher. |
-| `gpt-5.4-mini` | 0.75 | 0.075 | 4.50 | Cost-efficient general model. |
-| `gpt-5.4-nano` | 0.20 | 0.02 | 1.25 | Lowest-cost current GPT-5.4 class model. |
-| `gpt-5.4-pro` | 30.00 | 0.00 | 180.00 | No cached input price is listed. Long-context pricing is higher. |
-| `chat-latest` | 5.00 | 0.50 | 30.00 | ChatGPT model alias. |
-| `gpt-5.3-codex` | 1.75 | 0.175 | 14.00 | Codex-specialized model. |
+| gpt-6.1-sol | 2.00 | 0.10 | 10.00 | Dialogue and scene reasoning; short-context Standard rates. |
+| gpt-6-luna | 0.10 | 0.01 | 0.50 | Optional cost-sensitive model; not selected in the examples. |
+| gpt-5.6-sol | 4.00 | 0.40 | 20.00 | Optional GPT-5.6 flagship. Promotional rates available at least through November 21, 2026. |
+| gpt-5.6-terra | 2.00 | 0.20 | 12.00 | Fast, utility, post-processing and sentiment profiles. |
+| gpt-5.6-luna | 0.20 | 0.02 | 1.20 | Optional cost-sensitive model; not selected in the examples. |
+| gpt-6-astra | 10.00 | 1.00 | 50.00 | Optional higher-capability model; not selected in the examples. |
+
+The examples use GPT-5.6 Terra for short tasks instead of Luna, while dialogue and scene reasoning retain GPT-6.1 Sol. GPT-5.6 Sol and Luna are available as alternatives through the price table.
+
+Model IDs and prices checked October 6, 2026 against [OpenAI's model catalog](https://developers.openai.com/api/docs/models/all) and [Standard API pricing](https://developers.openai.com/api/docs/pricing). These text models support the plain Chat Completions calls used here; function calling has additional API/reasoning restrictions.
+
+The Gemini example uses gemini-3.1-flash-tts-preview (Preview), the newest model supported by this adapter's Cloud Text-to-Speech endpoint. Its input/output rates are $1/$20 per million text/audio tokens. Gemini 2.5 Flash remains a cheaper stable option at $0.50/$10. Gemini 3.8 requires the Gemini Enterprise API and cannot be substituted into this adapter. See [Cloud TTS models](https://docs.cloud.google.com/text-to-speech/docs/gemini-tts) and [Google TTS pricing](https://cloud.google.com/text-to-speech/pricing).
 
 The runtime currently stores one price row per model id. If a model has separate short-context and long-context prices, use the row that matches the expected workload or split usage into distinct model ids/config aliases before relying on budget totals for exact accounting.
 
@@ -441,3 +475,5 @@ Prompt inputs and outputs are also written under `Vault/<ShowName>/Inputs/...` a
 ## Legacy note
 
 Older docs, file names, and comments may still refer to `polbots`. In the current project, that is just one show/context inside the larger HBOx runtime.
+
+GPT-5.6 references: [Sol](https://developers.openai.com/api/docs/models/gpt-5.6-sol), [Terra](https://developers.openai.com/api/docs/models/gpt-5.6-terra), [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna).

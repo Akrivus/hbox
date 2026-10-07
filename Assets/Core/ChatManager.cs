@@ -605,8 +605,12 @@ public class ChatManager : MonoBehaviour
 
     public IEnumerator SetCurrentContextAndChangeScene(ChatManagerContext context, Action callback = null)
     {
+        if (context == null)
+            yield break;
+
         var contextChanged = context.Key != CurrentContext?.Key;
-        if (SetCurrentContext(context) && contextChanged)
+        var sceneChanged = SceneManager.GetActiveScene().path != $"Assets/{context.ScenePath}.unity";
+        if (SetCurrentContext(context) && (contextChanged || sceneChanged))
             yield return ResetAndChangeScene(context.Key, context, callback);
     }
 

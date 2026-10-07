@@ -97,7 +97,11 @@ spacedrivel.json
 # Standalone soccer regression harness
 !/Tests/Soccer/SoccerTests.csproj
 /Tests/Soccer/obj/
+!/Tests/Context/ContextTests.csproj
+/Tests/Context/obj/
 
 # Standalone Discord regression harness
 !/Tests/Discord/DiscordTests.csproj
 /Tests/Discord/obj/
+
+google-credentials.json

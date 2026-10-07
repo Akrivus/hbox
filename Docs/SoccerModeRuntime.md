@@ -117,6 +117,24 @@ This file currently still contains several hard-coded strings that are good cand
 
 ### Story-aware rosters
 
+Context audit (2026-10-01): the roster stage appends only roster details to the existing
+scene context. It stores the originating idea separately for live/postgame reactions, rather
+than copying the idea, scenario, and entire scene context back into that same context.
+Legacy/manual match fallback also retains only the idea. Existing saved chats are not rewritten.
+
+The shared LLM completion wrapper sends the resolved prompt text once; its `Chat` argument
+is used for telemetry, not implicitly appended to the request. Parallel behavior, memory,
+codex, and sentiment generation now own separate prompt resolvers and unique input/output
+filenames, preventing mutable output references and same-second file collisions from mixing
+actor memories. Template substitution is single-pass, preserving placeholder-like source text.
+Memory retrieval removes exact duplicate entries before consuming its context budget.
+
+Verification: `Tests/Context/Run.ps1` checks concurrent request/file isolation, single-pass
+substitution, and soccer context serialization. This is a source-level audit of request assembly,
+generation stages, soccer propagation, memory scoping, Reddit pitch context, and Vault template
+placeholders; it does not establish semantic non-overlap across all generated prose or measured
+production token savings. Separate model calls still receive the context needed for their task.
+
 Before dialogue generation, the blocking `SoccerRosterGeneration` component captures the skit's idea,
 scenario, and context. It is installed on all three polbots scene generators and only runs for
 soccer scenarios. `SoccerRosterService` uses the Vault `Soccer Mode/Roster Generation`

@@ -11,7 +11,7 @@ public class BehaviorGeneration : MonoBehaviour, ISubGenerator
     {
         var tasks = new List<Task>();
         foreach (var actor in chat.Actors)
-            tasks.Add(GenerateForActor(prompt, chat, actor));
+            tasks.Add(GenerateForActor(prompt.Fork(), chat, actor));
         await Task.WhenAll(tasks);
         return chat;
     }

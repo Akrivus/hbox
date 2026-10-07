@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -25,6 +25,9 @@ public class Actor : ScriptableObject
     public GameObject Prefab;
 
     public string Voice;
+    [TextArea] public string VoiceInstructions;
+    public string VoiceModel;
+    public string VoiceLanguage = "en-US";
     public float SpeakingRate;
     public float Pitch;
     public float Volume;

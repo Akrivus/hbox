@@ -30,10 +30,10 @@ public sealed class SoccerRosterGeneration : MonoBehaviour, ISubGenerator
         // Football Simulator teams contain eleven slots; validate again against the actual team at playback.
         var names = await new SoccerRosterService().Generate(GetComponent<ChatGenerator>(), home.Name, away.Name,
             11, 11, story, forbidden);
-        var roster = new SoccerPreparedRoster { Home = home.Name, Away = away.Name, Names = names, Story = story };
+        var roster = new SoccerPreparedRoster { Home = home.Name, Away = away.Name, Names = names, Story = chat.Idea?.Prompt };
         chat.GeneratedData ??= new Dictionary<string, string>();
         chat.GeneratedData[SoccerPreparedRoster.Key] = JsonConvert.SerializeObject(roster);
-        chat.Context += "\n\n" + roster.Context;
+        chat.Context += "\n\n" + roster.RosterContext;
         return chat;
     }
 }
@@ -47,7 +47,10 @@ public sealed class SoccerPreparedRoster
     public string Story { get; set; }
 
     [JsonIgnore]
-    public string Context => $"{Story}\n\nOn-field roster for {Home}: {string.Join(", ", Names[0])}\n" +
+    public string Context => $"Original story / idea:\n{Story}\n\n{RosterContext}";
+
+    [JsonIgnore]
+    public string RosterContext => $"On-field roster for {Home}: {string.Join(", ", Names[0])}\n" +
         $"On-field roster for {Away}: {string.Join(", ", Names[1])}\n" +
         "Roster figures are silent on-field players, never dialogue speakers. Only the listed personified countries/institutions speak and react to these figures. Historical and contemporary teammates are intentional. React to actual match events; do not invent player actions.";
 
