@@ -1,0 +1,15 @@
+C:\Users\akriv\Desktop\HBOx\Temp\UIVisibilityTests\bin\net10.0\UIVisibilityTests.exe
+C:\Users\akriv\Desktop\HBOx\Temp\UIVisibilityTests\bin\net10.0\UIVisibilityTests.deps.json
+C:\Users\akriv\Desktop\HBOx\Temp\UIVisibilityTests\bin\net10.0\UIVisibilityTests.runtimeconfig.json
+C:\Users\akriv\Desktop\HBOx\Temp\UIVisibilityTests\bin\net10.0\UIVisibilityTests.dll
+C:\Users\akriv\Desktop\HBOx\Temp\UIVisibilityTests\bin\net10.0\UIVisibilityTests.pdb
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.AssemblyInfoInputs.cache
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.AssemblyInfo.cs
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.csproj.CoreCompileInputs.cache
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.sourcelink.json
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.dll
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\refint\UIVisibilityTests.dll
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.pdb
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\UIVisibilityTests.genruntimeconfig.cache
+C:\Users\akriv\Desktop\HBOx\Tests\UIVisibility\obj\Debug\net10.0\ref\UIVisibilityTests.dll

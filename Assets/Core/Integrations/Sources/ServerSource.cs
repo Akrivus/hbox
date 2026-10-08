@@ -33,6 +33,7 @@ public class ServerSource : MonoBehaviour
     private readonly object pendingIdeaLock = new object();
     private readonly Queue<PendingIdeaRequest> pendingIdeaRequests = new Queue<PendingIdeaRequest>();
     private IReadOnlyList<GeneratorRuntimeInfo> cachedGeneratorSnapshot = Array.Empty<GeneratorRuntimeInfo>();
+    private string soccerReportDirectory;
 
     private HttpListener listener;
     private Thread thread;
@@ -46,6 +47,8 @@ public class ServerSource : MonoBehaviour
         if (Instance != null)
             Debug.LogWarning("Multiple ServerIntegrations found, this is not good.");
         Instance = this;
+
+        soccerReportDirectory = Path.Combine(Application.persistentDataPath, "soccer", "polbots", "reports");
 
         AddRoute("GET", "/", context => ProcessFileRequest(context, "index.html"));
         AddApiRoute("GET", "/api/health", GetHealthAsync);
@@ -63,6 +66,7 @@ public class ServerSource : MonoBehaviour
         AddRoute("GET", "/api/episodes/recent", GetRecentEpisodesAsync);
         AddRoute("GET", "/api/pitches", GetPitchStatusAsync);
         AddRoute("GET", "/api/replays", GetReplayStatusAsync);
+        AddRoute("GET", "/api/soccer/reports", GetSoccerReportsAsync);
         AddRoute("GET", "/vault", GetVaultPathAsync);
         AddApiRoute<PitchVoteRequest, PitchCandidate>("POST", "/api/pitches/vote", VoteOnPitchAsync);
         AddApiRoute<ReplayVoteRequest, ReplayStatusRecord>("POST", "/api/replays/vote", VoteOnReplayAsync);
@@ -423,6 +427,24 @@ public class ServerSource : MonoBehaviour
                 string.Equals(episode.channelKey, row.channelKey, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(episode.slug, row.slug, StringComparison.OrdinalIgnoreCase))).ToList();
         return WriteJsonAsync(context.Response, rows);
+    }
+
+    private Task GetSoccerReportsAsync(HttpListenerContext context)
+    {
+        var reports = new List<SoccerMatchReport>();
+        if (Directory.Exists(soccerReportDirectory))
+            foreach (var file in Directory.GetFiles(soccerReportDirectory, "*.json"))
+            {
+                try
+                {
+                    var report = JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(file));
+                    if (report != null) reports.Add(report);
+                }
+                catch (Exception error) when (error is IOException || error is JsonException)
+                { Debug.LogWarning($"Skipping unreadable soccer report '{Path.GetFileName(file)}': {error.Message}"); }
+            }
+        var limit = ParseLimit(ParseQueryString(context.Request.Url.Query), 50);
+        return WriteJsonAsync(context.Response, reports.OrderByDescending(report => report.CompletedAt).Take(limit).ToArray());
     }
 
     private Task GetPitchStatusAsync(HttpListenerContext context)

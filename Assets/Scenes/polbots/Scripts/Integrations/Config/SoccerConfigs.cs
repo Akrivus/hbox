@@ -18,4 +18,7 @@ public class SoccerConfigs : IConfig
     public bool GameOnStart { get; set; }
     public bool GameOnBatchEnd { get; set; }
     public bool GameOnMatchEnd { get; set; }
+    public bool FullScreenMatch { get; set; }
+    public int FullScreenHeads { get; set; } = 4;
+    public SoccerScheduleConfig[] Schedules { get; set; } = System.Array.Empty<SoccerScheduleConfig>();
 }

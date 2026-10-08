@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 public class UiEventFeed : MonoBehaviour
 {
+    public static UiEventFeed Instance { get; private set; }
     [SerializeField]
     private RectTransform eventFeed;
 
@@ -21,34 +22,29 @@ public class UiEventFeed : MonoBehaviour
 
     private Queue<GameObject> feed = new Queue<GameObject>();
     private Dictionary<string, UiEvent> pins = new Dictionary<string, UiEvent>();
+    private bool? feedVisible;
+    private Coroutine rootFade;
+
+    public void SetFeedVisible(bool visible)
+    {
+        if (rootCanvas == null || feedVisible == visible) return;
+        feedVisible = visible;
+        if (rootFade != null) StopCoroutine(rootFade);
+        rootFade = StartCoroutine(Fade(rootCanvas, visible ? 1f : 0f, 1f));
+    }
 
     private void Start()
     {
-        ChatManager.Instance.OnChatLoaded += ToggleFeed;
-        ChatManager.Instance.OnChatQueueEmpty += ShowFeed;
+        Instance = this;
         UiEventBus.OnEvent += OnUiEvent;
         StartCoroutine(UpdatePins());
     }
 
     private void OnDestroy()
     {
-        ChatManager.Instance.OnChatLoaded -= ToggleFeed;
-        ChatManager.Instance.OnChatQueueEmpty -= ShowFeed;
+        if (Instance == this) Instance = null;
         UiEventBus.OnEvent -= OnUiEvent;
         StopAllCoroutines();
-    }
-
-    private void ShowFeed()
-    {
-        StartCoroutine(Fade(rootCanvas, 1f, 1f));
-    }
-
-    private void ToggleFeed(Chat chat)
-    {
-        if (chat.NewEpisode)
-            StartCoroutine(Fade(rootCanvas, 0f, 1f));
-        else
-            ShowFeed();
     }
 
     private void OnUiEvent(UiEvent e)

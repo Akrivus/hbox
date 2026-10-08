@@ -24,6 +24,22 @@ public class SubtitleManager : MonoBehaviour
     private float titleDuration = 5f;
     private float splashDuration = 2f;
     private string[] splashes;
+    private bool titleSuppressed;
+    private bool titleWasActive;
+
+    public void SetEpisodeTitleAllowed(bool allowed)
+    {
+        if (title == null) return;
+        var hide = !allowed;
+        if (hide == titleSuppressed) return;
+        titleSuppressed = hide;
+        if (hide)
+        {
+            titleWasActive = title.gameObject.activeSelf;
+            title.gameObject.SetActive(false);
+        }
+        else title.gameObject.SetActive(titleWasActive);
+    }
 
     public void Configure(SplashScreenConfigs c)
     {

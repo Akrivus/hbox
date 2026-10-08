@@ -26,14 +26,14 @@ public sealed class SoccerIdeaService
         string rosterContext = "")
     {
         foreach (var idea in await composer.BuildPostgameIdeas(homeActor, awayActor, matchId, score, rawLog, recentResidue))
-            QueueIdea(idea + "\n\nStory and on-field rosters:\n" + rosterContext);
+            QueueIdea("SoccerPhase: Postgame\n" + idea + "\n\nStory and on-field rosters:\n" + rosterContext, "soccer-postgame");
     }
 
-    private void QueueIdea(string ideaText)
+    private void QueueIdea(string ideaText, string source = "manual")
     {
         if (string.IsNullOrWhiteSpace(ideaText))
             return;
 
-        generator.AddIdeaToQueue(new Idea(ideaText));
+        generator.AddIdeaToQueue(new Idea(ideaText, "polbot", source));
     }
 }

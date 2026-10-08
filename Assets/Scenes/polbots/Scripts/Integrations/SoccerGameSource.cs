@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FStudio;
@@ -27,6 +28,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     public static SoccerGameSource Instance;
     public bool IsSceneLoaded => isSceneLoaded;
     public bool IsGameLoaded => isGameLoaded;
+    public bool IsFullScreenMatch => OwnsCurrentContext && isGameLoaded && config?.FullScreenMatch == true;
     public int AddedSceneCount => addedScenes.Count;
     public string CurrentMatchId => currentMatchId;
     public SoccerAnnouncerService AnnouncerDiagnostics => announcerService;
@@ -105,6 +107,27 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private float lastDuplicateSystemSuppressTime;
     private string gameEventLog;
     private RenderTexture runtimeMatchBroadcastTexture;
+    private Camera directCamera;
+    private float directCameraDepth;
+    private Rect directCameraRect;
+    private RenderTexture directCameraTexture;
+    private SoccerEventStore eventStore;
+    private string scheduledEventId;
+    private string completedMatchId;
+    private bool scheduleError;
+    private readonly List<string> matchHighlights = new List<string>();
+    private readonly List<Action> emissionUnsubscribers = new List<Action>();
+    [SerializeField] private string startupStatus = "Waiting for configuration";
+    public string StartupStatus => startupStatus;
+    private bool OwnsCurrentContext => Instance == this && boundContext != null && !boundContext.Dead &&
+        boundContext.IsActive && ChatManager.Instance?.CurrentContext == boundContext;
+
+    private void SetStartupStatus(string status)
+    {
+        if (startupStatus == status) return;
+        startupStatus = status;
+        Debug.Log($"[Soccer] {status}", this);
+    }
 
     private SoccerConfigs config;
     private SoccerInterruptService interruptService;
@@ -135,6 +158,27 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (boundContext == null)
             return;
 
+        try
+        {
+            eventStore = new SoccerEventStore(Path.Combine(Application.persistentDataPath, "soccer", boundContext.Key));
+            var schedules = config.Schedules ?? Array.Empty<SoccerScheduleConfig>();
+            foreach (var schedule in schedules)
+            {
+                if (schedule == null || schedule.Recurrence == null)
+                    throw new ArgumentException("Soccer schedules need an ID and recurrence pattern.");
+                SoccerEventStore.ValidateId(schedule.Id);
+                schedule.Recurrence.Validate();
+            }
+            if (schedules.GroupBy(schedule => schedule.Id).Any(group => group.Count() > 1))
+                throw new ArgumentException("Soccer schedule IDs must be unique.");
+            scheduleError = false;
+        }
+        catch (Exception error)
+        {
+            scheduleError = true;
+            Debug.LogError($"Soccer schedule disabled: {error.Message}");
+        }
+
         boundContext.AfterIntermission += TriggerGame;
 
         if (config.GameOnBatchEnd)
@@ -148,6 +192,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
         isConfigured = true;
+        SetStartupStatus($"Configured for {boundContext.Key}; GameOnStart={config.GameOnStart}");
     }
 
     public void BreakTheSilence()
@@ -161,6 +206,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         PushIdea(gameEventLog);
         gameEventLog = string.Empty;
+        matchHighlights.Clear();
     }
 
     private IEnumerator StartConfiguredGame()
@@ -176,13 +222,14 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             isStartingGame ||
             isUnloadingGame)
         {
+            SetStartupStatus($"Auto-start waiting: ready={ChatManager.Instance?.ReadyForAction}, ownsContext={OwnsCurrentContext}, loading={isLoadingGame}, starting={isStartingGame}");
             gameOnStartQueued = false;
             yield break;
         }
 
         if (!TrySelectDefaultActors())
         {
-            Debug.LogWarning("SoccerGameSource.GameOnStart could not start because two soccer-capable actors were not available.");
+            SetStartupStatus("Auto-start rejected: fewer than two current actors with assigned prefabs");
             gameOnStartQueued = false;
             yield break;
         }
@@ -199,6 +246,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void QueueGameOnStartIfNeeded()
     {
+        if (boundContext == null || ChatManager.Instance?.CurrentContext != boundContext || boundContext.Dead) return;
         if (config?.GameOnStart != true || gameOnStartTriggered || gameOnStartQueued || isGameLoaded)
             return;
 
@@ -211,10 +259,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (manager == null || !manager.ReadyForAction)
             return false;
 
-        return boundContext != null &&
-            !boundContext.Dead &&
-            boundContext.IsActive &&
-            manager.CurrentContext == boundContext;
+        return OwnsCurrentContext;
     }
 
     public void IncrementVolume()
@@ -227,6 +272,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         maxVolume = Mathf.Clamp01(maxVolume - 0.1f);
     }
 
+    [ContextMenu("Toggle soccer match")]
     public void ToggleGame()
     {
         if (isGameLoaded)
@@ -237,14 +283,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            enabled = false;
-            Destroy(this);
-            return;
-        }
-
-        Instance = this;
+        // Preloaded contexts persist; the current context claims ownership in Update.
+        if (Instance == null) Instance = this;
         matchStateService = new SoccerMatchStateService();
         interruptService = new SoccerInterruptService(generator);
         ideaService = new SoccerIdeaService(generator);
@@ -271,6 +311,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         }
 
         isConfigured = false;
+        foreach (var unsubscribe in emissionUnsubscribers) unsubscribe();
+        emissionUnsubscribers.Clear();
 
         if (Instance == this)
             Instance = null;
@@ -285,6 +327,14 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private void Update()
     {
         TryRegisterRuntimeBindings();
+        if (boundContext == null || !boundContext.IsActive || boundContext.Dead ||
+            ChatManager.Instance?.CurrentContext != boundContext) return;
+        if (Instance != this)
+        {
+            if (Instance != null) Instance.EmergencyTeardown();
+            Instance = this;
+            SetStartupStatus("Current polbots context claimed soccer ownership");
+        }
         volume = Mathf.Lerp(volume, 0, Time.deltaTime / fadeOutDuration);
         teamAudio.volume = isGameLoaded ? Mathf.Clamp01(volume) * maxVolume : 0;
         interruptService?.Tick();
@@ -292,6 +342,59 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         TickBroadcastWatchdog();
         TickDuplicateSceneSystemSuppressor();
         QueueGameOnStartIfNeeded();
+        TickScheduledMatches();
+    }
+
+    private void TickScheduledMatches()
+    {
+        if (scheduleError || eventStore == null || generator == null || config == null ||
+            !IsReadyForGameOnStart() || ChatManager.IsPaused || generator.IsGenerating ||
+            generator.QueueDepth > 0 || isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame)
+            return;
+        try
+        {
+            var match = eventStore.NextDue(GetScheduledFixtures(), DateTimeOffset.Now);
+            if (match == null) return;
+            var currentScene = ChatManager.Instance.NowPlaying;
+            var prompt = match.BuildPrompt();
+            if (match.SeriesId != null && currentScene?.Key == boundContext.Key)
+            {
+                var discussion = $"{currentScene.Title}\n{currentScene.Synopsis}\n{currentScene.Topic}";
+                if (discussion.Length > 1500) discussion = discussion.Substring(0, 1500);
+                prompt += "\nCurrent polbots discussion, separate from recorded match facts:\n" + discussion;
+            }
+            match.Validate();
+            if (boundContext.ActorsSearch[match.Home] == null || boundContext.ActorsSearch[match.Away] == null)
+                throw new InvalidOperationException($"Scheduled match '{match.Id}' references an unknown polbots actor.");
+            // Persist before queueing so a reload cannot duplicate generation.
+            eventStore.SetStatus(match.Id, "queued");
+            generator.AddIdeaToQueue(new Idea(prompt, "scheduler", "soccer-schedule", match.Id));
+        }
+        catch (Exception error)
+        {
+            scheduleError = true;
+            Debug.LogError($"Soccer schedule paused: {error.Message}");
+        }
+    }
+
+    private IEnumerable<SoccerScheduledMatch> GetScheduledFixtures()
+    {
+        var eligible = boundContext.ActorsSearch.List.Where(actor => actor != null && actor.Prefab != null && !actor.IsLegacy)
+            .Select(actor => actor.Name).ToArray();
+        var now = DateTimeOffset.Now;
+        return (config.Schedules ?? Array.Empty<SoccerScheduleConfig>())
+            .Select(schedule => eventStore.GetRollingFixture(schedule, eligible, now))
+            .Where(match => match != null).ToArray();
+    }
+
+    [ContextMenu("Cancel outstanding soccer schedule events")]
+    private void ResetOutstandingScheduleEvents()
+    {
+        if (isGameLoaded || isLoadingGame || generator?.IsGenerating == true || generator?.QueueDepth > 0) return;
+        foreach (var match in config == null ? Enumerable.Empty<SoccerScheduledMatch>() : GetScheduledFixtures())
+            if (eventStore?.Status(match.Id) == "queued" || eventStore?.Status(match.Id) == "started")
+                eventStore.SetStatus(match.Id, "cancelled");
+        // A new ID is needed to retry; existing generated replays must not start it again.
     }
 
     private void TryRegisterRuntimeBindings()
@@ -324,11 +427,16 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void TriggerGame(Chat chat)
     {
+        if (!OwnsCurrentContext || chat?.Key != boundContext.Key) return;
         if (isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame || chat == null)
             return;
 
         if (!IsSoccerMode(chat))
             return;
+        SetStartupStatus("Matched Mode: Soccer; resolving participants");
+
+        var eventId = chat.Idea?.Source == "soccer-schedule" ? chat.Idea.Slug : null;
+        if (eventId != null && eventStore?.Status(eventId) != "queued") return;
 
         var homeName = FindMetadata(chat.Topic, "Home");
         if (string.IsNullOrWhiteSpace(homeName))
@@ -339,13 +447,28 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             awayName = FindMetadata(chat.Idea?.Prompt, "Away");
 
         if (config.RequireTextPatternMatch && (string.IsNullOrEmpty(homeName) || string.IsNullOrEmpty(awayName)))
+        {
+            SetStartupStatus("Soccer rejected: RequireTextPatternMatch needs Home and Away metadata");
             return;
+        }
 
         homeActor = ResolveActor(homeName) ?? GetChatActor(chat, 0);
         awayActor = ResolveActor(awayName) ?? GetChatActor(chat, 1);
 
+        if (eventId != null)
+        {
+            var scheduled = GetScheduledFixtures().FirstOrDefault(match => match.Id == eventId);
+            if (scheduled == null || homeActor != ResolveActor(scheduled.Home) || awayActor != ResolveActor(scheduled.Away))
+            {
+                Debug.LogError($"Scheduled match '{eventId}' did not preserve its configured participants; cancel it before retrying with a new ID.");
+                return;
+            }
+        }
+
         if (homeActor != null && awayActor != null)
             StartCoroutine(LoadGame(chat));
+        else
+            SetStartupStatus("Soccer rejected: unable to resolve two actors from metadata or scene cast");
     }
 
     private Actor ResolveActor(string actorName)
@@ -366,11 +489,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private bool TrySelectDefaultActors()
     {
-        if (homeActor != null && awayActor != null)
+        if (homeActor != null && awayActor != null && homeActor != awayActor)
             return true;
 
         var candidates = boundContext?.ActorsSearch?.List?
-            .Where(actor => actor != null && actor.Players != null && actor.Players.Length > 0)
+            .Where(actor => actor != null && actor.Prefab != null && !actor.IsLegacy)
             .ToList();
 
         if (candidates == null || candidates.Count < 2)
@@ -387,7 +510,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     public static bool IsSoccerMode(Chat chat)
     {
-        return IsSoccerMode(chat?.Topic) || IsSoccerMode(chat?.Idea?.Prompt);
+        return SoccerModeMetadata.IsMatchRequest(chat?.Topic, chat?.Idea?.Prompt, chat?.Idea?.Source);
     }
 
     private static bool IsSoccerMode(string text)
@@ -398,24 +521,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     public static string FindMetadata(string text, string key)
     {
-        if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(key))
-            return string.Empty;
-
-        var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var rawLine in lines)
-        {
-            var line = rawLine.Trim().TrimStart('#', '_', '*').TrimStart();
-            if (!line.StartsWith(key, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var value = line.Substring(key.Length).TrimStart();
-            if (value.Length == 0 || value[0] != ':')
-                continue;
-
-            return value.Substring(1).Trim();
-        }
-
-        return string.Empty;
+        return SoccerModeMetadata.Read(text, key);
     }
 
     private void UnbindContextEvents()
@@ -431,10 +537,23 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private IEnumerator LoadGame(Chat trigger = null)
     {
+        if (!OwnsCurrentContext)
+        {
+            SetStartupStatus("Match rejected: this Soccer component does not own the current context");
+            yield break;
+        }
         if (isGameLoaded || isLoadingGame || isStartingGame || isUnloadingGame)
             yield break;
 
         isLoadingGame = true;
+
+        var availableTeams = (teams ?? Array.Empty<TeamEntry>()).Where(team => team != null && team.Players?.Length > 0).Distinct().ToArray();
+        if (availableTeams.Length < 2)
+        {
+            SetStartupStatus("Match rejected: assign at least two distinct simulator team assets with player slots");
+            isLoadingGame = false;
+            yield break;
+        }
 
         PreserveHostScene();
 
@@ -448,8 +567,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             yield break;
         }
 
-        homeTeam = teams.Sample();
-        awayTeam = teams.Except(new[] { homeTeam }).Sample();
+        homeTeam = availableTeams.Sample();
+        awayTeam = availableTeams.Except(new[] { homeTeam }).Sample();
 
         trigger ??= ChatManager.Instance?.NowPlaying;
         var story = trigger?.Idea?.Prompt ?? string.Empty;
@@ -493,9 +612,23 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         RenameTeam(awayTeam, awayActor, prepared.Names[1]);
         rosterContext = prepared.Context;
         currentMatchId = Guid.NewGuid().ToString("N");
+        scheduledEventId = trigger?.Idea?.Source == "soccer-schedule" ? trigger.Idea.Slug : null;
+        completedMatchId = null;
+        if (scheduledEventId != null)
+        {
+            try { eventStore.SetStatus(scheduledEventId, "started"); }
+            catch (Exception error)
+            {
+                Debug.LogError($"Cannot persist scheduled match start: {error}");
+                ReleaseHostScene();
+                isLoadingGame = false;
+                yield break;
+            }
+        }
         startedMatchId = null;
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
+        matchHighlights.Clear();
         DeleteSoccerDiscordMessages();
         matchStateService.BeginMatch(currentMatchId, homeActor, awayActor, rosterContext);
         OperatorTelemetry.CaptureMemorySnapshot("soccer_load_started");
@@ -505,7 +638,16 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             if (addedScenes.Count > 0)
                 yield return UnloadGameScenes();
             if (!isSceneLoaded)
+            {
+                if (!Application.CanStreamedLevelBeLoaded(GameScene))
+                {
+                    SetStartupStatus($"Match rejected: scene '{GameScene}' is missing from enabled build scenes");
+                    ReleaseHostScene();
+                    yield break;
+                }
+                SetStartupStatus($"Loading football scene for {homeActor.Name} vs {awayActor.Name}");
                 yield return SceneManager.LoadSceneAsync(GameScene, LoadSceneMode.Additive);
+            }
             else
                 yield return StartGame();
         }
@@ -517,6 +659,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        if (!OwnsCurrentContext || (!isLoadingGame && !isStartingGame && !isGameLoaded)) return;
         addedScenes[scene.handle] = scene;
         if (!GameScene.Contains(scene.name))
             return;
@@ -524,6 +667,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         DisableFootballBoot(scene);
         DisableEmbeddedSceneUiConflicts(scene);
         isSceneLoaded = true;
+        SetStartupStatus("Football scene loaded; waiting for MatchEngineLoader");
 
         if (!isGameLoaded && !isStartingGame && !isUnloadingGame)
             StartCoroutine(StartGame());
@@ -545,6 +689,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             yield break;
 
         isStartingGame = true;
+        SetStartupStatus("Creating simulator match");
         startedMatchId = currentMatchId;
 
         try
@@ -563,9 +708,13 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
             matchStateService.MarkLive();
 
-            VideoCallUIManager.Instance.ShareScreenOn();
+            if (config.FullScreenMatch)
+                VideoCallUIManager.Instance?.ShareScreenUIManager?.FullScreenMatchOn(config.FullScreenHeads);
+            else
+                VideoCallUIManager.Instance?.ShareScreenOn();
             ConfigureBroadcastCamera();
             isGameLoaded = true;
+            SetStartupStatus("Match live");
             isBroadcastSignalHealthy = true;
             lastBroadcastWatchdogTime = Time.unscaledTime;
             OperatorTelemetry.CaptureMemorySnapshot("soccer_started");
@@ -661,6 +810,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void OnSceneUnloaded(Scene scene)
     {
+        if (!OwnsCurrentContext) return;
         addedScenes.Remove(scene.handle);
         if (GameScene.Contains(scene.name))
             FinalizeSoccerTeardown("soccer_unloaded");
@@ -814,6 +964,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void ConfigureBroadcastCamera()
     {
+        if (config?.FullScreenMatch == true)
+        {
+            ConfigureDirectCamera();
+            return;
+        }
         var broadcastTexture = GetBroadcastTexture();
         if (broadcastTexture == null)
             return;
@@ -831,6 +986,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void ClearBroadcastCamera()
     {
+        RestoreDirectCamera();
         var footballCamera = MainCamera.Current?.Camera;
         var broadcastTexture = GetActiveBroadcastTexture();
         if (footballCamera != null && footballCamera.targetTexture == broadcastTexture)
@@ -842,6 +998,20 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void TickBroadcastWatchdog()
     {
+        if (config?.FullScreenMatch == true)
+        {
+            if (!isGameLoaded) return;
+            if (Time.unscaledTime - lastBroadcastWatchdogTime < broadcastWatchdogInterval) return;
+            lastBroadcastWatchdogTime = Time.unscaledTime;
+            if (MainCamera.Current?.Camera == null) { MarkBroadcastSignalLost(); return; }
+            ConfigureDirectCamera();
+            if (!isBroadcastSignalHealthy)
+            {
+                isBroadcastSignalHealthy = true;
+                OnBroadcastSignalRestored?.Invoke();
+            }
+            return;
+        }
         var broadcastTexture = GetBroadcastTexture();
         if (!isGameLoaded || broadcastTexture == null)
             return;
@@ -917,6 +1087,37 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         return runtimeMatchBroadcastTexture;
     }
 
+    private void ConfigureDirectCamera()
+    {
+        var camera = MainCamera.Current?.Camera;
+        if (camera == null) return;
+        if (directCamera != camera)
+        {
+            RestoreDirectCamera();
+            directCamera = camera;
+            directCameraDepth = camera.depth;
+            directCameraRect = camera.rect;
+            directCameraTexture = camera.targetTexture;
+        }
+        camera.targetTexture = null;
+        camera.rect = new Rect(0, 0, 1, 1);
+        // The existing polbots canvas is Screen Space Overlay; actor cameras still render their head textures.
+        camera.depth = Camera.allCameras.Where(c => c != camera && c.targetTexture == null)
+            .Select(c => c.depth).Append(directCameraDepth).Max() + 1;
+        DisableFootballAudioListener(camera);
+    }
+
+    private void RestoreDirectCamera()
+    {
+        if (directCamera != null)
+        {
+            directCamera.depth = directCameraDepth;
+            directCamera.rect = directCameraRect;
+            directCamera.targetTexture = directCameraTexture;
+        }
+        directCamera = null;
+    }
+
     private RenderTexture GetActiveBroadcastTexture()
     {
         return runtimeMatchBroadcastTexture != null ? runtimeMatchBroadcastTexture : matchBroadcastTexture;
@@ -950,54 +1151,88 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void RegisterEmissionEvents()
     {
-        EventManager.Subscribe<FinalWhistleEvent>(OnFinalWhistle);
-        EventManager.Subscribe<GoalScoredEvent>(e => HandleInjectableEvent(e, BuildGoalLog(e), e.Scorer?.Name, true));
-        EventManager.Subscribe<KeeperSavesTheBallEvent>(e => HandleInjectableEvent(e, null, GetName(e)));
-        EventManager.Subscribe<BallHitTheWoodWorkEvent>(e => HandleInjectableEvent(e));
-        EventManager.Subscribe<PlayerSlideTackleEvent>(e => HandleInjectableEvent(e, null, GetName(e)));
-        EventManager.Subscribe<RefereeShortWhistleEvent>(e => HandleInjectableEvent(e));
+        SubscribeOwned<FinalWhistleEvent>(OnFinalWhistle);
+        SubscribeOwned<GoalScoredEvent>(e => HandleInjectableEvent(e, BuildGoalLog(e), e.Scorer?.Name, true));
+        SubscribeOwned<KeeperSavesTheBallEvent>(e => HandleInjectableEvent(e, null, GetName(e)));
+        SubscribeOwned<BallHitTheWoodWorkEvent>(e => HandleInjectableEvent(e));
+        SubscribeOwned<PlayerSlideTackleEvent>(e => HandleInjectableEvent(e, null, GetName(e)));
+        SubscribeOwned<RefereeShortWhistleEvent>(e => HandleInjectableEvent(e));
         RegisterMessageEvents();
+    }
+
+    private void SubscribeOwned<T>(Action<T> callback) where T : IBaseEvent
+    {
+        Action<T> handler = value =>
+        {
+            if (this != null && OwnsCurrentContext && (isGameLoaded || isStartingGame)) callback(value);
+        };
+        EventManager.Subscribe(handler);
+        emissionUnsubscribers.Add(() => EventManager.UnSubscribe(handler));
     }
 
     private async void OnFinalWhistle(FinalWhistleEvent e)
     {
+        if (!isGameLoaded || string.IsNullOrWhiteSpace(currentMatchId) || completedMatchId == currentMatchId) return;
+        completedMatchId = currentMatchId;
         Emit(e);
         matchStateService.MarkPostgame();
         interruptService.EndMatch();
         announcerService?.EndMatch();
 
+        try
+        {
+            eventStore?.SaveReport(new SoccerMatchReport
+            {
+                MatchId = currentMatchId, ScheduledEventId = scheduledEventId, ChannelKey = boundContext?.Key,
+                SeriesId = scheduledEventId == null ? null : GetScheduledFixtures().FirstOrDefault(match => match.Id == scheduledEventId)?.SeriesId,
+                Home = homeActor?.Name, Away = awayActor?.Name,
+                HomeScore = MatchManager.Current.homeTeamScore, AwayScore = MatchManager.Current.awayTeamScore,
+                CompletedAt = DateTimeOffset.Now, RosterContext = rosterContext,
+                KeyEvents = matchHighlights.ToArray()
+            });
+        }
+        catch (Exception error) { Debug.LogError($"Soccer match report could not be saved: {error}"); }
+
+        var finishedId = currentMatchId;
         var snapshot = BuildContinuitySnapshot();
-        await PersistContinuitySnapshot("#soccer-live", snapshot);
-
-        await ideaService.QueuePostgameIdeas(
-            homeActor,
-            awayActor,
-            currentMatchId,
-            Score,
-            gameEventLog,
-            matchStateService.GetRecentResidue(), rosterContext);
-
-        StartCoroutine(CloseGame());
+        var finalScore = Score;
+        var finalLog = gameEventLog;
+        var residue = matchStateService.GetRecentResidue();
+        var finalRoster = rosterContext;
+        var finalHome = homeActor;
+        var finalAway = awayActor;
+        try
+        {
+            await PersistContinuitySnapshot("#soccer-live", snapshot);
+            if (this != null && currentMatchId == finishedId)
+                await ideaService.QueuePostgameIdeas(finalHome, finalAway, finishedId, finalScore, finalLog, residue, finalRoster);
+        }
+        catch (Exception error) { Debug.LogError($"Soccer postgame generation failed: {error}"); }
+        finally
+        {
+            if (this != null && isActiveAndEnabled && currentMatchId == finishedId)
+                StartCoroutine(CloseGame());
+        }
     }
 
     private void RegisterMessageEvents()
     {
-        EventManager.Subscribe<RefereeLongWhistleEvent>(e => Emit(e));
-        EventManager.Subscribe<RefereeLastWhistleEvent>(e => Emit(e));
-        EventManager.Subscribe<FirstWhistleEvent>(e => Emit(e));
-        EventManager.Subscribe<KickOffEvent>(e => Emit(e));
-        EventManager.Subscribe<OutEvent>(e => Emit(e));
-        EventManager.Subscribe<ShootWentOutEvent>(e => Emit(e));
-        EventManager.Subscribe<KeeperHitTheBallButCouldNotControlEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerDisbalancedEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerTackledEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerPassEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerControlBallEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerWinTheBallEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerLossTheBallEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerChipShootEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerShootEvent>(e => Emit(e, GetName(e)));
-        EventManager.Subscribe<PlayerThrowInEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<RefereeLongWhistleEvent>(e => Emit(e));
+        SubscribeOwned<RefereeLastWhistleEvent>(e => Emit(e));
+        SubscribeOwned<FirstWhistleEvent>(e => Emit(e));
+        SubscribeOwned<KickOffEvent>(e => Emit(e));
+        SubscribeOwned<OutEvent>(e => Emit(e));
+        SubscribeOwned<ShootWentOutEvent>(e => Emit(e));
+        SubscribeOwned<KeeperHitTheBallButCouldNotControlEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerDisbalancedEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerTackledEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerPassEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerControlBallEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerWinTheBallEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerLossTheBallEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerChipShootEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerShootEvent>(e => Emit(e, GetName(e)));
+        SubscribeOwned<PlayerThrowInEvent>(e => Emit(e, GetName(e)));
     }
 
     private void HandleInjectableEvent(IBaseEvent e, string log = null, string primaryActor = null, bool highPriority = false)
@@ -1008,6 +1243,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             return;
 
         Emit(log, false);
+        if (isGameLoaded && matchHighlights.Count < 100) matchHighlights.Add(log);
         _ = interruptService.TryInject(matchStateService.BuildSummary(e, log, primaryActor, highPriority));
     }
 
@@ -1096,6 +1332,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             $"Away: {awayActor?.Name}\n" +
             $"Score: {Score}\n" +
             $"{rosterContext}\n" +
+            $"Match highlights:\n- {string.Join("\n- ", matchHighlights)}\n" +
             $"Recent live residue:\n- {string.Join("\n- ", matchStateService.GetRecentResidue())}";
     }
 
@@ -1174,10 +1411,10 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         ReleaseHostScene();
         isSceneLoaded = false;
         isGameLoaded = false;
-        gameOnStartTriggered = false;
         gameOnStartQueued = false;
         startedMatchId = null;
         currentMatchId = null;
+        scheduledEventId = null;
         matchStateService.EndMatch();
         announcerService?.EndMatch();
 

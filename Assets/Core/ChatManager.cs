@@ -85,6 +85,8 @@ public class ChatManager : MonoBehaviour
 
     private void Awake()
     {
+        if (GetComponent<UiVisibilityCoordinator>() == null)
+            gameObject.AddComponent<UiVisibilityCoordinator>();
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 

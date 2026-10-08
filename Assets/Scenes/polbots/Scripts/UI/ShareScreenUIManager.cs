@@ -35,6 +35,9 @@ public class ShareScreenUIManager : MonoBehaviour
     private bool _hasDefaultGridLayout;
     private MediaScreenLayoutState _defaultMediaScreenLayout;
     private bool _hasDefaultMediaScreenLayout;
+    private GridLayoutGroup.Constraint matchPreviousConstraint;
+    private int matchPreviousConstraintCount;
+    private bool fullScreenMatchActive;
 
     public Vector2 ActiveMediaScreenSize => GetMediaScreenLayout(activeVideoRail).Size;
 
@@ -56,6 +59,7 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOn()
     {
+        RestoreMatchConstraint();
         switch (activeVideoRail)
         {
             case ShareScreenVideoRail.Right:
@@ -81,8 +85,33 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOff()
     {
+        RestoreMatchConstraint();
         RestoreDefaultGridLayout();
         ApplyShareScreenActive(false);
+    }
+
+    public void FullScreenMatchOn(int headCount)
+    {
+        if (_gridLayoutGroup == null) return;
+        if (!fullScreenMatchActive)
+        {
+            matchPreviousConstraint = _gridLayoutGroup.constraint;
+            matchPreviousConstraintCount = _gridLayoutGroup.constraintCount;
+            fullScreenMatchActive = true;
+        }
+        _gridLayoutGroup.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        _gridLayoutGroup.constraintCount = 1;
+        // Keep the existing speaker promotion and head widgets; hide only the media box.
+        SetShareScreen(GridLayoutGroup.Corner.UpperRight, GridLayoutGroup.Axis.Vertical,
+            TextAnchor.MiddleRight, ShareScreenVideoRail.Right, Mathf.Clamp(headCount, 3, 4), false);
+    }
+
+    private void RestoreMatchConstraint()
+    {
+        if (!fullScreenMatchActive || _gridLayoutGroup == null) return;
+        _gridLayoutGroup.constraint = matchPreviousConstraint;
+        _gridLayoutGroup.constraintCount = matchPreviousConstraintCount;
+        fullScreenMatchActive = false;
     }
 
     public void SetMediaTexture(Texture texture)

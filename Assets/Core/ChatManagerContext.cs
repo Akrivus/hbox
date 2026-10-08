@@ -80,6 +80,7 @@ public sealed class ChatManagerContext : MonoBehaviour
     public Transform[] FallbackSpawnPoints;
 
     public string[] Locations;
+    public string[] SharedMemoryBuckets = Array.Empty<string>();
     public Actor[] Actors;
     public Sentiment[] Sentiments;
 

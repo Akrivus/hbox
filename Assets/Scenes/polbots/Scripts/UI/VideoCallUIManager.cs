@@ -19,12 +19,7 @@ public class VideoCallUIManager : MonoBehaviour
         get => _enabled;
         set
         {
-            // THERE YOU WANT A FUCKING NULL CHECK HERE'S YOUR FUCKING NULL CHECK
-            if (this != null && VideoScreenFooter != null)
-                VideoScreenFooter?.SetActive(value);
-            // NOW DO THE ACTUAL FUCKING THING!
             _enabled = value;
-            // IF THIS CRASHES SHIT AGAIN SO FUCKING HELP ME GOD!
         }
     }
 
@@ -51,6 +46,12 @@ public class VideoCallUIManager : MonoBehaviour
     private void Update()
     {
         UpdateUI();
+    }
+
+    public void SetCallOverlayVisible(bool visible)
+    {
+        if (VideoScreenFooter == null) return;
+        if (VideoScreenFooter.activeSelf != visible) VideoScreenFooter.SetActive(visible);
     }
 
     private void UpdateUI()

@@ -553020,6 +553020,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChatManagerContext
   key: polbots
+  SharedMemoryBuckets:
+  - '#soccer-live'
   ConfigManager: {fileID: 1705980357}
   AudioSource: {fileID: 1705980356}
   SpawnPoints: []

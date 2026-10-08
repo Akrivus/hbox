@@ -148,6 +148,15 @@ public class ChatGenerator : MonoBehaviour
         var locations = "- " + string.Join("\n - ", GetLocationNames());
         var idea = chat.Idea.Prompt;
         var context = await MemoryBucket.GetContext(chat.ManagerContext, slug, chat.BuildRecallQuery());
+        
+        foreach (var bucketName in chatManagerContext.SharedMemoryBuckets ?? Array.Empty<string>())
+        {
+            if (string.IsNullOrWhiteSpace(bucketName)) continue;
+            var bucket = await MemoryBucket.Get(chatManagerContext, bucketName);
+            var shared = await bucket.GetRelevant(chat.BuildRecallQuery());
+            if (!string.IsNullOrWhiteSpace(shared))
+                context += $"\n\nShared factual context ({bucketName}):\n{shared}";
+        }
 
         prompt = await prompt.Resolve(context, options, idea, secrets, locations);
         var topic = await LLM.CompleteAsync(prompt, chat, false);
