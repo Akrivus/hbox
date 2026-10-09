@@ -1,0 +1,7 @@
+PBNN fixture bulletin. Original bulletin date: 2026-10-07 (America/Phoenix).
+One sports segment, presented only by Business Man 1, the temporary PBNN anchor.
+Preserved source: HBOx completed soccer report c6bc1932bc604687ba737f9b83811788.
+Originating channel: polbots. Completed: 2026-10-07 18:11:44 America/Phoenix.
+Scotland 0-0 Netherlands. This is a completed in-universe match, not an upcoming announcement.
+The report contains participants, generated roster context and twenty match event-summary lines. Those lines are not attributed dialogue quotes. No attributed player reactions or screenshot references were supplied for this fixture. Do not invent them or invent particular match incidents.
+Open with the station and original date, report the result and its source, then close. Keep this one bulletin short.

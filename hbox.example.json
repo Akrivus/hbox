@@ -2,10 +2,11 @@
   {
     "Type": "channels",
     "Enabled": [
+      "appydays",
+      "pbnn",
       "polbots",
       "romebots",
-      "spacedrivel",
-      "appydays"
+      "spacedrivel"
     ]
   },
   {

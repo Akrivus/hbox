@@ -85,6 +85,7 @@ reddit-pitches-*.json
 # hbox specific
 hbox.json
 appydays.json
+pbnn.json
 polbots.json
 romebots.json
 spacedrivel.json
