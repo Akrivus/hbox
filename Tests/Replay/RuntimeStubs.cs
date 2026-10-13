@@ -21,7 +21,8 @@ namespace UnityEngine
     public static class Application { public static bool isPlaying; }
     public static class Debug
     {
-        public static void LogWarning(object value) => Console.Error.WriteLine(value);
+        public static readonly List<string> Warnings = new List<string>();
+        public static void LogWarning(object value) { Warnings.Add(value.ToString()); Console.Error.WriteLine(value); }
         public static void LogException(Exception error) => throw error;
     }
     public static class Mathf
@@ -88,3 +89,4 @@ public class ReplayDiscordBinding
     public string discordMessageId;
     public string discordChannelId;
 }
+

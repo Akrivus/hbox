@@ -24,6 +24,12 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     // Injectable clock for deterministic saved-library regression tests.
     private Func<DateTimeOffset> replayClock = () => DateTimeOffset.Now;
 
+    // Serialize history reads/updates across FolderSource instances. Writes are small,
+    // synchronous commits: no pending task can outlive a channel switch or shutdown.
+    private static readonly object replayHistoryLock = new object();
+    // Publication seam for deterministic interruption/failure regression checks.
+    private Action<string, string> publishReplayHistory = PublishReplayHistory;
+
     private List<string> replays = new List<string>();
     private string fileName;
     private string manifestPath;
@@ -249,28 +255,75 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private List<string> LoadReplays()
     {
         fileName = $"replays-{boundContext?.Key ?? ChatManagerContext.Current?.Key}.txt";
-        if (!File.Exists(fileName))
-            return new List<string>();
-        return File.ReadAllLines(fileName)
-            .ToList();
+        lock (replayHistoryLock)
+        {
+            if (!File.Exists(fileName))
+                return new List<string>();
+            return File.ReadAllLines(fileName).ToList();
+        }
     }
 
     private void AddReplayToList(string title)
     {
-        if (ReplayOlderAfterRecentExhausted)
+        lock (replayHistoryLock)
         {
-            var history = replays.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var library = GetCandidateEntries(GetReplayDirectoryPath()).ToList();
-            // Begin another rotation only after every saved episode has been selected.
-            // Keep snapshot/selection reads free of history mutations.
-            if (library.Count > 0 && library.All(entry => history.Contains(entry.slug)))
-                replays.Clear();
+            if (ReplayOlderAfterRecentExhausted)
+            {
+                var history = replays.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var library = GetCandidateEntries(GetReplayDirectoryPath()).ToList();
+                // Begin another rotation only after every saved episode has been selected.
+                if (library.Count > 0 && library.All(entry => history.Contains(entry.slug)))
+                    replays.Clear();
+            }
+            replays.Add(title);
+            var snapshot = replays.Distinct().TakeLast(ReplayRate).ToArray();
+            string temporaryPath = null;
+            try
+            {
+                var destination = Path.GetFullPath(fileName);
+                temporaryPath = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                // Same-directory staging keeps publication on the same filesystem.
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew,
+                    FileAccess.Write, FileShare.None))
+                {
+                    using (var writer = new StreamWriter(stream, System.Text.Encoding.UTF8, 1024, true))
+                    {
+                        foreach (var slug in snapshot)
+                            writer.WriteLine(slug);
+                        writer.Flush();
+                    }
+                    stream.Flush(true);
+                }
+                publishReplayHistory(temporaryPath, destination);
+            }
+            catch (Exception error)
+            {
+                // Continue free replay with in-memory history; a later update retries the
+                // whole snapshot. Never truncate/delete the last committed destination.
+                Debug.LogWarning($"FolderSource replay history write failed for '{fileName}': {error.Message}");
+            }
+            finally
+            {
+                if (temporaryPath != null)
+                {
+                    try { if (File.Exists(temporaryPath)) File.Delete(temporaryPath); }
+                    catch (Exception error)
+                    {
+                        Debug.LogWarning($"FolderSource replay history staging cleanup failed: {error.Message}");
+                    }
+                }
+            }
         }
-        replays.Add(title);
-        File.WriteAllLinesAsync(fileName, replays
-            .Distinct()
-            .TakeLast(ReplayRate)
-            .ToList());
+    }
+
+    private static void PublishReplayHistory(string temporaryPath, string destination)
+    {
+        if (File.Exists(destination))
+            // If replacement is unsupported, fail explicitly and preserve the old file.
+            // A delete-then-move fallback would expose missing/partial committed history.
+            File.Replace(temporaryPath, destination, null);
+        else
+            File.Move(temporaryPath, destination);
     }
 
     private void SubscribeToQueueEmpty()
@@ -523,7 +576,9 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private IReadOnlyList<ReplayManifestEntry> GetNextReplayCandidates(IEnumerable<ReplayManifestEntry> entries)
     {
         var ranked = RankReplayCandidates(entries).ToList();
-        var recentHistory = replays.Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        HashSet<string> recentHistory;
+        lock (replayHistoryLock)
+            recentHistory = replays.Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (ReplayOlderAfterRecentExhausted)
         {
             var now = replayClock();
@@ -887,3 +942,4 @@ public sealed class ReplayStatusRecord
     public bool eligibleNow;
     public int nextPlayOrder;
 }
+
