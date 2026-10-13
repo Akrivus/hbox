@@ -106,3 +106,8 @@ spacedrivel.json
 /Tests/Discord/obj/
 
 google-credentials.json
+
+# Standalone saved-episode replay regression harness
+!/Tests/Replay/ReplayTests.csproj
+/Tests/Replay/bin/
+/Tests/Replay/obj/

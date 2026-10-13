@@ -1,0 +1,10 @@
+[
+  {
+    "Type": "folder",
+    "ReplayDirectory": "PBNN",
+    "ReplayRate": 80,
+    "ReplaysPerBatch": 1,
+    "MaxReplayAgeInMinutes": 1440,
+    "ReplayOlderAfterRecentExhausted": true
+  }
+]

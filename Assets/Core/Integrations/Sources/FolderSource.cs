@@ -19,6 +19,10 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     public int ReplayRate = 80;
     public int ReplaysPerBatch = 20;
     public int MaxReplayAgeInMinutes = 1440;
+    public bool ReplayOlderAfterRecentExhausted;
+
+    // Injectable clock for deterministic saved-library regression tests.
+    private Func<DateTimeOffset> replayClock = () => DateTimeOffset.Now;
 
     private List<string> replays = new List<string>();
     private string fileName;
@@ -53,6 +57,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         ReplayRate = c.ReplayRate;
         ReplaysPerBatch = c.ReplaysPerBatch;
         MaxReplayAgeInMinutes = c.MaxReplayAgeInMinutes;
+        ReplayOlderAfterRecentExhausted = c.ReplayOlderAfterRecentExhausted;
 
         if (MaxReplayAgeInMinutes < 1)
             MaxReplayAgeInMinutes = 1440 * 365;
@@ -252,6 +257,15 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private void AddReplayToList(string title)
     {
+        if (ReplayOlderAfterRecentExhausted)
+        {
+            var history = replays.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var library = GetCandidateEntries(GetReplayDirectoryPath()).ToList();
+            // Begin another rotation only after every saved episode has been selected.
+            // Keep snapshot/selection reads free of history mutations.
+            if (library.Count > 0 && library.All(entry => history.Contains(entry.slug)))
+                replays.Clear();
+        }
         replays.Add(title);
         File.WriteAllLinesAsync(fileName, replays
             .Distinct()
@@ -323,7 +337,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         {
             entry.slug = chat.FileName;
             entry.title = chat.Title ?? chat.FileName ?? string.Empty;
-            entry.generatedAt = DateTimeOffset.Now.ToString("O");
+            entry.generatedAt = replayClock().ToString("O");
             entry.replayEligibleAt = entry.generatedAt;
             entry.source = chat.Idea?.Source ?? string.Empty;
             entry.voteScore = CalculateVoteScore(entry.upVotes, entry.downVotes);
@@ -336,7 +350,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         if (chat == null || boundContext == null || chat.Key != boundContext.Key || chat.NewEpisode)
             return;
 
-        var now = DateTimeOffset.Now;
+        var now = replayClock();
         UpsertManifestEntry(chat.FileName, entry =>
         {
             entry.slug = chat.FileName;
@@ -475,11 +489,14 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerable<ReplayManifestEntry> GetCandidateEntries(string directoryPath)
     {
-        var cutoff = DateTimeOffset.Now.AddMinutes(-MaxReplayAgeInMinutes);
+        var cutoff = replayClock().AddMinutes(-MaxReplayAgeInMinutes);
         var entries = manifest.entries
             .Where(e => !string.IsNullOrWhiteSpace(e.slug))
             .Where(e => File.Exists(Path.Combine(directoryPath, $"{e.slug}.json")))
             .ToList();
+
+        if (ReplayOlderAfterRecentExhausted)
+            return entries;
 
         var recent = entries
             .Where(e => ParseTimestamp(e.generatedAt) >= cutoff)
@@ -490,7 +507,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private IEnumerable<ReplayManifestEntry> RankReplayCandidates(IEnumerable<ReplayManifestEntry> entries)
     {
-        var now = DateTimeOffset.Now;
+        var now = replayClock();
         var ranked = entries
             .OrderBy(e => ParseTimestamp(e.replayEligibleAt) > now ? 1 : 0)
             .ThenByDescending(e => ComputePriorityScore(e, now, MaxReplayAgeInMinutes / 60f))
@@ -507,6 +524,21 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     {
         var ranked = RankReplayCandidates(entries).ToList();
         var recentHistory = replays.Distinct().ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (ReplayOlderAfterRecentExhausted)
+        {
+            var now = replayClock();
+            var eligible = ranked.Where(entry => ParseTimestamp(entry.replayEligibleAt) <= now).ToList();
+            // Cooldowns remain a preference, as in the legacy selector. Use cooling
+            // episodes only when the entire library is cooling rather than going silent.
+            var pool = eligible.Count > 0 ? eligible : ranked;
+            var unseen = pool.Where(entry => !recentHistory.Contains(entry.slug)).ToList();
+            if (unseen.Count > 0)
+                pool = unseen;
+
+            var cutoff = now.AddMinutes(-MaxReplayAgeInMinutes);
+            // Stable ordering retains audience-vote ranking within each age tier.
+            return pool.OrderBy(entry => ParseTimestamp(entry.generatedAt) >= cutoff ? 0 : 1).ToList();
+        }
         var unplayed = ranked
             .Where(entry => !recentHistory.Contains(entry.slug))
             .ToList();
@@ -561,7 +593,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             return;
 
         var path = GetReplayDirectoryPath();
-        var now = DateTimeOffset.Now;
+        var now = replayClock();
         var snapshot = GetNextReplayCandidates(GetCandidateEntries(path))
             .Select(e => BuildReplayStatusRecord(e, now))
             .Where(r => r != null)
@@ -624,7 +656,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
 
     private ReplayStatusRecord BuildReplayStatusRecord(ReplayManifestEntry entry)
     {
-        return BuildReplayStatusRecord(entry, DateTimeOffset.Now);
+        return BuildReplayStatusRecord(entry, replayClock());
     }
 
     private ReplayStatusRecord BuildReplayStatusRecord(ReplayManifestEntry entry, DateTimeOffset now)
@@ -668,7 +700,7 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
     private ReplayStatusRecord ApplyVoteInternal(string slug, int upDelta, int downDelta, string source, string messageId)
     {
         ReplayStatusRecord result = null;
-        var now = DateTimeOffset.Now.ToString("O");
+        var now = replayClock().ToString("O");
 
         UpsertManifestEntry(slug, entry =>
         {

@@ -1,0 +1,44 @@
+{
+  "entries": [
+    {
+      "slug": "today-high",
+      "title": "Saved fixture: today-high",
+      "generatedAt": "2026-10-13T09:00:00Z",
+      "replayEligibleAt": "2026-10-13T09:00:00Z",
+      "upVotes": 3,
+      "downVotes": 0,
+      "voteScore": 3,
+      "timesReplayed": 0
+    },
+    {
+      "slug": "today-low",
+      "title": "Saved fixture: today-low",
+      "generatedAt": "2026-10-13T10:00:00Z",
+      "replayEligibleAt": "2026-10-13T10:00:00Z",
+      "upVotes": 0,
+      "downVotes": 0,
+      "voteScore": 0,
+      "timesReplayed": 0
+    },
+    {
+      "slug": "yesterday-high",
+      "title": "Saved fixture: yesterday-high",
+      "generatedAt": "2026-10-12T08:00:00Z",
+      "replayEligibleAt": "2026-10-12T08:00:00Z",
+      "upVotes": 100,
+      "downVotes": 0,
+      "voteScore": 100,
+      "timesReplayed": 0
+    },
+    {
+      "slug": "yesterday-low",
+      "title": "Saved fixture: yesterday-low",
+      "generatedAt": "2026-10-12T08:30:00Z",
+      "replayEligibleAt": "2026-10-12T08:30:00Z",
+      "upVotes": 0,
+      "downVotes": 0,
+      "voteScore": 0,
+      "timesReplayed": 0
+    }
+  ]
+}

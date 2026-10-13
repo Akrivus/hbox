@@ -125,7 +125,9 @@ Start with a 24-hour preferred age, a larger remembered history, and a small rep
 
 Completion check: fixtures from today and yesterday establish the replay order, today's news can be rewatched, and older material remains playable. A completely empty library uses a simple waiting state. No strict expiration feature is required.
 
-Session boundary: configuration and a manual replay sweep first; change selection code only for an observed mismatch with this policy.
+N3 source implementation: `ReplayOlderAfterRecentExhausted` is an opt-in folder setting; `pbnn.example.json` supplies the PBNN-only 24-hour, history-80, batch-one configuration. Recent bulletins lead each remembered rotation, older saved files become selectable after recent exhaustion, and a completed library rotation can restart. Existing vote ranking remains within each age tier; eligible files precede cooling files, with an all-cooling fallback. Other channels retain the legacy policy when the flag is omitted. See `Docs/PBNNReplayChecks.md` and `Tests/Replay` for deterministic saved-file checks and the outstanding Unity sweep. No N2 source-persistence or live-ingestion changes are included.
+
+The mismatch was established from source inspection and deterministic fixtures, not a reproduced live Unity failure. Local configuration must be merged and the Unity playback/date-display checks remain pending.
 
 ### N4a Accept submitted screenshots
 
