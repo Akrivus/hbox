@@ -157,6 +157,14 @@ static class Tests
         capture.Completed(unknown.Complete(now.AddSeconds(1), 101));
         Check(capture.Snapshot().Length == 2 && capture.Snapshot()[1].SourceInterruptId == null,
             "ordinary match-time host dialogue carries chat provenance without invented packet ID");
+        var silent = new DialoguePlayback("polbots", "silent", 0, null, null, "Scotland", "   ", null, now, 100);
+        capture.Started(silent);
+        capture.Completed(silent.Complete(now.AddSeconds(1), 101));
+        Check(capture.Snapshot().Length == 2, "action-only or blank spoken text cannot become commentary");
+        var anonymous = new DialoguePlayback("polbots", "anonymous", 0, null, null, null, "No!", null, now, 100);
+        capture.Started(anonymous);
+        capture.Completed(anonymous.Complete(now.AddSeconds(1), 101));
+        Check(capture.Snapshot().Length == 2, "missing speaker cannot become attributed commentary");
         var interrupted = new DialoguePlayback("polbots", "interrupted", 1, null, null, "France", "Wait!", null, now, 100);
         capture.Started(interrupted);
         capture.EndMatch();
