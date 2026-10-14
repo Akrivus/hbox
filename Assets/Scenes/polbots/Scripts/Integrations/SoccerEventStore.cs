@@ -43,6 +43,26 @@ public sealed class SoccerMatchReport
     public DateTimeOffset CompletedAt { get; set; }
     public string RosterContext { get; set; }
     public string[] KeyEvents { get; set; }
+
+    // Subjective aired commentary; never an authoritative result or match event.
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public SoccerReactionRecord[] Reactions { get; set; }
+}
+
+public sealed class SoccerReactionRecord
+{
+    public string MatchId { get; set; }
+    public string PlaybackId { get; set; }
+    public string Speaker { get; set; }
+    public string SpokenText { get; set; }
+    public string OriginalDialogue { get; set; }
+    public string SourceChatId { get; set; }
+    public int SourceNodeIndex { get; set; }
+    public string SourceInterruptId { get; set; }
+    public DateTimeOffset StartedAt { get; set; }
+    public DateTimeOffset CompletedAt { get; set; }
+    public double StartedDspTime { get; set; }
+    public double CompletedDspTime { get; set; }
 }
 
 // Shared recurrence vocabulary: interval, or weekly wall-clock slots in a named timezone.

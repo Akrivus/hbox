@@ -112,6 +112,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
     private Rect directCameraRect;
     private RenderTexture directCameraTexture;
     private SoccerEventStore eventStore;
+    private readonly SoccerReactionCapture reactionCapture = new SoccerReactionCapture();
+    private ChatManager reactionPlaybackManager;
     private string scheduledEventId;
     private string completedMatchId;
     private bool scheduleError;
@@ -303,6 +305,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
         UnbindContextEvents();
+        BindReactionPlayback(null);
 
         if (announcerEmitBound)
         {
@@ -397,8 +400,37 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         // A new ID is needed to retry; existing generated replays must not start it again.
     }
 
+    private void BindReactionPlayback(ChatManager manager)
+    {
+        if (reactionPlaybackManager == manager) return;
+        if (reactionPlaybackManager != null)
+        {
+            reactionPlaybackManager.OnDialoguePlaybackStarted -= OnReactionStarted;
+            reactionPlaybackManager.OnDialoguePlaybackCompleted -= OnReactionCompleted;
+        }
+        reactionPlaybackManager = manager;
+        if (manager != null)
+        {
+            manager.OnDialoguePlaybackStarted += OnReactionStarted;
+            manager.OnDialoguePlaybackCompleted += OnReactionCompleted;
+        }
+    }
+
+    private void OnReactionStarted(DialoguePlayback playback)
+    {
+        if (OwnsCurrentContext && isActiveAndEnabled && completedMatchId != currentMatchId)
+            reactionCapture.Started(playback);
+    }
+
+    private void OnReactionCompleted(DialoguePlayback playback)
+    {
+        if (OwnsCurrentContext && isActiveAndEnabled && completedMatchId != currentMatchId)
+            reactionCapture.Completed(playback);
+    }
+
     private void TryRegisterRuntimeBindings()
     {
+        BindReactionPlayback(ChatManager.Instance);
         if (!configRegistered)
         {
             var context = GetComponentInParent<ChatManagerContext>() ?? ChatManagerContext.Current;
@@ -629,6 +661,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         lastGameTime = Time.time;
         gameEventLog = string.Empty;
         matchHighlights.Clear();
+        reactionCapture.BeginMatch(currentMatchId, boundContext.Key);
         DeleteSoccerDiscordMessages();
         matchStateService.BeginMatch(currentMatchId, homeActor, awayActor, rosterContext);
         OperatorTelemetry.CaptureMemorySnapshot("soccer_load_started");
@@ -1188,10 +1221,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
                 Home = homeActor?.Name, Away = awayActor?.Name,
                 HomeScore = MatchManager.Current.homeTeamScore, AwayScore = MatchManager.Current.awayTeamScore,
                 CompletedAt = DateTimeOffset.Now, RosterContext = rosterContext,
-                KeyEvents = matchHighlights.ToArray()
+                KeyEvents = matchHighlights.ToArray(), Reactions = reactionCapture.Snapshot()
             });
         }
         catch (Exception error) { Debug.LogError($"Soccer match report could not be saved: {error}"); }
+        reactionCapture.EndMatch();
 
         var finishedId = currentMatchId;
         var snapshot = BuildContinuitySnapshot();
@@ -1414,6 +1448,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         gameOnStartQueued = false;
         startedMatchId = null;
         currentMatchId = null;
+        reactionCapture.EndMatch();
         scheduledEventId = null;
         matchStateService.EndMatch();
         announcerService?.EndMatch();

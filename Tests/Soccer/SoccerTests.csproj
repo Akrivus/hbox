@@ -9,6 +9,8 @@
     <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerRosterService.cs" />
     <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerEventStore.cs" />
     <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerModeMetadata.cs" />
+    <Compile Include="../../Assets/Core/DataModels/DialoguePlayback.cs" />
+    <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerReactionCapture.cs" />
     <Compile Include="SoccerTests.cs" />
     <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>
   </ItemGroup>

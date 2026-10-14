@@ -115,7 +115,7 @@ For visuals, capture a small bounded number of screenshots from the actual match
 
 Use firsthand images when reporting the HBOx event. AI reconstructions may be used for comedy, visibly identified as reconstructions so they do not appear to be captured footage. For real-world stories, keep factual reporting tied to preserved sources; the anchor can be unreliable or theatrical without silently inventing facts or presenting fabricated visuals as evidence. No blanket accuracy constraint is imposed on fictional character reactions.
 
-Completion check: attach one exact played reaction and one real screenshot to a report, reload it, and resolve both to their original match and source. Later show the screenshot inset and attributed quote in a PBNN fixture bulletin. Automatic event capture, quote selection, and broadcast rendering can be separate afternoon tasks. This enrichment is specified, not implemented.
+Completion check: attach one exact played reaction and one real screenshot to a report, reload it, and resolve both to their original match and source. Later show the screenshot inset and attributed quote in a PBNN fixture bulletin. Automatic event capture, quote selection, and broadcast rendering can be separate afternoon tasks. Dialogue capture and persistence are implemented: full lines observed completing on the audio source are stored separately in optional `Reactions` records. Historical reports without that field remain supported. See `Docs/SoccerDialogueProvenance.md` for the boundary, standalone regressions, and outstanding Unity verification. Screenshot capture, quote selection, PBNN ingestion, and rendering remain separate work.
 
 ### N3 Bulletin replay configuration
 

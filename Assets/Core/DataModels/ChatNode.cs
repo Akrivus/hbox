@@ -21,6 +21,11 @@ public class ChatNode
     public string Thoughts { get; set; }
     public string Notes { get; set; }
 
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string SourceMatchId { get; set; }
+    [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+    public string SourceInterruptId { get; set; }
+
     public Reaction[] Reactions { get; set; }
     public bool Async { get; set; }
     public float Delay { get; set; } = 0;

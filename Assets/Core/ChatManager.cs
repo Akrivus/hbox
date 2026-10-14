@@ -46,6 +46,8 @@ public class ChatManager : MonoBehaviour
     public event Action<Chat, ActorController> OnActorRemoved;
 
     public event Action<ChatNode> OnChatNodeActivated;
+    public event Action<DialoguePlayback> OnDialoguePlaybackStarted;
+    public event Action<DialoguePlayback> OnDialoguePlaybackCompleted;
 
     public event Action<ChatManagerContext> OnContextChanged;
     public event Action OnPaused;
@@ -71,6 +73,7 @@ public class ChatManager : MonoBehaviour
     private int playbackGeneration = 0;
     private DiscordPostedMessage nowPlayingDiscordMessage;
     private bool lastPlayInterrupted = false;
+    private string runtimeChatId;
     private ChatNode activeNode;
     private ActorController activeActor;
 
@@ -288,6 +291,7 @@ public class ChatManager : MonoBehaviour
             yield break;
 
         NowPlaying = chat;
+        runtimeChatId = "runtime-" + Guid.NewGuid().ToString("N");
         OperatorTelemetry.CaptureMemorySnapshot("episode_started");
 
         var activeSpawnPoints = GetReadySpawnPointManagers(context);
@@ -381,7 +385,27 @@ public class ChatManager : MonoBehaviour
         }
         activeNode = node;
         activeActor = actor;
-        yield return actor.Activate(node);
+        var sourceChatId = string.IsNullOrWhiteSpace(chat.FileName)
+            ? runtimeChatId : chat.FileName;
+        var nodeIndex = chat.Nodes.IndexOf(node);
+        var sourceMatchId = node.SourceMatchId;
+        var sourceInterruptId = node.SourceInterruptId;
+        DialoguePlayback playback = null;
+        yield return actor.Activate(node,
+            started =>
+            {
+                playback = new DialoguePlayback(expectedKey, sourceChatId, nodeIndex,
+                    sourceMatchId, sourceInterruptId, node.Actor?.Name, node.Say,
+                    node.OriginalText ?? node.Text, DateTimeOffset.UtcNow, started);
+                SafeInvoke(OnDialoguePlaybackStarted, playback, nameof(OnDialoguePlaybackStarted));
+            },
+            finished =>
+            {
+                if (playback != null)
+                    SafeInvoke(OnDialoguePlaybackCompleted,
+                        playback.Complete(DateTimeOffset.UtcNow, finished), nameof(OnDialoguePlaybackCompleted));
+            },
+            () => NowPlaying == chat && IsPlaybackCurrent(chat, expectedKey, generation) && !StopPlaying(chat));
         if (activeNode != node)
             yield break;
 

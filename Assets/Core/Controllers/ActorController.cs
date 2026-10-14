@@ -39,6 +39,7 @@ public class ActorController : MonoBehaviour
     private float talkTime = 0.0f;
     private float averageVolume = 1.0f;
     private int activationVersion;
+    private int voicePlaybackVersion;
 
     public ActorContext Context
     {
@@ -106,7 +107,8 @@ public class ActorController : MonoBehaviour
         OnSentimentUpdate?.Invoke(sentiment);
     }
 
-    public IEnumerator Activate(ChatNode node)
+    public IEnumerator Activate(ChatNode node, Action<double> playbackStarted = null,
+        Action<double> playbackCompleted = null, Func<bool> playbackIsCurrent = null)
     {
         var activation = activationVersion;
         var delay = node.Delay;
@@ -132,8 +134,12 @@ public class ActorController : MonoBehaviour
             yield return null;
         }
 
+        if (activation != activationVersion || ChatManager.SkipToEnd ||
+            !(playbackIsCurrent?.Invoke() ?? true)) yield break;
         foreach (var subNode in sub_Nodes)
             subNode.Activate(node);
+        if (activation != activationVersion || ChatManager.SkipToEnd ||
+            !(playbackIsCurrent?.Invoke() ?? true)) yield break;
 
         var clip = node.AudioClip;
         if (clip == null)
@@ -143,6 +149,17 @@ public class ActorController : MonoBehaviour
         {
             voice.clip = clip;
             voice.Play();
+            var playbackVersion = ++voicePlaybackVersion;
+            // Observe audio independently of confidence timing and Async node scheduling.
+            if (voice.isPlaying && !voice.loop && voice.pitch > 0f &&
+                !voice.mute && voice.volume > 0f && AudioListener.volume > 0f)
+            {
+                var started = AudioSettings.dspTime;
+                var pitch = voice.pitch;
+                playbackStarted?.Invoke(started);
+                StartCoroutine(ObserveDialogueAudio(clip, activation, playbackVersion, pitch, started,
+                    playbackCompleted, playbackIsCurrent));
+            }
         }
 
         averageVolume = 1.0f;
@@ -166,6 +183,24 @@ public class ActorController : MonoBehaviour
                 seconds -= Time.deltaTime;
                 yield return null;
             }
+        }
+    }
+
+    private IEnumerator ObserveDialogueAudio(AudioClip clip, int activation, int playbackVersion, float pitch,
+        double started, Action<double> completed, Func<bool> playbackIsCurrent)
+    {
+        var boundary = new DialogueAudioCompletion(started, (double)clip.samples / clip.frequency / pitch);
+        while (!boundary.Ended)
+        {
+            yield return null;
+            var valid = this != null && isActiveAndEnabled && voice != null &&
+                voice.clip == clip && !voice.loop && voice.pitch == pitch &&
+                !voice.mute && voice.volume > 0f && AudioListener.volume > 0f &&
+                activation == activationVersion && playbackVersion == voicePlaybackVersion && !ChatManager.SkipToEnd &&
+                (playbackIsCurrent?.Invoke() ?? true);
+            var dspTime = AudioSettings.dspTime;
+            if (boundary.Observe(voice != null && voice.isPlaying, valid, dspTime))
+                completed?.Invoke(dspTime);
         }
     }
 

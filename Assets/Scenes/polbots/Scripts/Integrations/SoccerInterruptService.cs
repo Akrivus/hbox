@@ -820,6 +820,11 @@ public sealed class SoccerInterruptService
             return false;
 
         RemoveSupersededInterruptNodes(packet);
+        foreach (var node in packet.Nodes)
+        {
+            node.SourceMatchId = packet.MatchId;
+            node.SourceInterruptId = packet.PacketId;
+        }
 
         return ChatManager.Instance != null &&
             ChatManager.Instance.InjectNodes(ChatManager.Instance.NowPlaying, packet.Nodes);

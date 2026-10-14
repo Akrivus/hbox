@@ -54,6 +54,7 @@ static class Tests
             "completed report releases next event without replaying old event");
         var report = Newtonsoft.Json.JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(Path.Combine(directory, "reports", "match-1.json")));
         Check(report.HomeScore == 2 && report.CompletedAt == now && report.ScheduledEventId == due.Id, "report survives serialization");
+        ReactionChecks(store, directory, now);
         var badId = false;
         try { store.SaveReport(new SoccerMatchReport { MatchId = "../outside" }); }
         catch (ArgumentException) { badId = true; }
@@ -121,6 +122,75 @@ static class Tests
         Console.WriteLine("4 soccer metadata checks passed.");
         Console.WriteLine("3 postgame match eligibility checks passed.");
     }
+    static void ReactionChecks(SoccerEventStore store, string directory, DateTimeOffset now)
+    {
+        var capture = new SoccerReactionCapture();
+        capture.BeginMatch("reaction-match", "polbots");
+        var played = new DialoguePlayback("polbots", "fixture-chat", 7, "reaction-match", "packet-1",
+            "Scotland", "That's my goal! — allegedly.", "[cheers] That's my goal! — allegedly.", now, 100);
+        // Merely generated/activated, or started but interrupted: no completion, no quotation.
+        Check(capture.Snapshot().Length == 0, "generated but unplayed dialogue absent");
+        capture.Started(played);
+        Check(capture.Snapshot().Length == 0, "audio start alone is not an aired quote");
+        var completed = played.Complete(now.AddSeconds(2), 102);
+        capture.Completed(completed);
+        capture.Completed(completed);
+        var reaction = capture.Snapshot().Single();
+        Check(reaction.Speaker == "Scotland" && reaction.SpokenText == played.SpokenText &&
+            reaction.OriginalDialogue == played.OriginalDialogue, "exact spoken and original text retained separately");
+        Check(reaction.MatchId == "reaction-match" && reaction.SourceChatId == "fixture-chat" &&
+            reaction.SourceInterruptId == "packet-1" && reaction.SourceNodeIndex == 7 &&
+            reaction.PlaybackId == played.PlaybackId, "match and source provenance retained once");
+        Check(reaction.StartedAt == now && reaction.CompletedAt == now.AddSeconds(2) &&
+            reaction.StartedDspTime == 100 && reaction.CompletedDspTime == 102, "wall and DSP timing preserved");
+        var unknown = new DialoguePlayback("polbots", "unknown", 0, null, null, "Netherlands", "No!", null, now, 100);
+        capture.Completed(unknown.Complete(now.AddSeconds(1), 101));
+        Check(capture.Snapshot().Length == 1, "completion without active-match start rejected");
+        var unrelated = new DialoguePlayback("RomeBots", "other", 0, null, null, "Livia", "No!", null, now, 100);
+        capture.Started(unrelated);
+        capture.Completed(unrelated.Complete(now.AddSeconds(1), 101));
+        var stale = new DialoguePlayback("polbots", "old", 0, "old-match", "old-packet", "Scotland", "No!", null, now, 100);
+        capture.Started(stale);
+        capture.Completed(stale.Complete(now.AddSeconds(1), 101));
+        Check(capture.Snapshot().Length == 1, "other channels and stale interrupt matches rejected");
+        capture.Started(unknown); // Normal host dialogue inherits the active match at audio start.
+        capture.Completed(unknown.Complete(now.AddSeconds(1), 101));
+        Check(capture.Snapshot().Length == 2 && capture.Snapshot()[1].SourceInterruptId == null,
+            "ordinary match-time host dialogue carries chat provenance without invented packet ID");
+        var interrupted = new DialoguePlayback("polbots", "interrupted", 1, null, null, "France", "Wait!", null, now, 100);
+        capture.Started(interrupted);
+        capture.EndMatch();
+        capture.Completed(interrupted.Complete(now.AddSeconds(2), 102));
+        Check(capture.Snapshot().Length == 0, "late completion after final whistle rejected");
+        capture.BeginMatch("next-match", "polbots");
+        capture.Completed(interrupted.Complete(now.AddSeconds(2), 102));
+        Check(capture.Snapshot().Length == 0, "pending speech cannot migrate into next match");
+        store.SaveReport(new SoccerMatchReport { MatchId = "reaction-match", Home = "Scotland", Away = "Netherlands",
+            HomeScore = 1, AwayScore = 0, CompletedAt = now, KeyEvents = new[] { "Authoritative goal" },
+            Reactions = new[] { reaction } });
+        var path = Path.Combine(directory, "reports", "reaction-match.json");
+        var reloaded = Newtonsoft.Json.JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(path));
+        Check(reloaded.Reactions.Single().SpokenText == played.SpokenText &&
+            reloaded.Reactions[0].OriginalDialogue == played.OriginalDialogue &&
+            reloaded.Reactions[0].SourceInterruptId == "packet-1" && reloaded.Reactions[0].CompletedDspTime == 102 &&
+            reloaded.Reactions[0].StartedAt == now, "reaction payload survives report JSON roundtrip");
+        Check(reloaded.HomeScore == 1 && reloaded.AwayScore == 0 && reloaded.KeyEvents.Single() == "Authoritative goal",
+            "subjective reaction cannot replace score or event data");
+        var legacyPath = Path.Combine(directory, "reports", "historical.json");
+        File.WriteAllText(legacyPath, "{\"MatchId\":\"historical\",\"HomeScore\":3,\"KeyEvents\":[\"Old result\"]}");
+        var legacy = Newtonsoft.Json.JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(legacyPath));
+        Check(legacy.Reactions == null && legacy.HomeScore == 3 && legacy.KeyEvents[0] == "Old result",
+            "historical JSON without reactions remains compatible");
+        Check(!Newtonsoft.Json.JsonConvert.SerializeObject(legacy).Contains("Reactions"), "absent legacy metadata stays optional");
+        store = new SoccerEventStore(directory); // Exercises actual store reload with mixed old/new reports.
+        store.SaveReport(reloaded);
+        store.SaveReport(legacy);
+        Check(Newtonsoft.Json.JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(path)).Reactions.Length == 1 &&
+            Newtonsoft.Json.JsonConvert.DeserializeObject<SoccerMatchReport>(File.ReadAllText(legacyPath)).Reactions == null,
+            "store reload and resave preserve enriched and historical reports");
+        Console.WriteLine("17 soccer reaction provenance checks passed.");
+    }
+
     static void Check(bool value, string name) { if (!value) throw new Exception(name); }
     static void Reject(string json, string name)
     {
