@@ -149,6 +149,8 @@ Depends on N3 and at least one input path (N2b, N4a, or N4). Produce a daily bri
 
 Completion check: trigger two shortened intervals, including one while another channel is on screen. Bulletins save without unexpectedly changing the viewed channel; PBNN later plays them under N3's replay policy.
 
+Production disposition is implemented in `ChatGenerator` (Inspector `Queue For Playback`, default on; explicit `GenerationDisposition.SaveOnly`). Episode persistence is awaited and incoming-file sweeps respect the saved disposition. See `Docs/GenerationDisposition.md` for usage, regression coverage, and outstanding Unity checks. Recurring triggers and live generation/save/replay validation remain outstanding.
+
 Session boundary: first add a generation disposition that saves without queuing, then wire a simple interval trigger. Treat these as two small changes if the shared playback behavior needs broader work. Reuse existing batch scheduling only where its coupling permits.
 
 ### N6 Broadcast graphics and sound

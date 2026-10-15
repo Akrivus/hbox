@@ -196,10 +196,26 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
             return;
 
         var autoQueued = 0;
-        foreach (var slug in discovered.Take(ReplaysPerBatch))
+        foreach (var slug in discovered)
         {
+            if (autoQueued >= ReplaysPerBatch)
+                break;
             if (!CanFeedPlayback())
                 return;
+
+            // Persisted disposition survives inactive sources, reconfiguration and restart.
+            // It affects discovery only; FetchFiles still selects these episodes normally.
+            try
+            {
+                var incoming = await Chat.Load(ReplayDirectory, slug);
+                if (incoming.DeferAutomaticPlayback)
+                    continue;
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"Cannot inspect incoming episode '{slug}': {e.Message}");
+                continue;
+            }
 
             if (await LogThenLoad(slug))
                 autoQueued++;
@@ -217,7 +233,8 @@ public class FolderSource : MonoBehaviour, IConfigurable<FolderConfigs>
         try
         {
             var chat = await Chat.Load(ReplayDirectory, title);
-            if (!CanFeedPlayback())
+            if (!CanFeedPlayback() || chat == null ||
+                !string.Equals(chat.Key, boundContext.Key, StringComparison.OrdinalIgnoreCase))
                 return false;
             AddReplayToList(title);
             ChatManager.Instance.AddToPlayList(chat);

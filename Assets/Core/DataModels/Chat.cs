@@ -16,6 +16,10 @@ public class Chat
     public string FileName { get; set; }
     public string Key { get; set; }
 
+    // Suppresses only incoming-file auto-queueing, never ordinary replay selection.
+    // Missing on historical JSON means false, preserving existing behavior.
+    public bool DeferAutomaticPlayback { get; set; }
+
     public string Title { get; set; }
     public string Synopsis { get; set; }
 
@@ -136,30 +140,43 @@ public class Chat
     [JsonIgnore]
     public ChatNode NextNode => Nodes.FirstOrDefault(n => n.New);
 
-    public async void Save()
+    public async Task Save()
     {
-        if (!_locked) return;
+        if (!_locked)
+            throw new InvalidOperationException("Cannot save an unlocked episode.");
 
         var json = JsonConvert.SerializeObject(this, Formatting.Indented);
-
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var folder = Path.Combine(docs, ManagerContext.Name);
-        if (!Directory.Exists(folder))
-            Directory.CreateDirectory(folder);
-        folder = Path.Combine(folder, $"{FileName}.json");
-
-        var attempts = 0;
-        while (attempts < 3)
-            try
+        var directory = Path.Combine(docs, ManagerContext.Name);
+        Directory.CreateDirectory(directory);
+        var destination = Path.Combine(directory, $"{FileName}.json");
+        // The sweep sees only complete JSON. Staging files cannot match *.json.
+        var staging = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            for (var attempt = 0; ; attempt++)
             {
-                await File.WriteAllTextAsync(folder, json);
-                break;
+                try
+                {
+                    await File.WriteAllTextAsync(staging, json);
+                    if (File.Exists(destination))
+                        File.Replace(staging, destination, null);
+                    else
+                        File.Move(staging, destination);
+                    return;
+                }
+                catch (IOException) when (attempt < 2)
+                {
+                    await Task.Delay(100);
+                }
             }
-            catch (IOException)
-            {
-                attempts++;
-                await Task.Delay(100);
-            }
+        }
+        finally
+        {
+            // Cleanup must not hide the original persistence failure.
+            try { if (File.Exists(staging)) File.Delete(staging); }
+            catch (Exception e) { Debug.LogWarning($"Episode staging cleanup failed: {e.Message}"); }
+        }
     }
 
     public void ReleaseRuntimeAudio()

@@ -57,7 +57,7 @@ public static class PbnnFixtureMenu
             return;
         }
 
-        generator.AddPromptToQueue(File.ReadAllText(FixturePath));
+        generator.AddPromptToQueue(File.ReadAllText(FixturePath), GenerationDisposition.SaveAndPlay);
         Debug.Log("Queued the historical PBNN sports fixture through the normal generation/save/playback pipeline.");
     }
 }

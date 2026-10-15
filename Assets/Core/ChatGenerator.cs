@@ -6,6 +6,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 
+public enum GenerationDisposition
+{
+    SaveAndPlay = 0,
+    SaveOnly = 1
+}
+
 public class ChatGenerator : MonoBehaviour
 {
     public ChatManagerContext ManagerContext => chatManagerContext;
@@ -20,6 +26,13 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField]
     private bool save = true;
 
+    [SerializeField]
+    [Tooltip("Uncheck to save generated episodes for later replay without queueing playback. Save-only always persists the episode.")]
+    private bool queueForPlayback = true;
+
+    private GenerationDisposition DefaultDisposition => queueForPlayback
+        ? GenerationDisposition.SaveAndPlay : GenerationDisposition.SaveOnly;
+
     public string slug => $"{ManagerContext.Key}-{name.Replace(' ', '-').ToLower()}";
     public string href => $"/generate/{slug}";
 
@@ -29,7 +42,7 @@ public class ChatGenerator : MonoBehaviour
     private ChatManagerContext chatManagerContext;
     private bool apiRegistered;
 
-    private ConcurrentQueue<Idea> ideaQueue = new ConcurrentQueue<Idea>();
+    private ConcurrentQueue<GenerationRequest> ideaQueue = new ConcurrentQueue<GenerationRequest>();
 
     private void Start()
     {
@@ -76,39 +89,67 @@ public class ChatGenerator : MonoBehaviour
         IsActive = true;
         do
         {
-            var idea = default(Idea);
-            yield return new WaitUntilTimer(() => ideaQueue.TryDequeue(out idea), 120);
+            var request = default(GenerationRequest);
+            yield return new WaitUntilTimer(() => ideaQueue.TryDequeue(out request), 120);
 
-            if (idea == null)
+            if (request == null)
                 continue;
 
-            yield return GenerateAndPlay(idea).AsCoroutine();
+            yield return GenerateEpisode(request.Idea, request.Disposition).AsCoroutine();
         } while (chatManagerContext != null && chatManagerContext.IsActive);
         IsActive = false;
     }
 
     public void AddIdeaToQueue(Idea idea)
     {
-        ideaQueue.Enqueue(idea);
+        AddIdeaToQueue(idea, DefaultDisposition);
+    }
+
+    public void AddIdeaToQueue(Idea idea, GenerationDisposition disposition)
+    {
+        ValidateDisposition(disposition);
+        ideaQueue.Enqueue(new GenerationRequest { Idea = idea, Disposition = disposition });
+    }
+
+    private sealed class GenerationRequest
+    {
+        public Idea Idea;
+        public GenerationDisposition Disposition;
     }
 
     public void AddPromptToQueue(string prompt)
     {
-        OperatorTelemetry.RecordIdeaReceived(this, prompt);
-        AddIdeaToQueue(new Idea(prompt));
+        AddPromptToQueue(prompt, DefaultDisposition);
     }
 
-    public async Task GenerateAndPlay(Idea idea)
+    public void AddPromptToQueue(string prompt, GenerationDisposition disposition)
     {
+        OperatorTelemetry.RecordIdeaReceived(this, prompt);
+        AddIdeaToQueue(new Idea(prompt), disposition);
+    }
+
+    public Task GenerateAndPlay(Idea idea) => GenerateEpisode(idea, DefaultDisposition);
+
+    public async Task<Chat> GenerateEpisode(Idea idea, GenerationDisposition disposition)
+    {
+        ValidateDisposition(disposition);
+        ResolveManagerContext();
         IsGenerating = true;
         try
         {
             OperatorTelemetry.RecordGenerationStarted(this, idea);
             var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
             await resolver.SaveOutput(idea.Prompt);
-            var chat = await GenerateAndSave(idea);
-            if (chat != null)
+            var chat = await GenerateAndSave(idea, disposition);
+            if (chat != null && disposition == GenerationDisposition.SaveAndPlay)
                 ChatManager.Instance.AddToPlayList(chat);
+            return chat;
+        }
+        catch (Exception e)
+        {
+            OperatorTelemetry.RecordGenerationFailed(this, idea, e);
+            Debug.LogError(e);
+            return null;
         }
         finally
         {
@@ -116,7 +157,7 @@ public class ChatGenerator : MonoBehaviour
         }
     }
 
-    private async Task<Chat> GenerateAndSave(Idea idea)
+    private async Task<Chat> GenerateAndSave(Idea idea, GenerationDisposition disposition)
     {
         UiEventBus.Publish(chatManagerContext, $"Generating idea: {idea.Prompt}");
         var chat = new Chat(idea, chatManagerContext);
@@ -126,8 +167,9 @@ public class ChatGenerator : MonoBehaviour
             var prompt = new PromptResolver(this);
             chat = await Generate(prompt, chat);
             chat.Lock();
-            if (save)
-                chat.Save();
+            chat.DeferAutomaticPlayback = disposition == GenerationDisposition.SaveOnly;
+            if (save || disposition == GenerationDisposition.SaveOnly)
+                await chat.Save();
             UiEventBus.Publish(chatManagerContext, $"Generated new scene: {chat.Title}");
         }
         catch (Exception e)
@@ -206,6 +248,12 @@ public class ChatGenerator : MonoBehaviour
         await Task.WhenAll(tasks);
 
         return chat;
+    }
+
+    private static void ValidateDisposition(GenerationDisposition disposition)
+    {
+        if (disposition != GenerationDisposition.SaveAndPlay && disposition != GenerationDisposition.SaveOnly)
+            throw new ArgumentOutOfRangeException(nameof(disposition));
     }
 
     public void Receive(string message)

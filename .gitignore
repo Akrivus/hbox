@@ -106,3 +106,7 @@ spacedrivel.json
 /Tests/Discord/obj/
 
 google-credentials.json
+
+# Standalone generation disposition regression harness
+!/Tests/Generation/GenerationTests.csproj
+/Tests/Generation/obj/
