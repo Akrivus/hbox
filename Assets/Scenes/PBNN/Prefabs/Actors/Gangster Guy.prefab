@@ -22,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1975240265096882, guid: 764e14f84974d9846a647618224ee0fc, type: 3}
       propertyPath: m_Name
-      value: Gangster
+      value: Gangster Guy
       objectReference: {fileID: 0}
     - target: {fileID: 4412063644657446, guid: 764e14f84974d9846a647618224ee0fc, type: 3}
       propertyPath: m_LocalPosition.x

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Cleaner Woman
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Cleaner Woman
-  Pronouns: he/him, PBNN placeholder anchor
+  Pronouns: she/her
   Name: Cleaner Woman
   Aliases:
   - Cleaner Woman
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: e2aeb78ace9d1884cbb05b290e18f7de, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Laomedeia
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

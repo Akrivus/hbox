@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Hipster Girl
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Hipster Girl
-  Pronouns: 
+  Pronouns: she/her
   Name: Hipster Girl
   Aliases:
   - Hipster Girl
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 53b95511dc6183343bb0571d369c8375, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Zephyr
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

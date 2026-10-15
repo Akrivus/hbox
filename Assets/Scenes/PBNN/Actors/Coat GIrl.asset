@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Coat GIrl
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Coat GIrl
-  Pronouns: 
+  Pronouns: she/her
   Name: Coat GIrl
   Aliases:
   - Coat GIrl
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: ed740acde66ee524b8876466c7a8f0c1, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Sulafat
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Attendant Man
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Attendant Man
-  Pronouns: 
+  Pronouns: he/him
   Name: Attendant Man
   Aliases:
   - Attendant Man
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 6f1bf243f9a5deb4aa6c794d1bfc15df, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Charon
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

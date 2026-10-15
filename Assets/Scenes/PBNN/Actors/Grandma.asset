@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Grandma
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Grandma
-  Pronouns: 
+  Pronouns: she/her
   Name: Grandma
   Aliases:
   - Grandma
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 12a9f9291a347434db8833c33bf8660a, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Gacrux
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

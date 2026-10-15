@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Jacket Girl
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Jacket Girl
-  Pronouns: 
+  Pronouns: she/her
   Name: Jacket Girl
   Aliases:
   - Jacket Girl
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 62ac1705a3bc3034b9b221bc5f9defe4, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Leda
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

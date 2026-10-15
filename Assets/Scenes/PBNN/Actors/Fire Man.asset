@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Fire Man
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Fire Man
-  Pronouns: 
+  Pronouns: he/him
   Name: Fire Man
   Aliases:
   - Fire Man
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: ccfa5941c0e19f94fa3c3f70c5c33d2e, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Alnilam
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

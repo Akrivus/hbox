@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2cfe3f3b46da5314c81efe5fa3e1b95f, type: 3}
-  m_Name: Jock
+  m_Name: Biker Guy
   m_EditorClassIdentifier: Assembly-CSharp::Actor
-  Title: Jock
-  Pronouns: 
-  Name: Jock
+  Title: Biker Guy
+  Pronouns: he/him
+  Name: Biker Guy
   Aliases:
-  - Jock
+  - Biker Guy
+  - Biker
   Players: []
   Neighbor: {fileID: 0}
   IsLegacy: 0
   ColorScheme: 
   Costume: 
-  Prefab: {fileID: 729997719612234744, guid: 67aacfd7dd58732428a8eb2cfa19680d, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Prefab: {fileID: 729997719612234744, guid: 0fc57645c24edf5489273611722a9909, type: 3}
+  Voice: gemini:Algenib
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

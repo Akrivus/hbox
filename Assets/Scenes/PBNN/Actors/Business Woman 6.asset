@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Business Woman 6
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Business Woman 6
-  Pronouns: 
+  Pronouns: she/her
   Name: Business Woman 6
   Aliases:
   - Business Woman 6
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 9ca9ba2c2e4768944b96edd9363d90db, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Despina
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

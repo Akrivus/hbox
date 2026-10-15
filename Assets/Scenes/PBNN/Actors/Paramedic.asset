@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Paramedic
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Paramedic
-  Pronouns: 
+  Pronouns: she/her
   Name: Paramedic
   Aliases:
   - Paramedic
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: e7762e1ae750688439dd82386f3f04e2, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Erinome
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1

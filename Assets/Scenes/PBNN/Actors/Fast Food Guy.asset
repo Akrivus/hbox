@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Fast Food Guy
   m_EditorClassIdentifier: Assembly-CSharp::Actor
   Title: Fast Food Guy
-  Pronouns: 
+  Pronouns: he/him
   Name: Fast Food Guy
   Aliases:
   - Fast Food Guy
@@ -23,8 +23,8 @@ MonoBehaviour:
   ColorScheme: 
   Costume: 
   Prefab: {fileID: 729997719612234744, guid: 9830e67a4b0426448b2ef7e6cabb16fd, type: 3}
-  Voice: en-AU-Standard-D
-  VoiceInstructions: 
+  Voice: gemini:Algenib
+  VoiceInstructions: Speak naturally in clear American English, with conversational pacing and distinct phrasing. Read only the supplied dialogue.
   VoiceModel: 
   VoiceLanguage: en-US
   SpeakingRate: 1
