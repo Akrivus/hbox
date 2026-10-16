@@ -20,6 +20,9 @@ public class ChatGenerator : MonoBehaviour
     [SerializeField]
     private bool save = true;
 
+    [SerializeField]
+    private bool autoQueueNewChats = true;
+
     public string slug => $"{ManagerContext.Key}-{name.Replace(' ', '-').ToLower()}";
     public string href => $"/generate/{slug}";
 
@@ -107,7 +110,7 @@ public class ChatGenerator : MonoBehaviour
             var resolver = new PromptResolver(chatManagerContext, name, "Ideas");
             await resolver.SaveOutput(idea.Prompt);
             var chat = await GenerateAndSave(idea);
-            if (chat != null)
+            if (chat != null && autoQueueNewChats)
                 ChatManager.Instance.AddToPlayList(chat);
         }
         finally
