@@ -316,7 +316,10 @@ Current behavior:
 
 Soccer mode currently depends on the local Football Simulator patches documented in:
 
-- [`FootballSimulatorVendorPatches.md`](C:/Users/akriv/OneDrive/Desktop/HBOx/Docs/FootballSimulatorVendorPatches.md)
+- [`FootballSimulatorVendorPatches.md`](FootballSimulatorVendorPatches.md)
+
+New workstations can reconstruct the complete modified vendor tree from the pinned
+original package using the [FootballSimulator setup bundle](../Tools/FootballSimulator/README.md).
 
 Those patches are part of the current runtime contract. Cleanup work should not silently assume stock vendor behavior.
 

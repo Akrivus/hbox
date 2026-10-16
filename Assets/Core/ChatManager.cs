@@ -46,6 +46,7 @@ public class ChatManager : MonoBehaviour
     public event Action<Chat, ActorController> OnActorRemoved;
 
     public event Action<ChatNode> OnChatNodeActivated;
+    public event Action<string> OnChatNodeInterrupted;
 
     public event Action<ChatManagerContext> OnContextChanged;
     public event Action OnPaused;
@@ -214,7 +215,7 @@ public class ChatManager : MonoBehaviour
             if (!IsPlaybackCurrent(chat, expectedKey, generation))
                 yield break;
 
-            if (!SkipToEnd || chat.ManagerContext.PostMemories)
+            if (chat.RecordedMatchPlayback == null && (!SkipToEnd || chat.ManagerContext.PostMemories))
                 PostChatActorMemories(chat);
 
             completed = true;
@@ -236,6 +237,11 @@ public class ChatManager : MonoBehaviour
 
     private IEnumerator PlayChat(Chat chat, int generation, string expectedKey)
     {
+        if (chat.RecordedMatchPlayback != null)
+        {
+            yield return PlayRecordedMatch(chat, generation, expectedKey);
+            yield break;
+        }
         yield return new WaitUntil(() => !IsPaused);
 
         if (!IsPlaybackCurrent(chat, expectedKey, generation))
@@ -258,6 +264,48 @@ public class ChatManager : MonoBehaviour
         node.New = false;
 
         yield return PlayChat(chat, generation, expectedKey);
+    }
+
+    private IEnumerator PlayRecordedMatch(Chat chat, int generation, string expectedKey)
+    {
+        var clock = chat.RecordedMatchPlayback;
+        var running = new List<Coroutine>();
+        try
+        {
+            var timeout = Time.realtimeSinceStartupAsDouble + 120;
+            while (!clock.StartedAt.HasValue && !clock.Finished && !SkipToEnd && IsPlaybackCurrent(chat, expectedKey, generation))
+            {
+                if (Time.realtimeSinceStartupAsDouble > timeout) { clock.Finished = true; yield break; }
+                yield return null;
+            }
+            foreach (var entry in clock.Nodes)
+            {
+                while (!clock.Finished && !SkipToEnd && IsPlaybackCurrent(chat, expectedKey, generation) &&
+                    Time.timeAsDouble - clock.StartedAt.GetValueOrDefault() < entry.Offset)
+                    yield return null;
+                if (clock.Finished || SkipToEnd || StopPlaying(chat) || !IsPlaybackCurrent(chat, expectedKey, generation)) yield break;
+                if (entry.Kind != "node")
+                    clock.DispatchCue?.Invoke(entry);
+                else
+                {
+                    var node = entry.Node.ToObject<ChatNode>();
+                    // Preserve node delay/actions; dispatch independently of confidence/audio duration.
+                    running.Add(StartCoroutine(Activate(chat, node, generation, expectedKey)));
+                }
+            }
+            while (!clock.Finished && !SkipToEnd && IsPlaybackCurrent(chat, expectedKey, generation) && !StopPlaying(chat))
+                yield return null;
+        }
+        finally
+        {
+            clock.Finished = true;
+            foreach (var coroutine in running)
+                if (coroutine != null) StopCoroutine(coroutine);
+            foreach (var actor in actors)
+                actor?.InterruptActivation();
+            activeNode = null;
+            activeActor = null;
+        }
     }
 
     private IEnumerator InitChat(Chat chat, int generation, string expectedKey)
@@ -399,6 +447,7 @@ public class ChatManager : MonoBehaviour
         if (!string.IsNullOrEmpty(notes) && activeNode.Notes != notes)
             return false;
 
+        SafeInvoke(OnChatNodeInterrupted, notes, nameof(OnChatNodeInterrupted));
         activeActor?.InterruptActivation();
         activeNode.New = false;
         activeNode = null;

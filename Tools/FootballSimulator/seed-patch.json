@@ -1,0 +1,107 @@
+[
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/EngineSettings.cs",
+    "before": "36fc3cfdc6f887d747d1a0fab18d5ae69d9306e714b13f6991e4db6aeb7b84c0",
+    "after": "2a487f433ff21f7fcdb7afd7d0d7786099ce9fdae85ea490e65e01352c9518db"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/MatchManager.cs",
+    "before": "876d844f84ae8f0fe640fdd82be02f11cfb50750027a4ab1423377cb44b70257",
+    "after": "d0c74f90daea1fa7ebe4152415e0116a8bef9b1ab41e7f4b2dbf8d2476667a26"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Ball/Ball.cs",
+    "before": "a06b67df03a4d73d3fcf536b58ca3853f4988c1812cd7da038ef8eff2b016536",
+    "after": "cfe114fb1c6bc3772f70b1d6525a60470a431e63fec3b96519111d034a144d77"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/PlayerBase.cs",
+    "before": "915f9f0a34d337888bd6a142bd109f177391703a2ef5878ed7a5de09fc4daf74",
+    "after": "319fc9e014e81d8deee04710755a1b3a244894fd7a8a5e8cedcd42d0c429d090"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/AbstractTacticalPositioning.cs",
+    "before": "8419a10f3b7e76e2a7b1846138f2454167224aaaad693ccf8d163fdf2a4f4a66",
+    "after": "807b873dce4a829b2cf123d232a8bfc08a789cd6725305d2f0fcb6f1c4101e22"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/CornerBehaviour.cs",
+    "before": "bfcf28d926b5a99afd84654a84a25181fd6a79e0e7ff9babd6700f5d0218a768",
+    "after": "e71fcd913a90a95f0847cf60943fcc6d8b9c28188e0a763756de109e75c2390d"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/CriticalSendBallToSafe.cs",
+    "before": "6e6787269205f910dd6d3855d80019b4e15d888b83949b9168162a20468f862b",
+    "after": "356f7db0fefbc31a558edc8e3d68b87b7dc68764f0f79a3b79b7b5f5819e4488"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/CrossingBehaviour.cs",
+    "before": "9952fb5d7c3156f2d5e47e379fb195a75b29f1e51e33083dee2aa88f643536d9",
+    "after": "6762847f1baab11e61aeffccf54d5a244c865806b70ab4ec6bdcff9312827fb3"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/DribblingBehaviour.cs",
+    "before": "a6c3fa76690da8c082daa6bce6a1613fa6d36beedfc87b6b4e6a189f24d2e858",
+    "after": "3a90855babd0e973db78b1f6fa186a214f8641c8b5a6cb0341fdf940f4c87205"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/SendBallToSafe.cs",
+    "before": "478f8aaa13aa053d281d34cca9827a1788d346ac8c03d9dcad52c3be72e40138",
+    "after": "1b30bc59c5fe5d4624f8e53e60b8e9fc830451981ebda7d87a098f1deb085469"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/GK/GKBallHoldStay.cs",
+    "before": "9db492d16eef6c7a4782d94993c13a22e8711f8c95bfd4547025c83a24924806",
+    "after": "5808ee9a870921e64d10f48763cdeb4bc484f696149809ed72b573c1bc7d91ee"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/GK/GKGoToPenaltyPoint.cs",
+    "before": "511f370a12f6ba688099661196fd1f6c18152ea936797f058200d71c036cbb2c",
+    "after": "8de4c6006a252a6af482ed720af17e55dec167e534eaaeb152060b9793dc53d7"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/GK/GKShieldBehaviour.cs",
+    "before": "502d20319459f3fdcd4e65be34c79bb3955b4a21404153321a82306ebf3274d7",
+    "after": "73f7e8279a950729b730e39284f86d062bc644fbeaa21652d7eab798298c8534"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/InputBehaviours/AbstractInputPassBehaviour.cs",
+    "before": "82a8776289c896e1b17fa8f3bbaefa8997d5275a35ea641ad46699c1f77ddb47",
+    "after": "b97066414770328c93a23106d29aa25a432b0bc5d0596ad4e0a9ac846e59f717"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Systems/TacklingSystem.cs",
+    "before": "88ad8eeaf841660e951e96eb121a846c72e103f6b8c798caa4721c5f63df6a10",
+    "after": "38beba86f21558bf62455e4eac12a87bbcc1ecf1d39516a5ce82a073e4900df3"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Tactics/TeamTactics.cs",
+    "before": "17b249fee9e20b43db978d010596c3d34283457e9b249f383fbb1c5dd46613f6",
+    "after": "f0a0278d15163556aeac1b5881f892bf2c4261c03f70eccab42faafc8f367198"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/GoalNet.cs",
+    "before": "3372aa03eb9f43b90de6ef0c61dd987fe5b4ec17e04e15ae4ab17fe98c6d5da8",
+    "after": "92c69a42c7660191cdab6b39ea1cd8e2df11b8ffae555852aab21a90dc20f3dd"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/GameTeam.cs",
+    "before": "d953aa04563092739d0ac63101546783bc12fdd2b670903247732debdecb4655",
+    "after": "7eab9f09c2cdc516559c9354228b57ed4f36144762694a77972f2c6aaaf8a1eb"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/KickOffBehaviour.cs",
+    "before": "8cf71ef5515dc94ef9b1b9259601f50e6faf6e1ee1cfb30f175403ed44d409d4",
+    "after": "49f2d8668b39f618ef9d7415d26ee7cb034ad1b5b88c0cb782c6989e7c5400b4"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/ThrowInBehaviour.cs",
+    "before": "0c30340dca83de6a3d3273af947f6ab45e7504a09261d141fb47e8f4d7e6c225",
+    "after": "1a71f6d06df7274a2ce6d2418b53757bab4583b54fe4573cb87f0170cb682eaf"
+  },
+  {
+    "path": "Assets/3rdParty/FootballSimulator/Code/MatchEngine/Players/Behaviours/GK/GKPassBehaviour.cs",
+    "before": "ded24f646b7328c7569188e3dddd3d984729eede54495ae50e7e29d18a315e83",
+    "after": "5b65beaad31a5eb2663242b8657899ad207d26b40665292d65f75bf4651b5ce3"
+  }
+]

@@ -23,7 +23,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
-public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
+public partial class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 {
     public static SoccerGameSource Instance;
     public bool IsSceneLoaded => isSceneLoaded;
@@ -337,8 +337,12 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         }
         volume = Mathf.Lerp(volume, 0, Time.deltaTime / fadeOutDuration);
         teamAudio.volume = isGameLoaded ? Mathf.Clamp01(volume) * maxVolume : 0;
+
+        TickMatchRecording();
+
         interruptService?.Tick();
         announcerService?.Tick(interruptService?.HasPendingInterrupt() ?? false);
+
         TickBroadcastWatchdog();
         TickDuplicateSceneSystemSuppressor();
         QueueGameOnStartIfNeeded();
@@ -546,6 +550,12 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             yield break;
 
         isLoadingGame = true;
+        if (addedScenes.Count > 0)
+            yield return UnloadGameScenes();
+        FinishMatchRecording();
+        SoccerSetupSnapshots.Destroy(homeTeam);
+        SoccerSetupSnapshots.Destroy(awayTeam);
+        homeTeam = awayTeam = null;
 
         var availableTeams = (teams ?? Array.Empty<TeamEntry>()).Where(team => team != null && team.Players?.Length > 0).Distinct().ToArray();
         if (availableTeams.Length < 2)
@@ -567,8 +577,27 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             yield break;
         }
 
-        homeTeam = availableTeams.Sample();
-        awayTeam = availableTeams.Except(new[] { homeTeam }).Sample();
+        trigger ??= ChatManager.Instance?.NowPlaying;
+        int setupSeed;
+        try
+        {
+            setupSeed = ReadMatchSeed(trigger);
+        }
+        catch (FormatException error)
+        {
+            SetStartupStatus(error.Message);
+            if (trigger?.RecordedMatchPlayback != null) trigger.RecordedMatchPlayback.Finished = true;
+            ReleaseHostScene();
+            isLoadingGame = false;
+            yield break;
+        }
+
+        var selection = new System.Random(setupSeed);
+        var homeTemplate = availableTeams[selection.Next(availableTeams.Length)];
+        var awayTemplates = availableTeams.Except(new[] { homeTemplate }).ToArray();
+
+        homeTeam = SoccerSetupSnapshots.Clone(homeTemplate);
+        awayTeam = SoccerSetupSnapshots.Clone(awayTemplates[selection.Next(awayTemplates.Length)]);
 
         trigger ??= ChatManager.Instance?.NowPlaying;
         var story = trigger?.Idea?.Prompt ?? string.Empty;
@@ -611,7 +640,14 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         RenameTeam(homeTeam, homeActor, prepared.Names[0]);
         RenameTeam(awayTeam, awayActor, prepared.Names[1]);
         rosterContext = prepared.Context;
+        if (!PrepareMatchRecording(trigger, setupSeed))
+        {
+            ReleaseHostScene();
+            isLoadingGame = false;
+            yield break;
+        }
         currentMatchId = Guid.NewGuid().ToString("N");
+        BeginMatchRecording();
         scheduledEventId = trigger?.Idea?.Source == "soccer-schedule" ? trigger.Idea.Slug : null;
         completedMatchId = null;
         if (scheduledEventId != null)
@@ -620,6 +656,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
             catch (Exception error)
             {
                 Debug.LogError($"Cannot persist scheduled match start: {error}");
+                FinishMatchRecording();
                 ReleaseHostScene();
                 isLoadingGame = false;
                 yield break;
@@ -635,13 +672,12 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         try
         {
-            if (addedScenes.Count > 0)
-                yield return UnloadGameScenes();
             if (!isSceneLoaded)
             {
                 if (!Application.CanStreamedLevelBeLoaded(GameScene))
                 {
                     SetStartupStatus($"Match rejected: scene '{GameScene}' is missing from enabled build scenes");
+                    FinishMatchRecording();
                     ReleaseHostScene();
                     yield break;
                 }
@@ -654,6 +690,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         finally
         {
             isLoadingGame = false;
+            if (!isSceneLoaded && !isStartingGame && !isGameLoaded)
+                FinishMatchRecording();
         }
     }
 
@@ -682,6 +720,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         if (MatchEngineLoader.Current == null)
         {
             Debug.LogWarning("SoccerGameSource.StartGame skipped because MatchEngineLoader was not available after loading the soccer scene.");
+            FinishMatchRecording();
+            ReleaseHostScene();
             yield break;
         }
 
@@ -694,15 +734,23 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         try
         {
-            var match = new MatchCreateRequest(homeTeam, awayTeam);
-            interruptService.BeginMatch(matchStateService, homeActor, awayActor);
-            announcerService?.BeginMatch();
-            StartCoroutine(InjectPregameWhenReady(currentMatchId));
+            SoccerSimulationRandom.Reset(savedMatch.Setup.Seed);
+            var match = new MatchCreateRequest(homeTeam, awayTeam)
+            {
+                aiLevel = (FStudio.MatchEngine.Enums.AILevel)savedMatch.Setup.AiLevel,
+                dayTime = (FStudio.Data.DayTimes)savedMatch.Setup.DayTime
+            };
+            if (!IsSavedReplay)
+            {
+                interruptService.BeginMatch(matchStateService, homeActor, awayActor);
+                announcerService?.BeginMatch();
+                StartCoroutine(InjectPregameWhenReady(currentMatchId));
+            }
 
             yield return MatchEngineLoader.CreateMatch(match).AsCoroutine();
             SuppressUpcomingMatchUi();
             PreserveHostScene();
-            yield return MatchEngineLoader.Current.StartMatchEngine(new UpcomingMatchEvent(match), false, true).AsCoroutine();
+            yield return MatchEngineLoader.Current.StartMatchEngine(new UpcomingMatchEvent(match), savedMatch.Setup.HomeAwayKit, savedMatch.Setup.AwayAwayKit).AsCoroutine();
 
             yield return new WaitForSeconds(1);
 
@@ -714,6 +762,9 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
                 VideoCallUIManager.Instance?.ShareScreenOn();
             ConfigureBroadcastCamera();
             isGameLoaded = true;
+
+            savedMatch.Status = "live";
+            SaveMatchRecording();
             SetStartupStatus("Match live");
             isBroadcastSignalHealthy = true;
             lastBroadcastWatchdogTime = Time.unscaledTime;
@@ -725,6 +776,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         finally
         {
             isStartingGame = false;
+            if (!isGameLoaded)
+            {
+                FinishMatchRecording();
+                ReleaseHostScene();
+            }
         }
     }
 
@@ -760,7 +816,11 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private IEnumerator CloseGame()
     {
+        var closingMatchId = currentMatchId;
         yield return new WaitForSeconds(10);
+        while (currentMatchId == closingMatchId && IsSavedReplay && Time.timeAsDouble - recordingStartedAt < replayDuration)
+            yield return null;
+        if (currentMatchId != closingMatchId) yield break;
         yield return UnloadGame().AsCoroutine();
     }
 
@@ -773,6 +833,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         try
         {
+            FinishMatchRecording();
             interruptService.EndMatch();
             announcerService?.EndMatch();
             if (MatchEngineLoader.Current != null)
@@ -1179,6 +1240,13 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
         interruptService.EndMatch();
         announcerService?.EndMatch();
 
+        CompleteRecordedResult();
+        if (IsSavedReplay)
+        {
+            StartCoroutine(CloseGame());
+            return;
+        }
+
         try
         {
             eventStore?.SaveReport(new SoccerMatchReport
@@ -1188,7 +1256,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
                 Home = homeActor?.Name, Away = awayActor?.Name,
                 HomeScore = MatchManager.Current.homeTeamScore, AwayScore = MatchManager.Current.awayTeamScore,
                 CompletedAt = DateTimeOffset.Now, RosterContext = rosterContext,
-                KeyEvents = matchHighlights.ToArray()
+                KeyEvents = matchHighlights.ToArray(), SavedMatchId = savedMatch?.Id, Seed = savedMatch?.Setup.Seed
             });
         }
         catch (Exception error) { Debug.LogError($"Soccer match report could not be saved: {error}"); }
@@ -1244,7 +1312,8 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
         Emit(log, false);
         if (isGameLoaded && matchHighlights.Count < 100) matchHighlights.Add(log);
-        _ = interruptService.TryInject(matchStateService.BuildSummary(e, log, primaryActor, highPriority));
+        if (!IsSavedReplay)
+            _ = interruptService.TryInject(matchStateService.BuildSummary(e, log, primaryActor, highPriority));
     }
 
     private string BuildGoalLog(GoalScoredEvent e)
@@ -1270,6 +1339,7 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void Emit(string log, bool push = true)
     {
+        if (IsSavedReplay) return;
         if (log.StartsWith("#") || log.StartsWith(":"))
             PostSoccerDiscordMessage(log);
         gameEventLog += log + "\n";
@@ -1399,6 +1469,12 @@ public class SoccerGameSource : MonoBehaviour, IConfigurable<SoccerConfigs>
 
     private void FinalizeSoccerTeardown(string reason)
     {
+        FinishMatchRecording();
+        SoccerSetupSnapshots.Destroy(homeTeam);
+        SoccerSetupSnapshots.Destroy(awayTeam);
+
+        homeTeam = awayTeam = null;
+
         var hadLiveMatchState = isGameLoaded || isSceneLoaded || !string.IsNullOrWhiteSpace(currentMatchId);
 
         ClearBroadcastCamera();

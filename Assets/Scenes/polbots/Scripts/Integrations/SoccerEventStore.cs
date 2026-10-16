@@ -31,6 +31,8 @@ public sealed class SoccerScheduledMatch
 
 public sealed class SoccerMatchReport
 {
+    public string SavedMatchId { get; set; }
+    public int? Seed { get; set; }
     public string SeriesId { get; set; }
     public string TournamentId { get; set; }
     public string MatchId { get; set; }

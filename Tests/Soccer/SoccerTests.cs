@@ -7,6 +7,7 @@ static class Tests
 {
     static async Task Main()
     {
+        SavedMatchTests.Run();
         Check(SoccerModeMetadata.Read("Mode: Soccer", "Mode") == "Soccer", "plain mode");
         Check(SoccerModeMetadata.Read("**Mode:** **Soccer**", "Mode") == "Soccer", "formatted mode");
         Check(SoccerModeMetadata.Read("# Mode: `Soccer`\nHome: **Germany**", "Home") == "Germany", "formatted actor metadata");

@@ -7,6 +7,8 @@ using UnityEngine;
 
 public sealed class SoccerAnnouncerService
 {
+    public event Action<string, AudioClip> OnLinePlayed;
+    
     private const int MaxCachedClips = 24;
 
     public int QueueCount => queue.Count;
@@ -18,13 +20,14 @@ public sealed class SoccerAnnouncerService
     private readonly Dictionary<string, AudioClip> clipCache = new Dictionary<string, AudioClip>();
 
     private AudioSource audioSource;
-    private string voice = "alloy";
+    private string voice = "en-US-Standard-B";
     private int maxQueue = 4;
     private bool enabled = true;
     private bool skipDuringInterrupts;
     private int generationVersion;
     private int pendingGeneration;
     private Task<AudioClip> pendingClipTask;
+    private string pendingLine;
     private bool matchActive;
 
     public SoccerAnnouncerService(TextToSpeechGenerator ttsGenerator)
@@ -38,7 +41,7 @@ public sealed class SoccerAnnouncerService
         enabled = config?.EnableAnnouncer ?? true;
         maxQueue = Mathf.Max(1, config?.MaxAnnouncerQueue ?? 4);
         skipDuringInterrupts = config?.SkipAnnouncerDuringInterrupts ?? false;
-        voice = string.IsNullOrWhiteSpace(config?.AnnouncerVoice) ? "alloy" : config.AnnouncerVoice;
+        voice = string.IsNullOrWhiteSpace(config?.AnnouncerVoice) ? "en-US-Standard-B" : config.AnnouncerVoice;
 
         if (this.audioSource != null)
             this.audioSource.volume = Mathf.Clamp01(config?.AnnouncerVolume ?? 1f);
@@ -108,6 +111,7 @@ public sealed class SoccerAnnouncerService
 
             audioSource.clip = clip;
             audioSource.Play();
+            OnLinePlayed?.Invoke(pendingLine, clip);
             return;
         }
 
@@ -115,8 +119,10 @@ public sealed class SoccerAnnouncerService
             return;
 
         var line = queue.Dequeue();
+
+        pendingLine = line;
         pendingGeneration = generationVersion;
-        pendingClipTask = GetClip(line, pendingGeneration);
+        pendingClipTask = GetClip(pendingLine, pendingGeneration);
     }
 
     private async Task<AudioClip> GetClip(string line, int generation)

@@ -6,6 +6,7 @@ public class SoccerConfigs : IConfig
     public Dictionary<string, string[]> Lines { get; set; } = new Dictionary<string, string[]>();
     public Dictionary<string, string[]> InterruptSeeds { get; set; } = new Dictionary<string, string[]>();
     public int MatchTimeLimit { get; set; } = 10;
+    public int? MatchSeed { get; set; }
     public float TimeBetweenGames { get; set; } = 0;
     public float MaxVolume { get; set; }
     public bool EnableAnnouncer { get; set; } = true;

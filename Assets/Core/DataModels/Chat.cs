@@ -65,6 +65,9 @@ public class Chat
     [JsonIgnore]
     public ChatManagerContext ManagerContext { get; set; }
 
+    [JsonIgnore]
+    public RecordedPlaybackTimeline RecordedMatchPlayback { get; set; }
+
     public Chat(Idea idea, ChatManagerContext context)
     {
         _new = true;

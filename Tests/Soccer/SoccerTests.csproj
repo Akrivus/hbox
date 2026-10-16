@@ -10,6 +10,12 @@
     <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerEventStore.cs" />
     <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerModeMetadata.cs" />
     <Compile Include="SoccerTests.cs" />
+    <Compile Include="SavedMatchTests.cs" />
+    <Compile Include="SetupSnapshotTests.cs" />
+    <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerSetupSnapshots.cs" />
+    <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerSimulationRandom.cs" />
+    <Compile Include="../../Assets/Scenes/polbots/Scripts/Integrations/SoccerSavedMatch.cs" />
+    <Compile Include="../../Assets/Core/DataModels/RecordedPlaybackTimeline.cs" />
     <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>
   </ItemGroup>
 </Project>
