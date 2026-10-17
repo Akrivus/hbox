@@ -31,6 +31,30 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         await GenerateTextToSpeech(null, node);
     }
 
+    // Explicit short auditions share production routing and metering, without automatic retries.
+    public static Task GenerateAudition(ChatNode node, TTSConfigs settings) => GenerateAudition(node, settings, null);
+
+    // Injectable transport for deterministic checks; the default uses the shared production client.
+    internal static async Task GenerateAudition(ChatNode node, TTSConfigs settings, GoogleTtsClient googleClient)
+    {
+        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        if (node?.Actor == null || string.IsNullOrWhiteSpace(node.Say) ||
+            System.Text.Encoding.UTF8.GetByteCount(node.Say.Scrub()) > 500)
+            throw new ArgumentException("Select an actor and a phrase of at most 500 UTF-8 bytes.");
+        if (GoogleTtsClient.IsOpenAiVoice(node.Actor.Voice))
+        {
+            if (string.IsNullOrWhiteSpace(settings.OpenAiApiKey))
+                throw new InvalidOperationException("OpenAI credentials are missing.");
+            var client = new OpenAIClient(new OpenAIAuthentication(settings.OpenAiApiKey));
+            var audio = await GetAudioDataFromOpenAI(node.Say, node.Actor.Voice, null, null, 0, client, settings.OpenAiApiKey);
+            if (audio == null) throw new InvalidOperationException("No audio returned. Check OpenAI credentials.");
+            node.AudioData = audio.AudioData;
+            node.Frequency = audio.Frequency;
+        }
+        else
+            await GenerateWithGoogle(null, node, GoogleTtsClient.HasGeminiPrefix(node.Actor.Voice), 0, settings, true, googleClient);
+    }
+
     private async Task GenerateTextToSpeech(Chat chat, ChatNode node)
     {
         if (node == null || node.HasPlayableAudio)
@@ -66,41 +90,42 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
 
     private static readonly GoogleTtsClient google = new GoogleTtsClient(new HttpClient());
 
-    private async Task GenerateWithGoogle(Chat chat, ChatNode node, bool gemini)
+    private static async Task GenerateWithGoogle(Chat chat, ChatNode node, bool gemini, int maxRetries = 4, TTSConfigs settings = null, bool audition = false, GoogleTtsClient googleClient = null)
     {
+        settings = settings ?? TTS.Settings;
         var voice = gemini ? GoogleTtsClient.NormalizeGeminiVoice(node.Actor.Voice) : node.Actor.Voice;
         var model = gemini
-            ? (string.IsNullOrWhiteSpace(node.Actor.VoiceModel) ? TTS.Settings.GoogleGeminiModel : node.Actor.VoiceModel)
+            ? (string.IsNullOrWhiteSpace(node.Actor.VoiceModel) ? settings.GoogleGeminiModel : node.Actor.VoiceModel)
             : "google-standard-tts";
         var prompt = string.Join("\n", new[] { node.Actor.VoiceInstructions, node.VoiceInstructions }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
         var watch = Stopwatch.StartNew();
         try
         {
-            var audio = await GenerateGoogleAudio(node.Say, voice, model, prompt, node.Actor.VoiceLanguage, gemini);
+            var audio = await GenerateGoogleAudio(node.Say, voice, model, prompt, node.Actor.VoiceLanguage, gemini, maxRetries, settings, googleClient);
             node.AudioData = audio.AudioData;
             node.Frequency = audio.Frequency;
             node.New = true;
-            RecordTtsUsage(chat?.ManagerContext ?? ChatManagerContext.Current, chat?.FileName, model,
+            RecordTtsUsage(audition ? null : chat?.ManagerContext ?? ChatManagerContext.Current, chat?.FileName, model,
                 node.Say, voice, 1, true, watch.ElapsedMilliseconds, string.Empty, prompt, audio);
         }
         catch (Exception e)
         {
-            RecordTtsUsage(chat?.ManagerContext ?? ChatManagerContext.Current, chat?.FileName, model,
+            RecordTtsUsage(audition ? null : chat?.ManagerContext ?? ChatManagerContext.Current, chat?.FileName, model,
                 node.Say, voice, 1, false, watch.ElapsedMilliseconds, e.Message, prompt);
             Debug.LogError(e.Message);
             throw;
         }
     }
 
-    private static async Task<GeneratedAudioData> GenerateGoogleAudio(string text, string voice, string model, string prompt, string language, bool gemini)
+    private static async Task<GeneratedAudioData> GenerateGoogleAudio(string text, string voice, string model, string prompt, string language, bool gemini, int maxRetries = 4, TTSConfigs settings = null, GoogleTtsClient googleClient = null)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(voice))
             throw new ArgumentException("Google TTS requires text and voice.");
         await TTS.WaitForRequestSlot();
         try
         {
-            var bytes = await google.Synthesize(text.Scrub(), voice, model, prompt, language, TTS.Settings, gemini);
+            var bytes = await (googleClient ?? google).Synthesize(text.Scrub(), voice, model, prompt, language, settings ?? TTS.Settings, gemini, maxRetries);
             return new GeneratedAudioData(Convert.ToBase64String(bytes), gemini ? 24000 : 48000);
         }
         finally { TTS.ReleaseRequestSlot(); }
@@ -170,9 +195,9 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
         return audio?.AudioData.ToAudioClip(audio.Frequency);
     }
 
-    private static async Task<GeneratedAudioData> GetAudioDataFromOpenAI(string text, string voice, ChatManagerContext context, string episodeSlug, int attempts)
+    private static async Task<GeneratedAudioData> GetAudioDataFromOpenAI(string text, string voice, ChatManagerContext context, string episodeSlug, int attempts, OpenAIClient clientOverride = null, string apiKeyOverride = null)
     {
-        if (string.IsNullOrEmpty(TTS.OpenAiApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
+        if (string.IsNullOrEmpty(apiKeyOverride ?? TTS.OpenAiApiKey) || string.IsNullOrEmpty(text) || string.IsNullOrEmpty(voice))
             return null;
         Debug.Log("Requesting OpenAI TTS: " + text);
         var stopwatch = Stopwatch.StartNew();
@@ -182,7 +207,7 @@ public class TextToSpeechGenerator : MonoBehaviour, ISubGenerator
             await TTS.WaitForRequestSlot();
             try
             {
-                speechClip = await api.AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
+                speechClip = await (clientOverride ?? api).AudioEndpoint.GetSpeechAsync(new SpeechRequest(text,
                     voice: new OpenAI.Voice(voice),
                     model: new OpenAI.Models.Model("gpt-4o-mini-tts"),
                     responseFormat: SpeechResponseFormat.PCM));

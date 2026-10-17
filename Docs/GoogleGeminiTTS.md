@@ -125,3 +125,7 @@ through a different API and is not compatible with this adapter.
 
 This update changes examples only. The runtime default remains Gemini 2.5 Flash;
 existing local configuration and cast voice assignments are unchanged.
+
+For channel-agnostic A/B auditions without generating an episode, use
+[Actor Voice Auditions](Audio/ActorVoiceAuditions.md) from the HBOX Editor menu.
+Each synthesis requires explicit confirmation; cached playback is free.
