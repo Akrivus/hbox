@@ -1,5 +1,7 @@
 # PBNN P0/P1 Unity handoff
 
+Current audit: see [Studio roadmap — 2026-10-17](PBNNStudioRoadmap.md). The user has now played a working fixture. All five interiors are registered, the inventory has grown to 60 voiced actors, and the next design uses distinct anchor, conversation, production and visual-explanation loops. The initial inventory and casting notes below are implementation history; the current roadmap supersedes their counts, old office references and pending first-play status.
+
 ## Current casting inventory
 
 All 46 PBNN actor ScriptableObjects now use their descriptive filenames as `Name`, `Title` and sole alias. Shared Walt/X aliases were removed. These are provisional feature/interview casting identities; final personalities and voices are still open. Prefab references and asset GUIDs are preserved. The single-host fixture now uses **Business Man 1**, with matching prompts and a repaired scene actor reference. Only that host is registered in the fixture scene; the other inventory actors are not automatically added to the broadcast cast. Earlier Walt references in the initial-shell inventory below describe the original placeholder setup, superseded by this casting update. Old episodes naming Walt will need an explicit migration if they are retained.

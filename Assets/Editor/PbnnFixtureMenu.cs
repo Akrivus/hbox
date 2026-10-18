@@ -29,7 +29,12 @@ public static class PbnnFixtureMenu
     }
 
     [MenuItem("HBOx/PBNN/Queue Fixture Bulletin")]
-    public static void QueueFixture()
+    public static void QueueFixture() => QueueFixture(false);
+
+    [MenuItem("HBOx/PBNN/Queue Media Fixture Bulletin")]
+    public static void QueueMediaFixture() => QueueFixture(true);
+
+    private static void QueueFixture(bool media)
     {
         if (!Application.isPlaying || ChatManagerContext.Current?.Key != "pbnn")
         {
@@ -57,7 +62,17 @@ public static class PbnnFixtureMenu
             return;
         }
 
-        generator.AddPromptToQueue(File.ReadAllText(FixturePath));
+        if (generator.GetComponent<PbnnMediaFixtureGeneration>() == null)
+        {
+            Debug.LogError("The PBNN generator needs PbnnMediaFixtureGeneration to save media with this fixture.");
+            return;
+        }
+        var prompt = File.ReadAllText(FixturePath) + "\n" + PbnnMediaFixtureGeneration.StudioMarker +
+            "\nUse the existing Desk studio location. Do not speak the fixture marker.";
+        if (media)
+            prompt += "\n" + PbnnMediaFixtureGeneration.Marker +
+                "\nWrite at least four separate speaking turns. The first is an opening, the last is a closing. During the middle segment, a local illustration tests the TV and graphics; it is not match footage. Do not speak the fixture marker.";
+        generator.AddPromptToQueue(prompt);
         Debug.Log("Queued the historical PBNN sports fixture through the normal generation/save/playback pipeline.");
     }
 }

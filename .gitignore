@@ -105,4 +105,7 @@ spacedrivel.json
 !/Tests/Discord/DiscordTests.csproj
 /Tests/Discord/obj/
 
+# Standalone PBNN media regression harness
+!/Tests/PBNN/MediaTests.csproj
+
 google-credentials.json

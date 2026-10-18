@@ -108,6 +108,27 @@ class Program
             Check(handler.LegacyRequests == 1 && handler.Refreshes == 1, "Legacy auth changed.");
 
             using var rsa = RSA.Create(2048);
+            var encodedKey = rsa.ExportPkcs8PrivateKey();
+            foreach (var length in new[] { 0, 1, 16, encodedKey.Length - 1 })
+            {
+                try
+                {
+                    GoogleTtsClient.ReadPkcs8RsaParameters(encodedKey.Take(length).ToArray());
+                    throw new Exception("Truncated service-account key accepted.");
+                }
+                catch (CryptographicException) { checks++; }
+            }
+            var wrongAlgorithm = (byte[])encodedKey.Clone();
+            var rsaOid = new byte[] { 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01 };
+            var oidOffset = Enumerable.Range(0, wrongAlgorithm.Length - rsaOid.Length)
+                .First(i => wrongAlgorithm.Skip(i).Take(rsaOid.Length).SequenceEqual(rsaOid));
+            wrongAlgorithm[oidOffset + 8] = 2;
+            try
+            {
+                GoogleTtsClient.ReadPkcs8RsaParameters(wrongAlgorithm);
+                throw new Exception("Non-RSA service-account key accepted.");
+            }
+            catch (CryptographicException) { checks++; }
             File.WriteAllText(credentials, new JObject
             {
                 ["type"] = "service_account", ["client_email"] = "test@example.iam.gserviceaccount.com",

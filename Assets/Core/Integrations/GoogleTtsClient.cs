@@ -244,7 +244,15 @@ public sealed class GoogleTtsClient
             var key = Convert.FromBase64String(pem.Replace("-----BEGIN PRIVATE KEY-----", "").Replace("-----END PRIVATE KEY-----", ""));
             try
             {
-                rsa.ImportPkcs8PrivateKey(key, out _);
+                // Unity Mono exposes ImportPkcs8PrivateKey but throws PlatformNotSupportedException.
+                // Import the standard RSA parameters instead; never send private keys to a helper process.
+                var parameters = ReadPkcs8RsaParameters(key);
+                try { rsa.ImportParameters(parameters); }
+                finally
+                {
+                    foreach (var part in new[] { parameters.D, parameters.P, parameters.Q, parameters.DP, parameters.DQ, parameters.InverseQ })
+                        if (part != null) Array.Clear(part, 0, part.Length);
+                }
                 return unsigned + "." + Base64Url(rsa.SignData(Encoding.UTF8.GetBytes(unsigned), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
             }
             finally { Array.Clear(key, 0, key.Length); }
@@ -252,4 +260,99 @@ public sealed class GoogleTtsClient
     }
 
     private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    // Restricted DER reader for unencrypted PKCS#8 rsaEncryption keys from Google service accounts.
+    internal static RSAParameters ReadPkcs8RsaParameters(byte[] key)
+    {
+        var outer = new KeyDerReader(key);
+        var pkcs8 = outer.Read(0x30);
+        outer.RequireEnd();
+        pkcs8.RequireZeroVersion();
+        var algorithm = pkcs8.Read(0x30);
+        var oid = algorithm.Read(0x06).Bytes();
+        if (!oid.SequenceEqual(new byte[] { 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01 }))
+            throw new CryptographicException("Google service-account private key must be RSA.");
+        if (!algorithm.End) algorithm.Read(0x05).RequireEnd();
+        algorithm.RequireEnd();
+        var privateKey = pkcs8.Read(0x04);
+        pkcs8.RequireEnd();
+        var rsa = privateKey.Read(0x30);
+        privateKey.RequireEnd();
+        rsa.RequireZeroVersion();
+        var modulus = rsa.Integer();
+        var exponent = rsa.Integer();
+        var result = new RSAParameters
+        {
+            Modulus = modulus, Exponent = exponent, D = rsa.Integer(modulus.Length),
+            P = rsa.Integer((modulus.Length + 1) / 2), Q = rsa.Integer((modulus.Length + 1) / 2),
+            DP = rsa.Integer((modulus.Length + 1) / 2), DQ = rsa.Integer((modulus.Length + 1) / 2),
+            InverseQ = rsa.Integer((modulus.Length + 1) / 2)
+        };
+        rsa.RequireEnd();
+        return result;
+    }
+
+    private sealed class KeyDerReader
+    {
+        private readonly byte[] data;
+        private int position;
+        private readonly int end;
+        public bool End => position == end;
+        public KeyDerReader(byte[] data) : this(data, 0, data.Length) { }
+        private KeyDerReader(byte[] data, int start, int end) { this.data = data; position = start; this.end = end; }
+        private byte Next()
+        {
+            if (position >= end) throw new CryptographicException("Truncated service-account private key.");
+            return data[position++];
+        }
+        public KeyDerReader Read(byte tag)
+        {
+            if (Next() != tag) throw new CryptographicException("Invalid service-account private key format.");
+            var first = Next();
+            var length = (int)first;
+            if ((first & 0x80) != 0)
+            {
+                var count = first & 0x7f;
+                if (count == 0 || count > 4) throw new CryptographicException("Invalid private key length.");
+                length = 0;
+                for (var i = 0; i < count; i++)
+                {
+                    if (length > int.MaxValue >> 8) throw new CryptographicException("Invalid private key length.");
+                    length = (length << 8) | Next();
+                }
+            }
+            if (length < 0 || length > end - position) throw new CryptographicException("Truncated service-account private key.");
+            var value = new KeyDerReader(data, position, position + length);
+            position += length;
+            return value;
+        }
+        public byte[] Bytes()
+        {
+            var bytes = new byte[end - position];
+            Buffer.BlockCopy(data, position, bytes, 0, bytes.Length);
+            position = end;
+            return bytes;
+        }
+        public byte[] Integer(int width = 0)
+        {
+            var value = Read(0x02);
+            if (value.End || (value.data[value.position] & 0x80) != 0) throw new CryptographicException("Invalid RSA integer.");
+            while (value.end - value.position > 1 && value.data[value.position] == 0) value.position++;
+            var length = value.end - value.position;
+            if (width == 0) width = length;
+            if (length > width) throw new CryptographicException("Invalid RSA parameter width.");
+            var bytes = new byte[width];
+            Buffer.BlockCopy(data, value.position, bytes, width - length, length);
+            return bytes;
+        }
+        public void RequireZeroVersion()
+        {
+            var version = Integer();
+            if (version.Length != 1 || version[0] != 0) throw new CryptographicException("Unsupported private key version.");
+        }
+        public void RequireEnd()
+        {
+            if (!End) throw new CryptographicException("Unexpected data in service-account private key.");
+        }
+    }
 }

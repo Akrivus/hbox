@@ -2,7 +2,9 @@
 
 PBNN (Polbots News Network) replaces AppyDays as HBOx’s informational broadcast. Start with a saved fixture bulletin, then add independent ingestion pipelines and broadcast presentation. This is an implementation inventory and handoff, not a commitment to build every brainstorm. See [Channel backlog](ChannelBacklog.md) for the wider direction and completed soccer work.
 
-P0/P1 implementation status: the PBNN scene/context, channel/build registration, isolated placeholder Walt actor, fixture prompts/input and editor fixture action are now present. Local channel config enables PBNN. Live Unity generation/save/replay verification is pending; see [PBNN Unity handoff](PBNNUnityHandoff.md) for asset inventory, validation and exact editor steps. P2/P3 are not implemented yet.
+Current status (2026-10-17): the user has successfully played a generated test fixture. Camera angle still needs refinement; replay, skip and channel-return checks are not yet explicitly confirmed. The channel shell, 60 actor/prefab identities with provisional Gemini voices, and single-host prompts are present. The full source/rundown contract and segment director remain unimplemented. See [PBNN Unity handoff](PBNNUnityHandoff.md) for the original implementation history and [current studio roadmap](PBNNStudioRoadmap.md) for the five spaces, prompt audit and next slices.
+
+Media slice status (2026-10-16): one TV and a local headline/source/date overlay are now wired to a versioned saved `pbnn.media.v1` fixture payload, with segment, skip and channel-exit cleanup. This is a bounded media slice of P2/P4, not the full source/rundown contract or four-wall director. See [PBNN media handoff](PBNNMediaHandoff.md) for replay semantics, tests and outstanding Unity verification.
 
 ## First playable milestone
 
@@ -102,9 +104,9 @@ Start with a saved forecast fixture and a static image. Store markers as image-n
 
 ## Anchors and performance
 
-Create a roster of available actor assets with stable IDs, voice settings, role, personality notes, and eligible segment types. Paul can share the schedule with other anchors. Select an anchor or pair when composing the rundown and save that choice; replay should not recast the episode according to today’s rota. Start with an explicit fixture host, then two alternating scheduled slots. Missing cast assets need a known fallback host.
+The inventory now has 60 actor assets with descriptive identities, pronouns and provisional Gemini voices. Develop a fixed anchor ensemble and a separate fixed production crew. Other formats select presenters/guests for their subject. Paul can be a political analyst rather than the sole anchor. Save actor, role and spawn assignments with each rundown; replay should not recast the episode. Start with the working fixture host, then a user-selected anchor pair and lounge fixture. Rotation is optional later work, not the next prerequisite. Missing cast assets need a known fallback host.
 
-User work: choose personalities, models, voice identities and combinations. Runtime work: validate roster IDs, select scheduled hosts, apply prompt profiles, and persist assignment. Avoid elaborate staffing rules until a two-host rotation works. Progressive rigging/IK polish should improve an already watchable performance; begin with existing idle/talk animations and authored poses.
+User work: choose ensemble membership, personalities, relationships and room-specific blocking; audition and refine existing voice assignments. Runtime work: validate cast/spawn capacity, apply format and actor prompt profiles, and persist assignments. Avoid elaborate staffing rules until two formats work in a single bulletin. Progressive rigging/IK polish should improve an already watchable performance; begin with existing idle/talk animations and authored poses.
 
 ## Afternoon-sized implementation inventory
 
@@ -120,7 +122,7 @@ User work: choose personalities, models, voice identities and combinations. Runt
 | P7 Tips text (N4a) | Scoped intake, durable dedup and neutral-source review adapter | Configure one Discord channel and permitted participants | Rejection blocks; accepted tip elevates once |
 | P8 Tips attachments | Store images, extraction boundary and packet linkage | Submit example screenshots | Original and extracted text reload correctly |
 | P9 Optional story votes | Candidate-to-segment selection, expiry and no-vote policy | Choose voting/batch settings | Rejected tips never reach vote; winning item enters one rundown |
-| P10 Anchor rotation | Persisted host rota assignment | Develop two personalities/voices | New slots change host; old bulletin keeps cast |
+| P10 Cast assignments | Persisted fixed-team and presenter/guest assignment; optional rotation later | Choose anchor pair, production crew and performance profiles | New bulletin uses its selected team; replay keeps that cast |
 | P11 Daily production (N5) | Recurrence and save-only disposition if needed | Choose coverage window/time | Background bulletin saves without channel switch |
 | P12 Weather fixture | Forecast packet adapter and static graphic cues | Choose location or internet-weather framing | Location/time/source shown; no invented weather |
 | P13 Interviews/field set | Explicit segment and location routing | Build one two-chair or scenic field-report set | Attributed material plays with intended shot |
@@ -131,7 +133,7 @@ P2 precedes live adapters. P3/P4 can progress with fixtures while ingestion is u
 
 ### Work implementable now
 
-The following work can proceed without final anchor personalities, a finished studio layout, live Discord intake, or weather geography. This is an implementation readiness list; none of these changes is implemented by this document.
+The following table is the original implementation readiness inventory. Parts of P0/P1 and P2/P4 are now implemented as described above. For current next steps and room-specific dependencies, use the [studio roadmap](PBNNStudioRoadmap.md).
 
 | Slice | Implement now | Remaining Unity/user work | Validation |
 | --- | --- | --- | --- |
@@ -142,7 +144,7 @@ The following work can proceed without final anchor personalities, a finished st
 | P4 graphics | Add local headline/caption/image cue handling and media-path resolution | Place the panel and choose fonts/framing | Reload resolves the image; missing images and skip clear the previous image |
 | P6 report acquisition | Add soccer report-to-source conversion and a durable MatchId-based collection index against the existing report route | Inspect the sourced sports segment after P1/P2 | Collect the same report twice with one stored source packet and preserve the actual score |
 
-Recommended next implementation scope: P0/P1 to establish the playable channel, followed by P2/P3 for one saved bulletin with two fixed cubicle shots. P2 contracts and the P6 conversion can be built with fixtures while scene wiring is being confirmed. Keep P4 as a separate visible slice. Save notifications/reservations become necessary when automatic production commits inclusion; they do not block these fixture milestones. Discord gateway changes, recurring production, votes, anchor rotation, weather ingestion and timed transition audio remain later work.
+Recommended next implementation scope: confirm the working desk fixture's framing and lifecycle checks, then add format/cast assignments and a saved rundown/director for desk → lounge → desk. Expand the lounge's host positions as its cast is chosen. Extend media targeting to the board and wall after that handoff works. Save notifications/reservations become necessary when automatic production commits inclusion; they do not block these fixture milestones. Discord gateway changes, recurring production, votes, anchor rotation, weather ingestion and timed transition audio remain later work.
 
 Start with P0/P1, not all ingestion pipelines. Audit the actual workspace and preserve concurrent soccer/UI changes. Use `pbnn` as the proposed context key, checking collisions and exact scene-name conventions before registering it. Reuse AppyDays humanoid assets; leave the archived scene available for reference. Read this guide and ChannelBacklog.md, then produce one playable fixture segment and explicit Unity wiring instructions. Continue code/config work until only asset selection, placement or live editor confirmation requires the user. Do not rewrite soccer or introduce a universal mode framework.
 

@@ -50,6 +50,9 @@ public class RemoteControl : MonoBehaviour
     private int selectedChannel = 0;
     private int currentChannel = -1;
     private int lastChannel = -1;
+    private Coroutine introSequence;
+    private Coroutine transitionWatchdog;
+    private int transitionVersion;
 
     [Header("Overlay")]
     [SerializeField] private CanvasGroup menuGroup;
@@ -259,7 +262,10 @@ public class RemoteControl : MonoBehaviour
         if (zapIcon)
             zapIcon.sprite = entry.icon;
 
-        StartCoroutine(LoadIntroSequence());
+        BeginIntroSequence();
+        var version = ++transitionVersion;
+        if (transitionWatchdog != null) StopCoroutine(transitionWatchdog);
+        transitionWatchdog = StartCoroutine(WatchTransition(version));
 
         if (staticImage)
             StartCoroutine(Fade(staticImage, 1f, 0.05f));
@@ -270,6 +276,9 @@ public class RemoteControl : MonoBehaviour
 
         ChatManager.Instance.SwitchCurrentContextAndScene(entry.context, () =>
         {
+            if (version != transitionVersion) return;
+            if (transitionWatchdog != null) StopCoroutine(transitionWatchdog);
+            transitionWatchdog = null;
             if (zapBar)
                 StartCoroutine(Fade(zapBar, 0f, 10f));
             StartCoroutine(ExitIntroSequence());
@@ -343,6 +352,10 @@ public class RemoteControl : MonoBehaviour
 
     private IEnumerator ExitIntroSequence()
     {
+        // A fast scene load can finish while the two-second fade-in is still running.
+        // Cancel it before fading out so it cannot put the static back on top.
+        if (introSequence != null) StopCoroutine(introSequence);
+        introSequence = null;
         yield return WaitUntilIntroSequenceEnds();
 
         if (staticImage)
@@ -353,14 +366,31 @@ public class RemoteControl : MonoBehaviour
 
     private IEnumerator WaitUntilIntroSequenceEnds()
     {
+        var deadline = Time.realtimeSinceStartup + 10f;
+        while (audioSource != null && audioSource.isPlaying && Time.realtimeSinceStartup < deadline)
+            yield return null;
+    }
 
-        yield return new WaitUntil(() => audioSource == null || !audioSource.isPlaying);
+    private void BeginIntroSequence()
+    {
+        if (introSequence != null) StopCoroutine(introSequence);
+        introSequence = StartCoroutine(LoadIntroSequence());
+    }
+
+    private IEnumerator WatchTransition(int version)
+    {
+        yield return new WaitForSecondsRealtime(15f);
+        if (version != transitionVersion) yield break;
+        transitionWatchdog = null;
+        Debug.LogWarning("Channel transition did not finish within 15 seconds. Clearing the loading overlay; inspect the channel context, spawn points and cameras if playback is not ready.");
+        if (zapBar) StartCoroutine(Fade(zapBar, 0f, .1f));
+        yield return ExitIntroSequence();
     }
 
     private IEnumerator LoadAllChannels()
     {
         SelectEnabledChannels();
-        StartCoroutine(LoadIntroSequence());
+        BeginIntroSequence();
 
         foreach (var entry in channels)
             yield return LoadChannel(entry);
