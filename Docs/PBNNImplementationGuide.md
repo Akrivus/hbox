@@ -6,9 +6,14 @@ Current status (2026-10-17): the user has successfully played a generated test f
 
 Media slice status (2026-10-16): one TV and a local headline/source/date overlay are now wired to a versioned saved `pbnn.media.v1` fixture payload, with segment, skip and channel-exit cleanup. This is a bounded media slice of P2/P4, not the full source/rundown contract or four-wall director. See [PBNN media handoff](PBNNMediaHandoff.md) for replay semantics, tests and outstanding Unity verification.
 
-## First playable milestone
 
-One anchor presents two short segments from preserved source packets. The scene uses two existing or placeholder sets with fixed camera views. Each segment has a title, source references, one optional image, and explicit playback cues. Save and replay the same bulletin; switch away and back without stranded cameras, images, or sound. Live ingestion, anchor rotation, weather maps, IK, and field reports do not block this milestone.
+## Direction reset — 2026-10-18
+
+The experimental saved rundown/director and separate desk/lounge generator were rolled back. Preserve the working single-host/media fixture while completing the studio, its registered locations, camera views, actor placement and displays. Segment versus scene versus Chat remains undecided; the earlier one-Chat-per-bulletin proposal is not a current requirement. Multi-room generation and transition orchestration are deferred until an actual studio interaction demonstrates the need. The source/rundown contracts below remain design proposals, not implementation commitments. Follow the [studio roadmap](PBNNStudioRoadmap.md) for current priorities.
+
+## Retained fixture baseline
+
+Keep the working single-host desk/media fixture for checking the studio's cameras, placement, local image, headline/source overlay and replay cleanup. Its node-based image cues are a bounded test, not a definition of scene or segment boundaries. Finish and inspect the other sets independently; a generated multi-room performance is not required to validate their layouts. Live ingestion, anchor rotation, weather maps, IK and field reports do not block studio work.
 
 Daily bulletins may run roughly 3–15 minutes when the material supports it. No padding requirement. Paul Bott is one possible anchor, not the only host. Models/assets are available, but casting and personalities need user development. Here “model” means a character model; do not assume each anchor requires a different LLM.
 
@@ -62,7 +67,7 @@ A cross-shaped studio is optional. Isolated cubicles or disconnected prefab sets
 | Desk conversation | Two anchors at a desk | Reactions and handoffs |
 | Special / field report | Separate location prefab and fixed shot | Scenic backdrop, foreground props, passing cars and environmental sound |
 
-Use **one Chat per bulletin**. Segments are saved boundaries within that Chat, with explicit set, anchor and fixed-shot references. Current location loading remains episode-level; load or retain a studio containing the required cubicles rather than asking LocationManager to change location for every segment.
+The earlier one-Chat-per-bulletin design is deferred. First complete usable permanent sets and scene-level placement/camera wiring. Determine the relationship between Chat, scene and segment before introducing a saved director or separate multi-room generation workflow.
 
 Cubicle-style staging provides anchor cutaways: anchors occupy stable positions in isolated sets, and predefined fixed virtual cameras make the cutaway automatically at a segment boundary or an explicitly saved speaker cue. Physical movement between cubicles is unnecessary. Start with one host and shot, then two permanently available sets and shots. Additional anchors can use the same routing once their assets are assigned. Dynamically loaded specialty locations come after lifecycle behavior is proven.
 
@@ -144,7 +149,7 @@ The following table is the original implementation readiness inventory. Parts of
 | P4 graphics | Add local headline/caption/image cue handling and media-path resolution | Place the panel and choose fonts/framing | Reload resolves the image; missing images and skip clear the previous image |
 | P6 report acquisition | Add soccer report-to-source conversion and a durable MatchId-based collection index against the existing report route | Inspect the sourced sports segment after P1/P2 | Collect the same report twice with one stored source packet and preserve the actual score |
 
-Recommended next implementation scope: confirm the working desk fixture's framing and lifecycle checks, then add format/cast assignments and a saved rundown/director for desk → lounge → desk. Expand the lounge's host positions as its cast is chosen. Extend media targeting to the board and wall after that handoff works. Save notifications/reservations become necessary when automatic production commits inclusion; they do not block these fixture milestones. Discord gateway changes, recurring production, votes, anchor rotation, weather ingestion and timed transition audio remain later work.
+Recommended next implementation scope: complete and validate the studio sets, actor positions, existing cameras and display surfaces using the working fixture. Establish cast and interaction needs before deciding Chat/scene/segment boundaries or adding transition generation.
 
 Start with P0/P1, not all ingestion pipelines. Audit the actual workspace and preserve concurrent soccer/UI changes. Use `pbnn` as the proposed context key, checking collisions and exact scene-name conventions before registering it. Reuse AppyDays humanoid assets; leave the archived scene available for reference. Read this guide and ChannelBacklog.md, then produce one playable fixture segment and explicit Unity wiring instructions. Continue code/config work until only asset selection, placement or live editor confirmation requires the user. Do not rewrite soccer or introduce a universal mode framework.
 

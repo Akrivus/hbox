@@ -1,5 +1,9 @@
 # PBNN studio roadmap — 2026-10-17
 
+## Direction reset — 2026-10-18
+
+The experimental saved rundown/director, separate Studio Rundown generator, placeholder multi-cast prompts and desk-to-lounge scene changes have been removed. Retain the working single-host/media fixture and develop the studio first. The distinction between a segment, a scene and a Chat is unresolved; neither one-Chat-per-bulletin nor a separate generation workflow is a requirement. Revisit transitions only when a concrete studio interaction needs them.
+
 ## Working baseline and audit
 
 The user reports a successfully generated/played fixture, with a promising result but an incorrect camera angle. Keep that as the working baseline. Replay consistency, skip cleanup and channel-return cleanup still need explicit confirmation. Do not treat static or serialization checks as visual verification.
@@ -50,14 +54,12 @@ Retain the current fixture as a regression path when adding formats. Before regi
 
 The five formats can occupy the existing physical studio without requiring five walls. The floor, final dressing and responsive graphics can follow these working loops. An Electoral College explanation is a useful presentation fixture; a short factual list is a lounge fixture. Neither fixture requires live ingestion. Production-office scripting should wait for a concrete crew dynamic rather than generating generic banter.
 
-## Next implementation order
+## Next studio work
 
-1. **Lock the desk baseline.** Refine the current shot in Unity and confirm generation, replay, skip and channel return. Keep the existing local image test. No new ingestion or elaborate animation is required.
-2. **Add explicit format and cast assignments.** Introduce saved format/station IDs, selected actor IDs and spawn roles, plus the relevant prompt profiles. Start with a fixed anchor pair and one lounge discussion fixture after the user chooses those roles. Enforce required cast/available spawn counts before generation; do not silently substitute an unprofiled actor.
-3. **Implement the minimal saved rundown/director (P2/P3).** Keep one Chat per bulletin. Persist ordered segment IDs, format, location, cast/spawn assignments, start/end node boundaries, camera and media cues. At a boundary, clear the previous presentation, route actors and select the intended shot. Reconcile outgoing and incoming cast without restarting the entire episode. Unknown targets use an explicit fallback. Replay must use saved assignments.
-4. **Prove two formats in one bulletin.** Desk opening → lounge segment → desk closing. This establishes the handoff and gives the second set a purpose before spreading work across all rooms. The lounge's current one-slot registration must be expanded using authored seat positions first.
-5. **Extend media by surface and focus (P4).** Replace the first slice's hard-coded `news-tv` target with a display registry for desk TV/UI, board and curved wall. Save image framing and panel/focus IDs separately from source image bytes. Start with whole-board images and a few authored wall regions. A focus cue coordinates graphic, shot and presenter orientation; later IK can follow those same saved targets.
-6. **Add production-office and explanation fixtures.** Office needs a crew problem/relationship profile. Presentation corner needs a presenter/questioner contract and a short visual sequence. Big picture room follows the display/focus work. Add ticker/stings as separate polish slices once speech remains readable.
-7. **Connect real source production.** Complete source packets and durable IDs, then soccer report ingestion, submitted tips/images and eventual recurrence. The media fixture currently embeds one image and attribution; it is not yet a complete source archive, ingestion queue or daily production system.
+1. **Refine the working desk.** Adjust framing, host placement, the TV/behind-desk UI and the lower third. Confirm the existing fixture can generate, play, replay, skip and return after a channel switch.
+2. **Finish the other set layouts.** Author usable positions and camera views for the lounge, production office, presentation corner and big picture room. Register and validate their references. Keep the studio floor postponed. Do not require a generated multi-room program to evaluate a set.
+3. **Exercise displays independently.** Establish the board's readable area, the TV framing and useful regions of the video wall with local images. Extend the existing media handling as actual surface requirements become clear.
+4. **Explore casting in the finished spaces.** Use existing actor assets as stand-ins for placement and camera work. Choose anchors, production crew and guests, then develop their dynamics and performance profiles. Keep temporary casting out of production generation code.
+5. **Define the content/playback boundaries from evidence.** Decide what constitutes a scene and a segment, what Chat should represent, and whether moving between parts of the studio needs any separate workflow. Only then implement the smallest data-driven solution needed by a real interaction. The room loops above are design intentions, not an imposed rundown schema.
 
-A final cast rota, live weather, voting, automatic image generation, video playback, walking/pointing IK and responsive set polish remain later work. The useful next code slice is format/cast contracts and the two-format rundown/director, coordinated with the user's desk/lounge casting and seat layout.
+Source ingestion, scheduling, staffing/rotation, transition orchestration and advanced walking/IK remain later work. The existing media fixture is a bounded test, not a required structure for all PBNN content.
