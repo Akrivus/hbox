@@ -109,3 +109,8 @@ spacedrivel.json
 !/Tests/PBNN/MediaTests.csproj
 
 google-credentials.json
+
+# Standalone actor audition and existing TTS regression harnesses
+!/Tests/Auditions/AuditionTests.csproj
+/Tests/Auditions/obj/
+!/Tests/TTS/TtsTests.csproj
