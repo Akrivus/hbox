@@ -1,32 +1,32 @@
 # PBNN implementation guide
 
-PBNN (Polbots News Network) replaces AppyDays as HBOx’s informational broadcast. Start with a saved fixture bulletin, then add independent ingestion pipelines and broadcast presentation. This is an implementation inventory and handoff, not a commitment to build every brainstorm. See [Channel backlog](ChannelBacklog.md) for the wider direction and completed soccer work.
+PBNN (Polbots News Network) replaces AppyDays as HBOx’s informational broadcast. Preserve the working single-host/media fixture while finishing the physical studio and its presentation capabilities. Ingestion and orchestration follow demonstrated studio needs. This is an implementation inventory and handoff, not a commitment to build every brainstorm. See [Channel backlog](ChannelBacklog.md) for the wider direction and completed soccer work.
 
-Current status (2026-10-17): the user has successfully played a generated test fixture. Camera angle still needs refinement; replay, skip and channel-return checks are not yet explicitly confirmed. The channel shell, 60 actor/prefab identities with provisional Gemini voices, and single-host prompts are present. The full source/rundown contract and segment director remain unimplemented. See [PBNN Unity handoff](PBNNUnityHandoff.md) for the original implementation history and [current studio roadmap](PBNNStudioRoadmap.md) for the five spaces, prompt audit and next slices.
+Current status (2026-10-18 direction; Studio Preview available): the user has successfully played a generated test fixture. Camera angle still needs refinement; replay, skip and channel-return checks are not yet explicitly confirmed. The channel shell, 60 actor/prefab identities with provisional Gemini voices, and single-host prompts are present. The full source/rundown contract and segment director remain unimplemented. See [PBNN Unity handoff](PBNNUnityHandoff.md) for the original implementation history and [current studio roadmap](PBNNStudioRoadmap.md) for the five spaces, prompt audit and next slices.
 
 Media slice status (2026-10-16): one TV and a local headline/source/date overlay are now wired to a versioned saved `pbnn.media.v1` fixture payload, with segment, skip and channel-exit cleanup. This is a bounded media slice of P2/P4, not the full source/rundown contract or four-wall director. See [PBNN media handoff](PBNNMediaHandoff.md) for replay semantics, tests and outstanding Unity verification.
 
 
 ## Direction reset — 2026-10-18
 
-The experimental saved rundown/director and separate desk/lounge generator were rolled back. Preserve the working single-host/media fixture while completing the studio, its registered locations, camera views, actor placement and displays. Segment versus scene versus Chat remains undecided; the earlier one-Chat-per-bulletin proposal is not a current requirement. Multi-room generation and transition orchestration are deferred until an actual studio interaction demonstrates the need. The source/rundown contracts below remain design proposals, not implementation commitments. Follow the [studio roadmap](PBNNStudioRoadmap.md) for current priorities.
+The experimental saved rundown/director and separate Studio Rundown generator, placeholder multi-cast prompts and desk-to-lounge transitions were removed. Preserve the working single-host/media fixture while completing the studio, its registered locations, camera views, actor placement and displays. Segment versus scene versus Chat remains undecided; the earlier one-Chat-per-bulletin proposal is not a current requirement. Multi-room generation and transition orchestration are deferred until an actual studio interaction demonstrates the need. The source/rundown contracts below remain design proposals, not implementation commitments. Follow the [studio roadmap](PBNNStudioRoadmap.md) for current priorities.
 
 ## Retained fixture baseline
 
 Keep the working single-host desk/media fixture for checking the studio's cameras, placement, local image, headline/source overlay and replay cleanup. Its node-based image cues are a bounded test, not a definition of scene or segment boundaries. Finish and inspect the other sets independently; a generated multi-room performance is not required to validate their layouts. Live ingestion, anchor rotation, weather maps, IK and field reports do not block studio work.
 
-Daily bulletins may run roughly 3–15 minutes when the material supports it. No padding requirement. Paul Bott is one possible anchor, not the only host. Models/assets are available, but casting and personalities need user development. Here “model” means a character model; do not assume each anchor requires a different LLM.
+Daily bulletins may run roughly 3–15 minutes when the material supports it. No padding requirement. Paul Botz is one possible anchor, not the only host. Models/assets are available, but casting and personalities need user development. Here “model” means a character model; do not assume each anchor requires a different LLM.
 
 ## Existing code and limits
 
 | Area | Existing entry points | Reuse and remaining work |
 | --- | --- | --- |
-| Channel registration | `Assets/Main.unity`, `ChatManagerContext`, `RemoteControl`, `ProjectSettings/EditorBuildSettings.asset` | New pbnn context, matching scene/name, Main entry, enabled config, build registration, prompts, actors and spawn points. Preserve AppyDays as reference until migration works. |
-| Humanoid assets | `Assets/Scenes/AppyDays.unity`, `Assets/Scenes/AppyDays/Actors`, `Assets/Scenes/AppyDays/Prefabs/Actors` | PBNN scene copies the office staging and reuses Walt's visual through a separate actor definition. Inventory and live framing checks are recorded in the Unity handoff. |
+| Channel registration | `Assets/Main.unity`, `ChatManagerContext`, `RemoteControl`, `ProjectSettings/EditorBuildSettings.asset` | Implemented pbnn context, Main/build registration, config and fixture prompts. Preserve AppyDays as historical reference; validate the current PBNN scene. |
+| Humanoid assets | `Assets/Scenes/AppyDays.unity`, `Assets/Scenes/AppyDays/Actors`, `Assets/Scenes/AppyDays/Prefabs/Actors` | Current PBNN inventory has 60 actor definitions and prefab references; Business Man 1 is the only active fixture host. Original copied-office/Walt notes in the Unity handoff are historical. |
 | Generation/save | `Assets/Core/ChatGenerator.cs`, `Assets/Core/DataModels/Chat.cs` | Direct Idea queue already bypasses Reddit acquisition. GeneratedData can carry a namespaced serialized packet after round-trip validation. Normal generation saves and queues playback; inspect the current Generate routine before adding background production. |
 | Locations | `Assets/Core/Integrations/Location/LocationManager.cs`, `LocationDefinition.cs` | Chat.Location loads a location prefab on queue-take and assigns actor spawn points. This is episode-level staging, not an existing segment-by-segment director. |
-| Cameras | `Assets/Core/SpawnPointManager.cs` | Virtual-camera array exists; node activation resets its cameras' priorities and samples a camera. PBNN uses predefined fixed virtual shots; configure a single eligible shot per active segment or a separately controlled higher-priority broadcast camera. Verify Cinemachine selection and framing with the actual scene wiring. |
-| Playback cues | ChatNode.Actions, ChatManagerContext.OnChatNodeActivated | Existing action extraction and node activation are candidate cue boundaries. Add PBNN-scoped handling; inspect when activation fires relative to audio and skip before choosing cue timing. |
+| Cameras | `Assets/Core/SpawnPointManager.cs` | Virtual-camera array exists; node activation resets its cameras' priorities and samples a camera. PBNN uses predefined fixed virtual shots; each of the five registered locations currently has one eligible shot. Registration supports episode-level staging, not segment switching. Verify Cinemachine selection and framing with the actual scene wiring. |
+| Playback cues | ChatNode.Actions, ChatManagerContext.OnChatNodeActivated | Existing media fixture handles node activation with ownership checks. Any future cue routing requires a concrete interaction and timing/lifecycle review; do not add a director now. |
 | Pitch review | `Assets/Core/Integrations/Sources/RedditPitchCandidateService.cs`, `RedditPitchGate.cs`, `RedditSource.cs` | GenerateAsync evaluates the pitch and returns null on rejection. Source then auto-queues accepted candidates or posts for voting. Reuse the flow; its source model, prompts, store names and converter are Reddit-specific. |
 | Discord | `Assets/Core/Integrations/DiscordBotService.cs`, `DiscordParticipationPolicy.cs` | Gateway handles reactions/interactions and vote integration. Dispatch currently has no MESSAGE_CREATE intake. Tips text/attachment acquisition is new work. |
 | Vote/config controls | `Assets/Core/Integrations/Config/RedditConfigs.cs` | Existing batch, auto-approval count, minimum votes, score, expiry, and active-window settings are references. Enlarging batch size alone does not define bulletin segment voting. |
@@ -35,13 +35,17 @@ Daily bulletins may run roughly 3–15 minutes when the material supports it. No
 
 LocationManager needs a focused lifecycle check before reuse: it assumes a nonempty Locations array and destroys the previous LocationDefinition component rather than explicitly removing the instantiated root. Confirm prefab ownership and cleanup; do not stack old sets by accident. Context event wrappers forward shared ChatManager events, so PBNN listeners must check current channel/episode ownership and unsubscribe on teardown.
 
-## Proposed data flow
+## Historical architecture proposals — deferred
+
+The following data-flow, saved-record and presentation-cue ideas are retained for reference, not active requirements or an agreed segment contract. Do not implement `pbnn.rundown`, saved camera cues or a separate generator from this inventory. Revisit only after the studio demonstrates an interaction that needs orchestration.
+
+### Proposed data flow
 
 Tips, articles, Reddit material, weather, and HBOx reports feed independent adapters. Each adapter preserves originals and produces a common source packet. Review accepts or rejects a candidate. Accepted candidates either enter the bulletin pool immediately or wait for a vote. A compiler selects stories and produces a rundown; generation writes performance text against that rundown. Playback consumes saved segment cues and media references.
 
 Auto-approval means skipping the audience vote after review accepts a candidate. It does not bypass review and is not proof a factual claim is true. Keep rejected candidates out of the production pool. Voting chooses inclusion/priority, not factual accuracy. Trusted in-universe match results can use a simpler editorial suitability check than unverified submitted claims.
 
-### Minimal saved records
+### Proposed saved records (not a contract)
 
 | Record | Required information |
 | --- | --- |
@@ -51,11 +55,11 @@ Auto-approval means skipping the audience vote after review accepts a candidate.
 | Segment | ID/type, set ID, fixed camera ID, speakers, script/node boundary, headline/lower third, image/map reference, caption, cue list |
 | Media asset | ID, stored relative path, type, origin/capture time, attribution, caption, optional source ID and map markers |
 
-These are proposed contracts, not existing types. Start with a versioned `pbnn.rundown` payload in GeneratedData if that fits the actual save pipeline. Keep originals separate from generated performance text. Verify media paths after save/reload; downloading an attachment without persisting its link to the story is insufficient. Replays must not ingest or consume the same items again.
+These are proposed contracts, not existing types. The earlier versioned `pbnn.rundown` payload in GeneratedData was a proposal; it is not the next implementation step. Keep originals separate from generated performance text. Verify media paths after save/reload; downloading an attachment without persisting its link to the story is insufficient. Replays must not ingest or consume the same items again.
 
 Awaiting saves is not a prerequisite. For live production, a save-success event can commit a recoverable reservation after the file write completes. The current `Chat.Save()` is `async void` and exposes no success notification, so generation completion alone must not commit that reservation. Alternatively, poll known producer report routes, durably record reports by stable ID, and pick up new reports on the next collection pass. Track collected report IDs separately from inclusion in a saved bulletin: acquisition deduplication does not mean a story has aired or been consumed. Implement bulletin inclusion tracking only when live compilation needs it; saved fixtures do not require a reservation system.
 
-## Sets and fixed cameras
+### Historical set/camera proposals
 
 A cross-shaped studio is optional. Isolated cubicles or disconnected prefab sets can provide the same views; physical adjacency is not a broadcast requirement. Use a fixed number of predefined shots at first. Choose one rendered camera with fixed virtual shots where existing Cinemachine wiring fits, or a controlled camera switch if required; assign one owner and keep one effective audio listener.
 
@@ -69,11 +73,11 @@ A cross-shaped studio is optional. Isolated cubicles or disconnected prefab sets
 
 The earlier one-Chat-per-bulletin design is deferred. First complete usable permanent sets and scene-level placement/camera wiring. Determine the relationship between Chat, scene and segment before introducing a saved director or separate multi-room generation workflow.
 
-Cubicle-style staging provides anchor cutaways: anchors occupy stable positions in isolated sets, and predefined fixed virtual cameras make the cutaway automatically at a segment boundary or an explicitly saved speaker cue. Physical movement between cubicles is unnecessary. Start with one host and shot, then two permanently available sets and shots. Additional anchors can use the same routing once their assets are assigned. Dynamically loaded specialty locations come after lifecycle behavior is proven.
+The superseded cubicle proposal used stable anchor positions, two permanently available shots and saved segment/speaker boundaries for automatic cutaways. It is retained as an architectural option only; it is not the current five-room workflow or a requirement to build two-set routing.
 
 Prefer fixed virtual-camera configuration over suspending the existing speaker behavior. A single eligible camera in the active SpawnPointManager makes its per-node selection deterministic; a broadcast camera outside its managed array can instead retain a higher priority. Choose the smallest approach that works with the scene's active managers and Cinemachine brain. A fixed transform alone does not prevent another virtual camera from winning priority, and existing target-follow components must not move the authored shot. Verify both selection and framing across consecutive speakers and cutaways.
 
-### Presentation states and cues
+### Historical presentation states and cue proposal (deferred)
 
 Proposed local states: opening, transition, segment, closing, idle. A segment selects its set/camera, clears prior media, applies headline/lower-third state, and shows its image when cued. Transitions can play a swoop/sting and a generic station voice; persist the chosen cue so replay stays consistent. Ticker text comes from saved approved headlines/announcements, with the bulletin date visible on older replays.
 
@@ -81,7 +85,9 @@ Use stable segment IDs and node-boundary cues initially, rather than invented fr
 
 `OnChatNodeActivated` fires before `ActorController.Activate`, making it suitable for immediate camera and graphic cues. It is a synchronous event, so it cannot by itself hold speech until a transition sting finishes. Initially use immediate cuts; add an explicit coroutine playback boundary only when a transition needs to delay speech.
 
-## Independent ingestion pipelines
+## Deferred ingestion ideas
+
+These are later adapter considerations, not studio-completion prerequisites.
 
 ### Discord tips hotline
 
@@ -109,48 +115,22 @@ Start with a saved forecast fixture and a static image. Store markers as image-n
 
 ## Anchors and performance
 
-The inventory now has 60 actor assets with descriptive identities, pronouns and provisional Gemini voices. Develop a fixed anchor ensemble and a separate fixed production crew. Other formats select presenters/guests for their subject. Paul can be a political analyst rather than the sole anchor. Save actor, role and spawn assignments with each rundown; replay should not recast the episode. Start with the working fixture host, then a user-selected anchor pair and lounge fixture. Rotation is optional later work, not the next prerequisite. Missing cast assets need a known fallback host.
+The inventory now has 60 actor assets with descriptive identities, pronouns and provisional Gemini voices. Develop a fixed anchor ensemble and a separate fixed production crew. Other formats select presenters/guests for their subject. Paul can be a political analyst rather than the sole anchor. Use existing actors as preview stand-ins first. Future persisted casting must preserve replay identity, but its storage contract remains undecided. Keep the working fixture host in production until matching profiles and format prompts are authored. Rotation is optional later work, not the next prerequisite. Missing cast assets need a known fallback host.
 
-User work: choose ensemble membership, personalities, relationships and room-specific blocking; audition and refine existing voice assignments. Runtime work: validate cast/spawn capacity, apply format and actor prompt profiles, and persist assignments. Avoid elaborate staffing rules until two formats work in a single bulletin. Progressive rigging/IK polish should improve an already watchable performance; begin with existing idle/talk animations and authored poses.
+User work: choose ensemble membership, personalities, relationships and room-specific blocking; audition and refine existing voice assignments. Runtime work: validate cast/spawn capacity, apply format and actor prompt profiles, and persist assignments. Do not require two formats in a single bulletin to validate casting or blocking. Progressive rigging/IK polish should improve an already watchable performance; begin with existing idle/talk animations and authored poses.
 
-## Afternoon-sized implementation inventory
+## Current studio work and handoff
 
-| Task | Build autonomously | Unity or creative handoff | Completion check |
-| --- | --- | --- | --- |
-| P0 Inventory and fixture | Record reusable wiring, create a small source/rundown fixture | Pick two usable sets and one host | Concrete asset list and runnable fixture plan |
-| P1 Channel shell (N1) | Context/config/prompts/registration changes where serialized edits are reliable | Confirm prefab refs, spawns, camera and build scene | One short segment generates, plays and replays as pbnn |
-| P2 Saved packet (N2) | Versioned source/rundown payload and media references | Supply one local image | Save/reload preserves sources, host, set and image |
-| P3 Fixed shot director | Set/camera lookup, node cues and lifecycle cleanup | Assign two shots, actor placements and transition duration | Two fixture segments switch shots deterministically |
-| P4 Image and lower third (N6) | Headline, caption, image on/off cue handling | Position UI and choose fonts/layout | Correct image appears; skip clears it |
-| P5 Ticker and audio (N6) | Saved ticker items, sting/station-voice cue routing | Choose clips, levels and motion | Speech readable; no stale ticker or overlapping sting |
-| P6 Soccer adapter (N2b) | Report discovery/dedup and packet conversion | Inspect a saved bulletin | Real 0–0 result survives into sourced segment |
-| P7 Tips text (N4a) | Scoped intake, durable dedup and neutral-source review adapter | Configure one Discord channel and permitted participants | Rejection blocks; accepted tip elevates once |
-| P8 Tips attachments | Store images, extraction boundary and packet linkage | Submit example screenshots | Original and extracted text reload correctly |
-| P9 Optional story votes | Candidate-to-segment selection, expiry and no-vote policy | Choose voting/batch settings | Rejected tips never reach vote; winning item enters one rundown |
-| P10 Cast assignments | Persisted fixed-team and presenter/guest assignment; optional rotation later | Choose anchor pair, production crew and performance profiles | New bulletin uses its selected team; replay keeps that cast |
-| P11 Daily production (N5) | Recurrence and save-only disposition if needed | Choose coverage window/time | Background bulletin saves without channel switch |
-| P12 Weather fixture | Forecast packet adapter and static graphic cues | Choose location or internet-weather framing | Location/time/source shown; no invented weather |
-| P13 Interviews/field set | Explicit segment and location routing | Build one two-chair or scenic field-report set | Attributed material plays with intended shot |
+Follow the [studio roadmap](PBNNStudioRoadmap.md) for priorities and the [Unity handoff](PBNNUnityHandoff.md) for the executable verification workflow.
 
-P2 precedes live adapters. P3/P4 can progress with fixtures while ingestion is unfinished. Implement P5 audio and ticker as separate changes if necessary. TV delivery/program blocks remain N8/N9 in the backlog. B-roll/video, automatic screenshot capture, map animation and hand IK are later slices. P0/P1 channel wiring and local configuration are implemented as described in the Unity handoff; live Discord intake is unchanged.
+| Work | Supported workflow | Completion evidence / remaining check |
+| --- | --- | --- |
+| Desk regression baseline | Keep Business Man 1, saved Desk placement, Wide shot and existing `pbnn.media.v1` fixture | Refine angle, host placement, TV and lower third; confirm generation, save/reload, replay, skip and channel return in Unity |
+| Five-location blocking | Inspect Desk, Lounge, Office, Corner and Video Wall independently with Studio Preview and existing actor stand-ins | Check registered spawns, anchor/target/target-group references, eligible camera and readable framing for each room; author missing seats/positions |
+| Local displays | Test TV framing, board readable area and useful curved-wall regions with local images | Only the Desk TV and local overlay have runtime fixture support; other surfaces need authored display handling and separate verification |
+| Casting exploration | Use temporary preview cast and poses; develop fixed anchors, production crew and subject-specific presenters/guests | Final ensembles, relationships, actor profiles and format prompts remain user/creative work; do not add all 60 actors to generation |
+| Content/playback boundaries | Record actual room interaction needs after layout/display checks | Chat versus scene versus segment, transitions and any persistence contract remain undecided |
 
-## Handoff to the implementation thread
+The old P3 fixed-shot director/cubicle cutaways, saved node cues and deterministic two-segment/two-set switch are superseded next-step proposals. P0/P1 channel shell and the bounded P2/P4 media slice already exist; do not rebuild them or restore the removed Studio Rundown generator. Live ingestion, votes, scheduling, staffing/rotation, transition orchestration, video, advanced walking and IK remain later work. The studio floor has no registered program location and stays postponed.
 
-### Work implementable now
-
-The following table is the original implementation readiness inventory. Parts of P0/P1 and P2/P4 are now implemented as described above. For current next steps and room-specific dependencies, use the [studio roadmap](PBNNStudioRoadmap.md).
-
-| Slice | Implement now | Remaining Unity/user work | Validation |
-| --- | --- | --- | --- |
-| P0 inventory | Inventory AppyDays actors/prefabs, scene component references, prompt/config resolution and camera wiring; author a one-segment briefing fixture and two-segment rundown fixture | Confirm placeholder host and usable cubicle assets | Resolve each proposed reference to an existing asset or an explicitly named placeholder |
-| P1 channel shell | Add pbnn identity, minimal broadcast prompts, fixture input and reliable scene/Main/build registration edits after inventory | Confirm serialized references, host spawn, rendered camera and enabled-channel config | Generate, play, save and replay one short bulletin in Unity |
-| P2 saved rundown | Add versioned source/rundown contracts, serialization/validation helpers and fixture round-trip checks using `Chat.GeneratedData` | Supply a local image when image resolution is tested | Sources, bulletin date, host, segment boundaries and shot IDs survive reload; reject unsupported payload versions clearly |
-| P3 fixed cutaways | Add PBNN-local set/shot lookup and saved node-boundary routing; start with immediate cuts and explicit fallback IDs | Assign two cubicles, fixed cameras and anchor positions; verify target-follow settings | Same saved bulletin makes the same cuts across replay and speaker changes; skip/channel changes clear local state |
-| P4 graphics | Add local headline/caption/image cue handling and media-path resolution | Place the panel and choose fonts/framing | Reload resolves the image; missing images and skip clear the previous image |
-| P6 report acquisition | Add soccer report-to-source conversion and a durable MatchId-based collection index against the existing report route | Inspect the sourced sports segment after P1/P2 | Collect the same report twice with one stored source packet and preserve the actual score |
-
-Recommended next implementation scope: complete and validate the studio sets, actor positions, existing cameras and display surfaces using the working fixture. Establish cast and interaction needs before deciding Chat/scene/segment boundaries or adding transition generation.
-
-Start with P0/P1, not all ingestion pipelines. Audit the actual workspace and preserve concurrent soccer/UI changes. Use `pbnn` as the proposed context key, checking collisions and exact scene-name conventions before registering it. Reuse AppyDays humanoid assets; leave the archived scene available for reference. Read this guide and ChannelBacklog.md, then produce one playable fixture segment and explicit Unity wiring instructions. Continue code/config work until only asset selection, placement or live editor confirmation requires the user. Do not rewrite soccer or introduce a universal mode framework.
-
-Report each completed slice with changed files, validation, and the exact remaining manual steps. Once the single segment works, build saved packets and a deterministic two-set switch. Ask for personalities or final layout only when that choice blocks the current slice. The fixed number of cameras, extra anchors and segment catalog are design directions; the plus-shaped floor plan, exact rota, tips submission policy and weather geography remain open choices.
+Preserve concurrent soccer/UI work. Keep context key `pbnn` distinct from scene object name `PBNN`. Report changed files, validation and exact remaining Unity steps. Static/serialization checks and Scene-view previews do not prove Game-view camera selection, TTS, replay or cleanup. No production generation change is required for this documentation alignment.
