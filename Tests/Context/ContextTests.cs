@@ -31,6 +31,11 @@ static class Tests
             Check(await File.ReadAllTextAsync(requests[i].Output.Path) == $"memory-{i}", "isolated output");
         }
         Check(template.Output == null && template.Text == "source literal {1}\nprivate-context", "parent resolver unchanged");
+        var fallback = new PromptResolver(context, "MissingPolymarketPrompt");
+        await fallback.ResolveOrDefault("{0}\n{1}", "literal {1}", "date");
+        Check(fallback.Resolved && fallback.Text == "literal {1}\ndate", "missing source prompt uses single-pass fallback");
+        await template.ResolveOrDefault("unused fallback", "vault override", "date");
+        Check(template.Text == "vault override\ndate", "existing Vault prompt overrides fallback");
         context.ActorsSearch.List.AddRange(new[] { new Actor { Name = "Home" }, new Actor { Name = "Away" } });
         var chat = new Chat { ManagerContext = context, Context = "UNIQUE_SCENE_CONTEXT", Topic = "scenario", Idea = new Idea { Prompt = "UNIQUE_STORY" } };
         await new SoccerRosterGeneration().Generate(null, chat);

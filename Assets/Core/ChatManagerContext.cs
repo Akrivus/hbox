@@ -136,6 +136,14 @@ public sealed class ChatManagerContext : MonoBehaviour
 
     private void Start()
     {
+        // Register the optional adapter in existing scenes without requiring scene YAML edits.
+        // No requests or batches run unless a polymarket config block is present.
+        if (ChatManager.Instance != null && GetComponentInChildren<PolymarketSource>() == null)
+        {
+            var reddit = GetComponentInChildren<RedditSource>();
+            var source = (reddit != null ? reddit.gameObject : gameObject).AddComponent<PolymarketSource>();
+            source.BindGenerator(reddit != null ? reddit.Generator : GetComponentInChildren<ChatGenerator>());
+        }
         if (ChatManager.Instance == null)
         {
             if (Application.isEditor)

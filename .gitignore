@@ -81,6 +81,7 @@ reddit-*.txt
 replays-*.txt
 config.json
 reddit-pitches-*.json
+polymarket-*.json
 
 # hbox specific
 hbox.json
@@ -104,6 +105,8 @@ spacedrivel.json
 # Standalone Discord regression harness
 !/Tests/Discord/DiscordTests.csproj
 /Tests/Discord/obj/
+!/Tests/WebSources/WebSourceTests.csproj
+/Tests/WebSources/obj/
 
 # Standalone PBNN media regression harness
 !/Tests/PBNN/MediaTests.csproj

@@ -121,9 +121,8 @@ public class RemoteControl : MonoBehaviour
     public virtual void LeftArrow()
     {
         if (!_initalized) return;
-        var reddit = ChatManagerContext.Current.GetComponentInChildren<RedditSource>();
-        if (reddit)
-            reddit.DoDrop();
+        foreach (var source in ChatManagerContext.Current.GetComponentsInChildren<WebSource>())
+            source.DoDrop();
     }
     public virtual void RightArrow()
     {

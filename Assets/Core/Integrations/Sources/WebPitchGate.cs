@@ -6,20 +6,9 @@ using System.Text;
 using Newtonsoft.Json;
 using UnityEngine;
 
+// Compatibility type for callers that construct Reddit sources directly.
 [Serializable]
-public sealed class RedditPostSource
-{
-    public string id;
-    public string title;
-    public string selftext;
-    public string author;
-    public string subreddit;
-    public string permalink;
-    public string url;
-    public int score;
-    public int commentCount;
-    public string threadContext;
-}
+public sealed class RedditPostSource : WebSourceDocument { }
 
 public enum PitchStatus
 {
@@ -35,7 +24,9 @@ public enum PitchStatus
 public sealed class PitchCandidate
 {
     public string id;
-    public RedditPostSource source;
+    public WebSourceDocument source;
+    public int? minimumVotesToQueue;
+    public int? approvalScore;
     public string body;
     public string approvalReason;
     public int discordColor;
@@ -66,6 +57,16 @@ public sealed class PitchCandidateStore
     private int minimumVotesToQueue = 1;
     private int approvalScore = 1;
     private PitchCandidateManifest manifest = new PitchCandidateManifest();
+
+    public static PitchCandidateStore GetOrCreate(ChatManagerContext context, ChatGenerator generator)
+    {
+        lock (instanceLock)
+        {
+            if (instances.TryGetValue(context.Key, out var store) && ReferenceEquals(store.context, context))
+                return store;
+            return new PitchCandidateStore(context, generator);
+        }
+    }
 
     public PitchCandidateStore(ChatManagerContext context, ChatGenerator generator)
     {
@@ -133,12 +134,12 @@ public sealed class PitchCandidateStore
         lock (instanceLock)
         {
             foreach (var candidate in instances.Values.SelectMany(store => store.GetCandidates(null)))
-                candidates[candidate.id] = candidate;
+                candidates[$"{candidate.channelKey}:{candidate.id}"] = candidate;
         }
 
         foreach (var candidate in LoadPersistedCandidates())
-            if (!candidates.ContainsKey(candidate.id))
-                candidates[candidate.id] = candidate;
+            if (!candidates.ContainsKey($"{candidate.channelKey}:{candidate.id}"))
+                candidates[$"{candidate.channelKey}:{candidate.id}"] = candidate;
 
         var query = candidates.Values
             .Where(candidate => candidate != null)
@@ -324,9 +325,9 @@ public sealed class PitchCandidateStore
 
         candidate.voteScore = Mathf.Max(0, candidate.upVotes) - Mathf.Max(0, candidate.downVotes);
         var totalVotes = Mathf.Max(0, candidate.upVotes) + Mathf.Max(0, candidate.downVotes);
-        if (totalVotes < Mathf.Max(0, minimumVotes))
+        if (totalVotes < Mathf.Max(0, candidate.minimumVotesToQueue ?? minimumVotes))
             candidate.status = PitchStatus.Expired;
-        else if (candidate.voteScore >= approvalScore)
+        else if (candidate.voteScore >= (candidate.approvalScore ?? approvalScore))
             QueueApprovedCandidate(candidate);
         else if (candidate.voteScore < 0)
             candidate.status = PitchStatus.Rejected;
@@ -340,12 +341,12 @@ public sealed class PitchCandidateStore
             return false;
 
         var totalVotes = Mathf.Max(0, candidate.upVotes) + Mathf.Max(0, candidate.downVotes);
-        return totalVotes >= minimumVotesToQueue && candidate.voteScore >= approvalScore;
+        return totalVotes >= (candidate.minimumVotesToQueue ?? minimumVotesToQueue) && candidate.voteScore >= (candidate.approvalScore ?? approvalScore);
     }
 
     private void QueueApprovedCandidate(PitchCandidate candidate, string eventName = "pitch_queued")
     {
-        if (generator == null)
+        if (generator == null || candidate.status == PitchStatus.QueuedAsIdea)
             return;
 
         candidate.status = PitchStatus.QueuedAsIdea;
@@ -479,15 +480,14 @@ public static class PitchToIdeaConverter
         var source = candidate.source;
         var body = new StringBuilder();
 
-        body.AppendLine("APPROVED REDDIT PITCH");
+        body.AppendLine($"APPROVED {source?.DisplayName.ToUpperInvariant() ?? "WEB"} PITCH");
         body.AppendLine();
         body.AppendLine("SOURCE:");
         body.AppendLine($"Title: {source?.title}");
-        body.AppendLine($"Subreddit: {source?.subreddit}");
+        body.AppendLine($"Provider: {source?.DisplayName}");
         body.AppendLine($"Author: {source?.author}");
-        body.AppendLine($"Post ID: {source?.id}");
-        body.AppendLine($"Karma: {source?.score ?? 0}");
-        body.AppendLine($"Comments: {source?.commentCount ?? 0}");
+        body.AppendLine($"Source ID: {source?.id}");
+        body.AppendLine(source?.Summary());
         body.AppendLine($"Link: {BuildSourceUrl(source)}");
         body.AppendLine();
         body.AppendLine("PITCH CARD:");
@@ -496,27 +496,21 @@ public static class PitchToIdeaConverter
         body.AppendLine("EVALUATOR APPROVAL:");
         body.AppendLine(string.IsNullOrWhiteSpace(candidate.approvalReason) ? "No evaluator approval reason recorded." : candidate.approvalReason);
         body.AppendLine();
-        body.AppendLine("RAW REDDIT TEXT:");
-        body.AppendLine(string.IsNullOrWhiteSpace(source?.selftext) ? "(No post body.)" : source.selftext);
+        body.AppendLine("RAW SOURCE TEXT / RESOLUTION RULES:");
+        body.AppendLine(string.IsNullOrWhiteSpace(source?.selftext) ? "(No source body.)" : source.selftext);
         body.AppendLine();
-        body.AppendLine("THREAD MATERIAL:");
+        body.AppendLine("SUPPORTING MATERIAL:");
         body.AppendLine(string.IsNullOrWhiteSpace(source?.threadContext) ? "(No mined thread context.)" : source.threadContext);
         body.AppendLine();
         body.AppendLine("GENERATION NOTES:");
-        body.AppendLine("Use the approved pitch as the spin, not as the only source. Preserve useful details from the raw Reddit text and thread material, while letting continuity and the pitch frame shape the scene.");
+        body.AppendLine(source?.GenerationNotes);
 
-        return new Idea(body.ToString(), source?.author ?? "reddit", source?.subreddit ?? "reddit", source?.id);
+        return new Idea(body.ToString(), source?.author ?? "reddit", source?.IdeaSource ?? "web", candidate.id);
     }
 
-    public static string BuildSourceUrl(RedditPostSource source)
+    public static string BuildSourceUrl(WebSourceDocument source)
     {
-        if (source == null)
-            return string.Empty;
-        if (!string.IsNullOrWhiteSpace(source.permalink))
-            return source.permalink.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? source.permalink : "https://reddit.com" + source.permalink;
-        if (!string.IsNullOrWhiteSpace(source.url))
-            return source.url;
-        return string.Empty;
+        return source?.SourceUrl ?? string.Empty;
     }
 }
 
@@ -532,16 +526,11 @@ public static class PitchDiscordPublisher
         if (candidate == null || store == null)
             return;
 
-        var embed = new DiscordEmbed
-        {
-            Title = Trim(PitchCandidateText.GetTitle(candidate), 250),
-            Description = Trim(BuildDescription(candidate), 4000),
-            Color = candidate.discordColor != 0 ? candidate.discordColor : 0x4CA3FF
-        };
+        var embed = BuildEmbed(candidate);
 
         candidate.status = PitchStatus.PostedForVote;
         var contextKey = context?.Key ?? candidate.channelKey;
-        DiscordManager.PutInQueueForContext(contextKey, candidate.discordChannelKey, new DiscordWebhookMessage("# :new: From Reddit!", null, null, embed), posted =>
+        DiscordManager.PutInQueueForContext(contextKey, candidate.discordChannelKey, new DiscordWebhookMessage($"# :new: From {candidate.source?.DisplayName ?? "Web"}!", null, null, embed), posted =>
         {
             if (posted != null)
             {
@@ -557,6 +546,26 @@ public static class PitchDiscordPublisher
         store.Save(candidate);
     }
 
+    public static DiscordEmbed BuildEmbed(PitchCandidate candidate)
+    {
+        var source = candidate.source;
+        var provider = source?.Provider ?? "reddit";
+        return new DiscordEmbed
+        {
+            Title = Trim(PitchCandidateText.GetTitle(candidate), 250),
+            Description = Trim(BuildDescription(candidate), 4000),
+            URL = PitchToIdeaConverter.BuildSourceUrl(source),
+            Color = source?.brandColor ?? SourceBrand.Color(provider),
+            Author = new DiscordEmbedAuthor
+            {
+                Name = $"From {source?.DisplayName ?? "Reddit"}",
+                URL = provider == "reddit" ? "https://www.reddit.com" : "https://polymarket.com",
+                Icon = source?.logoUrl ?? SourceBrand.Logo(provider)
+            },
+            Thumbnail = new DiscordEmbedThumbnail { URL = source?.logoUrl ?? SourceBrand.Logo(provider) }
+        };
+    }
+
     private static string BuildDescription(PitchCandidate candidate)
     {
         var pitch = PitchCandidateText.GetPitch(candidate);
@@ -564,13 +573,13 @@ public static class PitchDiscordPublisher
         var reason = string.IsNullOrWhiteSpace(candidate.approvalReason) ? "No evaluator approval reason recorded." : candidate.approvalReason;
         var source = candidate.source;
         var sourceUrl = PitchToIdeaConverter.BuildSourceUrl(source);
-        var sourceTitle = string.IsNullOrWhiteSpace(source?.title) ? "Untitled Reddit source" : source.title;
+        var sourceTitle = string.IsNullOrWhiteSpace(source?.title) ? "Untitled source" : source.title;
         var sourceLabel = string.IsNullOrWhiteSpace(sourceUrl)
             ? sourceTitle
             : $"[{sourceTitle}]({sourceUrl})";
         var lines = new List<string>();
 
-        lines.Add($"**Source**\n{sourceLabel}\n{source?.subreddit ?? "reddit"} | {FormatCount(source?.score ?? 0, "karma")} | {FormatCount(source?.commentCount ?? 0, "comments")}");
+        lines.Add($"**Source**\n{sourceLabel}\n{source?.Summary()}");
         if (!string.IsNullOrWhiteSpace(pitch))
             lines.Add($"**Pitch**\n{pitch}");
         if (!string.IsNullOrWhiteSpace(cast))
@@ -588,10 +597,6 @@ public static class PitchDiscordPublisher
         return text.Length <= max ? text : text.Substring(0, max - 3) + "...";
     }
 
-    private static string FormatCount(int value, string label)
-    {
-        return $"{Mathf.Max(0, value):N0} {label}";
-    }
 }
 
 public sealed class DiscordMessageRef
@@ -602,12 +607,14 @@ public sealed class DiscordMessageRef
 
 public static class PitchCandidateFactory
 {
-    public static PitchCandidate FromText(string text, RedditPostSource source, string generatorSlug, string discordChannelKey, int expirationMinutes, string approvalReason = null)
+    public static PitchCandidate FromText(string text, WebSourceDocument source, string generatorSlug, string discordChannelKey, int expirationMinutes, string approvalReason = null)
     {
         var now = DateTime.UtcNow;
         return new PitchCandidate
         {
-            id = source?.id ?? Guid.NewGuid().ToString("N"),
+            // An event can return after its cooldown with a fresh snapshot and a fresh voting window.
+            id = source == null ? Guid.NewGuid().ToString("N") : source.Provider == "reddit"
+                ? source.Identity : source.Identity + ":" + Guid.NewGuid().ToString("N"),
             source = source,
             body = NormalizeBody(text, source),
             approvalReason = approvalReason,
@@ -619,12 +626,12 @@ public static class PitchCandidateFactory
         };
     }
 
-    private static string NormalizeBody(string text, RedditPostSource source)
+    private static string NormalizeBody(string text, WebSourceDocument source)
     {
         if (!string.IsNullOrWhiteSpace(text))
             return text.Trim();
 
-        return $"Title: {source?.title ?? "Untitled Reddit pitch"}\nPitch: No pitch body generated.\nCast: None specified.";
+        return $"Title: {source?.title ?? "Untitled pitch"}\nPitch: No pitch body generated.\nCast: None specified.";
     }
 }
 
@@ -635,7 +642,7 @@ public static class PitchCandidateText
         if (!string.IsNullOrWhiteSpace(candidate?.body))
             return candidate.body.Trim();
 
-        return $"Title: {candidate?.source?.title ?? "Untitled Reddit pitch"}\nPitch: No pitch body generated.\nCast: None specified.";
+        return $"Title: {candidate?.source?.title ?? "Untitled pitch"}\nPitch: No pitch body generated.\nCast: None specified.";
     }
 
     public static string GetTitle(PitchCandidate candidate)
@@ -676,12 +683,12 @@ public static class PitchCandidateText
     private static string FirstLine(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
-            return "Untitled Reddit pitch";
+            return "Untitled pitch";
 
         return text
             .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Trim().TrimStart('-', '*').Trim())
-            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line)) ?? "Untitled Reddit pitch";
+            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line)) ?? "Untitled pitch";
     }
 }
 

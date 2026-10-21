@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-public sealed class RedditPitchCandidateService
+public sealed class WebPitchCandidateService
 {
     private const int ContinuityTelemetryScanLimit = 100;
     private const long MaxContinuityOutputBytes = 128 * 1024;
@@ -24,17 +24,18 @@ public sealed class RedditPitchCandidateService
     public int EvaluatorContinuityMaxChars { get; set; } = 1200;
     public int EvaluatorActorLimit { get; set; } = 40;
 
-    public RedditPitchCandidateService(ChatManagerContext context, ChatGenerator generator)
+    public WebPitchCandidateService(ChatManagerContext context, ChatGenerator generator)
     {
         this.context = context;
         this.generator = generator;
     }
 
     public async Task<PitchCandidate> GenerateAsync(
-        RedditPostSource source,
+        WebSourceDocument source,
         string topic,
         string discordChannelKey,
-        int expirationMinutes)
+        int expirationMinutes,
+        string promptRoot = "Reddit Source")
     {
         var actors = "- " + string.Join("\n- ", context.Actors.Select(a => a.Name));
         var chat = new Chat(new Idea(topic), generator.ManagerContext);
@@ -43,7 +44,7 @@ public sealed class RedditPitchCandidateService
         var sourceJson = BuildPromptSourceJson(source);
         var threadMaterial = LimitText(source.threadContext, 0);
 
-        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Candidate");
+        var resolver = new PromptResolver(generator.ManagerContext, promptRoot, "Pitch Candidate");
         var prompt = await resolver.Resolve(
             sourceJson,
             threadMaterial,
@@ -53,12 +54,12 @@ public sealed class RedditPitchCandidateService
             continuity);
 
         var output = await LLM.CompleteAsync(prompt, chat, true);
-        var evaluation = await EvaluateAsync(output, source, actors, memory, continuity);
+        var evaluation = await EvaluateAsync(output, source, actors, memory, continuity, promptRoot);
         if (!PitchCandidateEvaluator.IsApproved(evaluation))
         {
             OperatorTelemetry.RecordEvent(
                 "pitch_rejected",
-                $"Rejected Reddit pitch for {source.id}: {PitchCandidateEvaluator.GetReason(evaluation)}",
+                $"Rejected {source.DisplayName} pitch for {source.id}: {PitchCandidateEvaluator.GetReason(evaluation)}",
                 context,
                 context.Key);
             return null;
@@ -71,14 +72,14 @@ public sealed class RedditPitchCandidateService
             discordChannelKey,
             expirationMinutes,
             PitchCandidateEvaluator.GetReason(evaluation));
-        candidate.discordColor = ResolvePitchColor(candidate);
+        candidate.discordColor = source.brandColor ?? SourceBrand.Color(source.Provider);
 
         return candidate;
     }
 
-    private async Task<string> EvaluateAsync(string pitch, RedditPostSource source, string actors, string memory, string continuity)
+    private async Task<string> EvaluateAsync(string pitch, WebSourceDocument source, string actors, string memory, string continuity, string promptRoot)
     {
-        var resolver = new PromptResolver(generator.ManagerContext, "Reddit Source", "Pitch Evaluator");
+        var resolver = new PromptResolver(generator.ManagerContext, promptRoot, "Pitch Evaluator");
         var prompt = await resolver.Resolve(
             BuildPromptSourceJson(source),
             LimitText(source.threadContext, EvaluatorThreadMaxChars),
@@ -89,30 +90,6 @@ public sealed class RedditPitchCandidateService
             LimitText(continuity, EvaluatorContinuityMaxChars));
 
         return await LLM.CompleteAsync(prompt, new Chat(new Idea(pitch), generator.ManagerContext), LlmProfile.Utility);
-    }
-
-    private int ResolvePitchColor(PitchCandidate candidate)
-    {
-        var cast = PitchCandidateText.GetCast(candidate);
-        if (string.IsNullOrWhiteSpace(cast))
-            return 0;
-
-        var names = cast
-            .Split(new[] { ',', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(name => name.Trim())
-            .Where(name => !string.IsNullOrWhiteSpace(name));
-
-        foreach (var name in names)
-        {
-            var actor = context.Actors
-                .FirstOrDefault(a => a != null && (
-                    string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase) ||
-                    (a.Aliases?.Any(alias => string.Equals(alias, name, StringComparison.OrdinalIgnoreCase)) ?? false)));
-            if (actor != null)
-                return actor.Color1.ToDiscordColor();
-        }
-
-        return 0;
     }
 
     private string BuildEpisodeContinuityContext()
@@ -166,11 +143,11 @@ public sealed class RedditPitchCandidateService
             })), ContinuityMaxChars);
     }
 
-    private string BuildPromptSourceJson(RedditPostSource source)
+    private string BuildPromptSourceJson(WebSourceDocument source)
     {
         var sourceObject = JObject.FromObject(source);
-        sourceObject.Remove(nameof(RedditPostSource.threadContext));
-        sourceObject[nameof(RedditPostSource.selftext)] = LimitText(source.selftext, SourceSelftextMaxChars);
+        sourceObject.Remove(nameof(WebSourceDocument.threadContext));
+        sourceObject[nameof(WebSourceDocument.selftext)] = LimitText(source.selftext, SourceSelftextMaxChars);
         return sourceObject.ToString(Formatting.Indented);
     }
 
@@ -207,7 +184,7 @@ public sealed class RedditPitchCandidateService
         var trimmed = text.Trim();
         if (maxChars <= 0 || trimmed.Length <= maxChars)
             return trimmed;
-        return trimmed.Substring(0, Math.Max(0, maxChars - 1)) + "…";
+        return trimmed.Substring(0, Math.Max(0, maxChars - 1)) + "â€¦";
     }
 
     private bool IsCurrentContextEpisode(EpisodeRecord episode)
@@ -245,7 +222,7 @@ public sealed class RedditPitchCandidateService
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"RedditPitchCandidateService.LoadVaultContinuityOutputs failed for '{file}': {e.Message}");
+                Debug.LogWarning($"WebPitchCandidateService.LoadVaultContinuityOutputs failed for '{file}': {e.Message}");
                 continue;
             }
 
@@ -275,7 +252,7 @@ public sealed class RedditPitchCandidateService
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning($"RedditPitchCandidateService failed to list continuity outputs in '{folder}': {e.Message}");
+                    Debug.LogWarning($"WebPitchCandidateService failed to list continuity outputs in '{folder}': {e.Message}");
                     return Array.Empty<string>();
                 }
             })

@@ -98,6 +98,17 @@ public class PromptResolver
         return this;
     }
 
+    public async Task<PromptResolver> ResolveOrDefault(string fallback, params object[] args)
+    {
+        if (File.Exists(Path) || fallback == null)
+            return await Resolve(args);
+        Text = Regex.Replace(fallback, @"\{(\d+)\}", match =>
+            int.TryParse(match.Groups[1].Value, out var index) && index < args.Length && args[index] != null
+                ? args[index].ToString() : match.Value);
+        Resolved = true;
+        return this;
+    }
+
     // Each parallel actor/node request owns its resolved text and saved output reference.
     public PromptResolver Fork()
     {

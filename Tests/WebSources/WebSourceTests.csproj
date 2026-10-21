@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>../../Temp/WebSourceTests/bin/</OutputPath>
+    <NoWarn>SYSLIB0014;CS0649;CS0067</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../Assets/Core/Integrations/Sources/Web*.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/PolymarketSource.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/RedditSource.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/WebSourceConfigs.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/PolymarketConfigs.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/RedditConfigs.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/IConfig.cs" />
+    <Compile Include="../../Assets/Core/Integrations/RedditRequestGate.cs" />
+    <Compile Include="../../Assets/Core/Integrations/RedditThreadMiner.cs" />
+    <Compile Include="../../Assets/Core/Extensions/StringExtensions.cs" />
+    <Compile Include="../../Assets/Core/Extensions/TaskExtensions.cs" />
+    <Compile Include="../../Assets/Core/DataModels/Idea.cs" />
+    <Compile Include="WebSourceTests.cs" />
+    <Compile Include="RuntimeStubs.cs" />
+    <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>
+  </ItemGroup>
+</Project>

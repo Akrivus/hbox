@@ -1,17 +1,10 @@
 ﻿using System.Collections.Generic;
 
-public class RedditConfigs : IConfig
+public class RedditConfigs : WebSourceConfigs
 {
-    public string Type => "reddit";
+    public override string Type => "reddit";
     public Dictionary<string, string> SubReddits { get; set; }
-    public float MaxPostAgeInHours { get; set; }
-    public int BatchSize { get; set; }
-    public int BatchSizeLimit { get; set; }
-    public int BatchIterations { get; set; } = 1;
-    public string BatchPeriodOffset { get; set; } = "00:00";
-    public float BatchPeriodInMinutes { get; set; }
-    public string ActiveHoursStart { get; set; } = "00:00";
-    public string ActiveHoursEnd { get; set; } = "23:59";
+    public float MaxPostAgeInHours { get; set; } = 24;
     public int MaxDepth { get; set; } = 3;
     public int TopRoots { get; set; } = 3;
     public int TopLevelLimit { get; set; } = 30;
@@ -26,18 +19,4 @@ public class RedditConfigs : IConfig
     public string OAuthClientSecret { get; set; }
     public string OAuthDeviceId { get; set; } = "DO_NOT_TRACK_THIS_DEVICE";
     public string OAuthUserAgent { get; set; } = "script:hbox:1.1 (by /u/Akrivus)";
-    public bool EnablePitchGate { get; set; } = false;
-    public string PitchDiscordChannel { get; set; } = "#stream";
-    public int PitchExpirationMinutes { get; set; } = 180;
-    public int PitchApprovalScore { get; set; } = 1;
-    public int PitchAutoApprovalBatchSize { get; set; } = 0;
-    public int PitchMinimumVotesToQueue { get; set; } = 1;
-    public int PitchMemoryMaxChars { get; set; } = 4000;
-    public int PitchContinuityEpisodeLimit { get; set; } = 6;
-    public int PitchContinuityMaxChars { get; set; } = 4000;
-    public int PitchSourceSelftextMaxChars { get; set; } = 1200;
-    public int PitchEvaluatorThreadMaxChars { get; set; } = 1800;
-    public int PitchEvaluatorMemoryMaxChars { get; set; } = 1200;
-    public int PitchEvaluatorContinuityMaxChars { get; set; } = 1200;
-    public int PitchEvaluatorActorLimit { get; set; } = 40;
 }

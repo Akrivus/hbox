@@ -206,22 +206,26 @@ Example:
   },
   {
     "Type": "reddit",
+    "Enabled": true,
     "SubReddits": {
       "worldnews+anime_titties+todayilearned": "Default",
       "AskHistorians+UnitedNations+geopolitics": "History",
       "Africa+China+america+australia+europe": "Regional"
     },
     "MaxPostAgeInHours": 24,
-    "BatchSize": 20,
-    "BatchSizeLimit": 20,
-    "BatchIterations": 1,
-    "BatchPeriodOffset": "00:00",
-    "BatchPeriodInMinutes": 480,
-    "ActiveHoursStart": "00:00",
-    "ActiveHoursEnd": "23:59",
+    "Batch": {
+      "BatchSize": 2,
+      "BatchSizeLimit": 2,
+      "BatchIterations": 1,
+      "BatchPeriodOffset": "00:05:00",
+      "BatchPeriodInMinutes": 5,
+      "ActiveHoursStart": "00:00",
+      "ActiveHoursEnd": "23:59"
+    },
     "EnablePitchGate": true,
     "PitchDiscordChannel": "#stream",
     "PitchExpirationMinutes": 180,
+    "PitchApprovalScore": 2,
     "PitchAutoApprovalBatchSize": 0,
     "PitchMinimumVotesToQueue": 1,
     "PitchMemoryMaxChars": 4000,
@@ -248,6 +252,33 @@ Example:
     "Sort": "confidence"
   },
   {
+    "Type": "polymarket",
+    "Enabled": true,
+    "TagSlugs": ["politics"],
+    "DiscoveryPageSize": 50,
+    "DiscoveryPages": 2,
+    "MinLiquidity": 1000,
+    "MinVolume24hr": 1000,
+    "RepeatCooldownHours": 24,
+    "RequestSpacingSeconds": 1,
+    "MaxRequestAttempts": 3,
+    "Batch": {
+      "BatchSize": 5,
+      "BatchSizeLimit": 2,
+      "BatchIterations": 1,
+      "BatchPeriodOffset": "00:02",
+      "BatchPeriodInMinutes": 30,
+      "ActiveHoursStart": "00:00",
+      "ActiveHoursEnd": "23:59"
+    },
+    "EnablePitchGate": true,
+    "PitchDiscordChannel": "#stream",
+    "PitchExpirationMinutes": 180,
+    "PitchApprovalScore": 2,
+    "PitchMinimumVotesToQueue": 1,
+    "PitchAutoApprovalBatchSize": 0
+  },
+  {
     "Type": "obs",
     "VideosFolder": "C:/Videos/HBOx",
     "OBSWebSocketURI": "ws://localhost:4455",
@@ -268,6 +299,40 @@ Example:
 ]
 ```
 
+### Web source settings
+
+Reddit and Polymarket run independently through the shared `WebSource` pipeline. Keep scheduling fields inside each source's `Batch` block; provider settings and shared `Pitch*` settings stay outside it. The examples above allow up to two Reddit pitches every five minutes and two Polymarket pitches every thirty minutes, with viewer voting required for both.
+
+| Setting | Behavior |
+| --- | --- |
+| `Batch.BatchSize` | Documents requested per adapter pass, and maximum passes per iteration. Reddit advances through subreddits; Polymarket rotates topic tags. |
+| `Batch.BatchSizeLimit` | Strict total accepted pitches or direct Ideas per drop, including autoapproved pitches. Rejections do not consume the limit. |
+| `Batch.BatchIterations` | Number of rounds of adapter passes. Each source document is evaluated at most once per drop. |
+| `Batch.BatchPeriodOffset` / `Batch.BatchPeriodInMinutes` | Local-time schedule aligned from midnight plus the offset. The period must be between one second and one year. |
+| `Batch.ActiveHoursStart` / `Batch.ActiveHoursEnd` | Window permitting autoapproval. Discovery and viewer voting continue outside it. Overnight windows work; equal start/end means all day. |
+| `Enabled` | Set `false` to stop intake when reloading configuration. Removing a source block disables it on the next startup. |
+| `LogoUrl` / `BrandColor` | Optional voting-embed logo URL and integer color overrides. Defaults are Reddit orange (`16729344`, `#FF4500`) and Polymarket blue (`3038463`, `#2E5CFF`). |
+
+Legacy flat batch fields remain supported. When `Batch` is present, it replaces the flat batch policy entirely; omitted nested fields use shared defaults, not the flat values. Those defaults are size/limit `20`, iterations `1`, period `60` minutes, offset `00:00`, and active hours `00:00`–`23:59`.
+
+Both sources accept the same `Pitch*` settings shown in the Reddit example, including memory and evaluator context limits. `EnablePitchGate: false` sends accepted source material directly to Ideas. With the gate enabled, `PitchAutoApprovalBatchSize: 0` requires voting for every evaluator-approved pitch. Voting thresholds are saved on each new pitch, so the sources can use different thresholds across restarts.
+
+Polymarket-specific discovery settings:
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `TagSlugs` | `["politics"]` | Topic feeds rotated during discovery; multiple tags are separate feeds, not an intersection. An empty list includes all topics. |
+| `DiscoveryPageSize` | `50` | Events fetched per API page; allowed range is 1–100. |
+| `DiscoveryPages` | `2` | Maximum pages scanned per adapter pass; allowed range is 1–20. |
+| `MinLiquidity` / `MinVolume24hr` | `1000` each | Minimum liquidity and 24-hour trading volume on the selected market. |
+| `RepeatCooldownHours` | `24` | Suppresses accepted event IDs until the cooldown passes; a later snapshot gets a new voting window. |
+| `RequestSpacingSeconds` | `1` | Minimum spacing between discovery requests. |
+| `MaxRequestAttempts` | `3` | Bounded retries for rate limits and transient failures; allowed range is 1–5. |
+
+Polymarket reads public Gamma data and requires no API key or wallet. It selects at most one eligible open market per event. Voting cards show outcome prices, liquidity, recent volume and the snapshot time. The adapter retains resolution rules and treats prices as market-implied expectations. Accepted-event history is saved in `polymarket-{show}.json`; both sources share the existing `reddit-pitches-{show}.json` pitch manifest.
+
+Edit Polymarket prompts in Obsidian at `Vault/{show}/Prompts/Polymarket Source.md`, `Polymarket Source/Pitch Candidate.md`, and `Polymarket Source/Pitch Evaluator.md`. These files are read for each generation and must be copied with the locally managed Vault when moving the setup. See [web sources and voting](Docs/WebSources.md) for the full behavior and prompt argument reference.
+
 ### Notes
 
 - Discord replay and pitch reactions count as **3 votes for administrators, 2 for boosters, and 1 for everyone else** (the highest tier wins). Both thumbs-up and thumbs-down use these weights, including pitch minimum-vote and approval-score thresholds. Discord's visible reaction counter still counts people, while HBOx stores weighted totals. Super-reactions do not add extra votes.
@@ -275,12 +340,12 @@ Example:
 - `/idea` uses the same tier detection: `DefaultDailyIdeaLimit` defaults to 3, `BoosterDailyIdeaLimit` to 10, and `AdminDailyIdeaLimit` to 30. Higher tiers never receive a lower quota than lower tiers. Quotas reset at local midnight and remain in memory, as before.
 - Reaction weights are saved in `hbox-discord-votes.json` under Unity's persistent data directory. Removing a tracked reaction reverses its original weight, even after a role change or restart; repeated add/remove deliveries are ignored. Existing votes are not retroactively reweighted, and untracked legacy removals subtract 1. Keep this file with the replay/pitch manifests when retaining vote history. Gateway events missed while the bot is offline are not reconciled.
 
-- Remove a config block entirely to disable that integration.
+- For web sources, remove a config block to disable it on the next startup, or set `Enabled: false` when reloading configuration.
 - `folder` is the active replay loader type registered at runtime.
 - `reddit.SubReddits` is a dictionary, not a simple string array.
-- `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`.
+- `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`. Polymarket can run alongside Reddit through the shared `WebSource` batch/pitch pipeline; see [web source configuration](Docs/WebSources.md) for independent batch policies, source-branded voting cards and compatibility details.
 - `reddit.PitchDiscordChannel` must match a configured Discord webhook key, usually `#stream`.
-- `reddit.BatchPeriodOffset` and `reddit.BatchPeriodInMinutes` control Reddit fetch cadence all day; `reddit.ActiveHoursStart` and `reddit.ActiveHoursEnd` only gate queueing/autoapproval work.
+- `reddit.Batch.BatchPeriodOffset` and `reddit.Batch.BatchPeriodInMinutes` control Reddit fetch cadence all day; `reddit.Batch.ActiveHoursStart` and `reddit.Batch.ActiveHoursEnd` only gate automatic approvals. Polymarket uses the same nested settings independently.
 - Pitch votes queue immediately once the live vote score reaches `reddit.PitchApprovalScore` and the total vote count meets `reddit.PitchMinimumVotesToQueue`. Remaining posted pitches are resolved after the voting window closes: enough positive votes queue the pitch as an `Idea`; more thumbs-down rejects it; ties, too few votes, or positive scores below the approval score expire.
 - `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
 - `reddit.PitchApprovalScore` is the positive vote score required to queue a live or expired pitch.
@@ -288,9 +353,9 @@ Example:
 - `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before a positive voted pitch can queue.
 - `reddit.PitchMemoryMaxChars`, `reddit.PitchContinuityEpisodeLimit`, `reddit.PitchContinuityMaxChars`, and `reddit.PitchSourceSelftextMaxChars` bound the context used while writing pitch cards.
 - `reddit.PitchEvaluatorThreadMaxChars`, `reddit.PitchEvaluatorMemoryMaxChars`, `reddit.PitchEvaluatorContinuityMaxChars`, and `reddit.PitchEvaluatorActorLimit` keep the rejection filter cheap; rejected candidates no longer need to pay for generation-sized context.
-- Autoapproved pitch candidates are sorted by Reddit comment count weighted most heavily, then Reddit karma, then newest post first.
+- Reddit pitch candidates are ranked by comment count weighted most heavily plus the square root of karma, then newest post first.
 - Pitch generation uses `Vault/{show}/Prompts/Reddit Source/Pitch Candidate.md`, then `Vault/{show}/Prompts/Reddit Source/Pitch Evaluator.md` to reject weak or overlong pitches before posting.
-- Posted pitch cards surface the pitch, cast, source subreddit, Reddit karma/comment counts, and evaluator approval reason; the approved `Idea` still includes the raw Reddit post text and mined thread material for generation context.
+- Posted pitch cards surface the pitch, cast, branded source label/logo/color, provider-specific metrics, and evaluator approval reason; the approved `Idea` retains raw source context. Reddit cards show subreddit/karma/comments; Polymarket cards show timestamped outcome prices, liquidity and 24-hour volume.
 - In pitch-gate mode, Reddit posts are only written to the local seen history after a pitch is accepted for voting, so evaluator-rejected posts can be reconsidered later.
 - `reddit.RequestSpacingSeconds` applies a shared delay across Reddit listing and thread-mining requests; `reddit.RateLimitCooldownSeconds` is used before retrying after Reddit returns 429 or a 403 blocked response; `reddit.MaxRequestAttempts` bounds those retries.
 - `reddit.OAuthClientId` enables app-only OAuth for read-only listing and comment requests. Add `OAuthClientSecret` for a confidential/script app, or omit the secret and set `OAuthDeviceId` for an installed-app client. When OAuth is configured, Reddit fetches use `oauth.reddit.com` with a cached bearer token.
