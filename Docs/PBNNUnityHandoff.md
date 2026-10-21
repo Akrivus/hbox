@@ -1,12 +1,68 @@
-# PBNN P0/P1 Unity handoff
+# PBNN Unity handoff
 
-Current audit: see [Studio roadmap — 2026-10-17](PBNNStudioRoadmap.md). The user has now played a working fixture. All five interiors are registered, the inventory has grown to 60 voiced actors, and the next design uses distinct anchor, conversation, production and visual-explanation loops. The initial inventory and casting notes below are implementation history; the current roadmap supersedes their counts, old office references and pending first-play status.
+## Current direction — 2026-10-18
 
-## Current casting inventory
+The [studio roadmap](PBNNStudioRoadmap.md) is the current priority order. Finish the physical newsroom, camera framing, local displays and casting exploration before deciding content/playback boundaries. The experimental saved rundown/director, separate Studio Rundown generator, placeholder multi-cast prompts and desk-to-lounge transitions were removed. Chat versus scene versus segment remains undecided; one Chat per bulletin is not a general requirement. Do not restore deferred orchestration to test a room.
 
-All 46 PBNN actor ScriptableObjects now use their descriptive filenames as `Name`, `Title` and sole alias. Shared Walt/X aliases were removed. These are provisional feature/interview casting identities; final personalities and voices are still open. Prefab references and asset GUIDs are preserved. The single-host fixture now uses **Business Man 1**, with matching prompts and a repaired scene actor reference. Only that host is registered in the fixture scene; the other inventory actors are not automatically added to the broadcast cast. Earlier Walt references in the initial-shell inventory below describe the original placeholder setup, superseded by this casting update. Old episodes naming Walt will need an explicit migration if they are retained.
+The user has played a generated fixture successfully, but its camera angle needs refinement. Replay consistency, skip cleanup and channel-return cleanup still need explicit Unity confirmation. Static checks and Studio Preview are not substitutes for that sweep.
 
-## Updated newsroom and character direction (2026-10-08)
+## Current scene and cast
+
+`Assets/Scenes/PBNN.unity` uses context object `PBNN`, context key `pbnn`, scene path `Scenes/PBNN`, config `pbnn.json` and saved episode folder `Documents/PBNN`. Main and build settings register the channel. Runtime prompt routing uses `pbnn`, independently of the scene object name.
+
+The context's `SpawnPoints` and `Locations` register the same five interior IDs. Preserve those IDs; design labels are for documentation/UI. Each group has anchor, target, target-group and one non-null virtual-camera reference. Registration supports episode-level staging, not segment-by-segment switching. Shared camera-target wiring is not a portable mode framework.
+
+| Location ID | Design label | Registered slots | Existing shot | Still to author/verify |
+| --- | --- | --- | --- | --- |
+| Desk | Anchor desk | 2; first named Business Man 1 | Wide | Refine fixture angle, host placement, TV and lower third |
+| Lounge | Conversation lounge | 1 | OTS L | Multiple conversation seats and framing |
+| Office | Production office | 1 | Close Up | Crew blocking and concrete workplace dynamics |
+| Corner | Presentation corner | 1 | Two Shot | Presenter/questioners and board focus |
+| Video Wall | Big picture room | 1 | OTS R | Visible regions, crops/panels and presenter focus |
+
+The studio floor has no registered program location and remains postponed. Only the Desk fixture is the working playback baseline; the other rooms are registered starting points, not visually verified formats.
+
+The inventory contains **60 actor definitions** with identities, prefab references, pronouns and provisional Gemini audition voices. Only **Business Man 1** is in the active scene cast. Use other assets as temporary preview stand-ins without registering them in production. Final anchors and production crew are separate ensembles; guests/presenters depend on format. Author matching `Actors/<Name>.md` profiles and format prompts before expanding generated casting: current templates still mandate one host and a short soccer bulletin. Voices and personalities are not finalized.
+
+## Verify the studio independently
+
+1. Open PBNN in Edit mode. Inspect all five registered groups, their spawn transforms, anchor/target/target-group and camera references. Desk must retain its named stationary Business Man 1 spawn and sole Wide shot. Do not replace the five-location registration with a single temporary staging group.
+2. Use [Studio Preview](#studio-blocking-preview-no-chat) for each location and shot. Try existing actors, authored poses and spawn overrides to evaluate placement, sight lines and framing without generating episodes. Add missing seats/presenter positions as actual room needs become clear.
+3. Inspect displays with local images: Desk TV framing, board readable area and useful regions of the curved wall. Only the Desk TV and headline/source/date overlay are connected to runtime media playback. Preview does not drive media cues; a readable board/wall image does not establish runtime support for that surface.
+4. Run **HBOx → PBNN → Validate Media Scene** outside Play mode for reference, shader, fixture decode and actual Chat JSON round-trip checks. This does not save the scene or prove visible framing/cleanup. See [media handoff](PBNNMediaHandoff.md) for the implemented payload and TV details. Its older single-staging helper/four-wall next-step notes are historical; the current roadmap and five-location workflow here take precedence.
+5. Validate Game-view selection and one effective rendered camera/audio listener from Main in Play mode using the retained fixture below. Studio Preview does not simulate camera blends, gameplay IK, speech or runtime lifecycle.
+
+## Run the retained fixture regression
+
+1. Import and compile in Unity. Run **HBOx → PBNN → Install Fixture Prompts** to copy six tracked templates from `Docs/PBNN/Prompts` to `Vault/pbnn/Prompts`. Re-running overwrites those fixture templates; do not replace them with multi-cast placeholders.
+2. Open `Assets/Main.unity`, enter Play mode and select **PBNN**, so shared ChatManager/channel lifecycle is initialized. Confirm the context resolves `pbnn.json` and configured LLM/TTS providers.
+3. Queue **HBOx → PBNN → Queue Media Fixture Bulletin** once. It uses `Docs/PBNN/FixtureBulletin.txt` through normal generation/TTS/save/playback, with no live soccer/Reddit acquisition. **Queue Fixture Bulletin** is the media-free comparison. Both persist Desk and the Business Man 1 host spawn; older saved episodes are not rewritten.
+4. Confirm Business Man 1 appears at Desk with intelligible speech/subtitles and the intended Wide framing. The historical bulletin identifies October 7, 2026 and Scotland 0–0 Netherlands, report `c6bc1932bc604687ba737f9b83811788`. It must not invent match footage, incidents or player quotes.
+5. In the media fixture, confirm the middle speaking turns show the local illustration on the Desk TV, without stretching or recoloring its frame, with headline/source/date overlay and subtitle clearance. Opening and closing must clear the image/overlay. The other TV, board and curved wall are not driven by this fixture.
+6. Inspect the completed JSON under `Documents/PBNN`: `Key: pbnn`, Business Man 1, saved Desk/host placement, original Idea, playable audio and `pbnn.media.v1` for the media fixture. Generation completion is not save-success confirmation; `Chat.Save()` exposes no success event.
+7. Replay the saved episode and confirm the same placement, image, attribution and cue boundaries. During the image, test skip and switching to polbots; no stale picture/overlay, stranded camera/audio or duplicate actors may remain. Return and replay, then play a media-free episode to check stale-content cleanup.
+
+Optional API input remains `POST http://localhost:6789/api/channels/pbnn-default/ideas` with raw UTF-8 fixture text after selecting PBNN. Prefer the menu commands for the saved staging/media markers.
+
+## Validation status and unfinished capabilities
+
+The original shell and bounded media slice have static/compile/serialization checks documented in the [media handoff](PBNNMediaHandoff.md). The user subsequently played a generated fixture; that does not confirm the full regression sweep above. Record actual Unity import/shader, visible display/framing, replay, skip and channel-return results separately. Studio Preview cleanup also needs Editor confirmation when saving, entering Play, reloading scripts, closing the scene or disabling preview.
+
+Other rooms still need usable multi-person blocking and camera/display checks. Final casting, performance profiles and format prompts remain unfinished. Live ingestion, source/rundown contracts, scheduling, staffing/rotation, transition orchestration and advanced walking/IK remain later work. No new segment contract or production generation behavior is required to finish this studio pass.
+
+## Studio blocking preview (no Chat)
+
+Open PBNN directly in Edit mode and select the PBNN context. Its **Studio Preview** component starts disabled. Enable **Preview Enabled**, choose a **Location**, and use **Fill location spawns from context cast** to populate its spawn slots. Replace individual Actor assets to try another cast; repeated actors are allowed. **Spawn Override** accepts any Transform, including global points outside the POI hierarchy. Temporary actors follow moved spawn points.
+
+Click **View selected shot in Scene view** after selecting a shot or moving camera/spawn references. This evaluates the registered Cinemachine camera with the preview cast, frames the Scene view, then restores the camera/target transforms. It does not run the Game view broadcast or generate a Chat. Camera movement/blends and gameplay IK are not simulated. Optional Pose clips are sampled only on the temporary actor copies; otherwise the prefab's authored pose is used. Existing prefab mesh/costume choices are retained.
+
+Saving, entering Play mode, reloading scripts, closing the scene or disabling the component removes the temporary actors. Preview enablement is reset when saving/entering Play. Cast/location choices are ordinary serialized authoring settings. For RomeBots or another IP, select its context and use **Tools → Studio → Add Preview to Selected Context**, then use its registered locations, cameras and Actor assets. Only one context previews at a time.
+
+## Historical architecture and initial shell inventory
+
+The following snapshot preserves useful asset provenance and implementation history. Its 46/28/18 actor counts, Walt/Home Office staging, octagonal four-wall rig, hard-cut/rotation proposals and pending first-play assumptions are superseded by the current sections above. They are not current scene descriptions, acceptance criteria or next-step instructions. Original one-Chat fixture behavior does not define future content boundaries.
+
+### Historical newsroom proposal (2026-10-08)
 
 The copied AppyDays office is temporary fixture staging. Its large office-pack demo layout is not the intended PBNN studio. The supplied blocking concept specifies one compact octagonal studio with four permanent sets on the cardinal walls: News, Weather, Sports and Features. Diagonal faces provide lighting/equipment space, entrances or additional displays. Change set identity through screens, lighting and graphics rather than rebuilding physical sets. Geometry behind the walls need not be camera-visible or realistic.
 
@@ -18,9 +74,9 @@ The proposed roster is approximately eight characters with an equal gender split
 
 Character dynamics are creative notes, not implemented runtime behavior: Pete and Livia can share a desk with conspicuous romantic tension; a sports commentator challenges colleagues to take it outside and is routinely ignored. Do not assign that sports role to a named character until casting is chosen.
 
-The user supplied the four-wall/octagonal blocking excerpt directly after conversation retrieval omitted that discussion. This records the intended studio direction; physical studio replacement, central rig and transitions are not yet implemented.
+The user supplied the four-wall/octagonal blocking excerpt directly after conversation retrieval omitted that discussion. This records the earlier direction only; the current five-location studio supersedes the octagonal/cardinal-wall plan. A central rig and transitions are not active requirements.
 
-## Implemented shell
+### Original implemented shell (historical snapshot)
 
 `Assets/Scenes/PBNN.unity` is an independent copy of AppyDays staging. Its context object is `PBNN`, key `pbnn`, scene path `Scenes/PBNN`, config `pbnn.json`, and saved episode folder `Documents/PBNN`. Main's channel list and build settings now register it. Local `hbox.json` enables `polbots` and `pbnn`; the example config includes PBNN too. AppyDays remains available as a reference.
 
@@ -30,7 +86,7 @@ The Default generator runs behavior, editor, dialogue, sentiment, speech and tit
 
 One Chat contains the entire fixture bulletin. It goes through the existing Idea queue, generation, TTS, save and playback flow. This slice does not add a typed source packet or segment director.
 
-## Reusable asset inventory
+### Original reusable asset inventory
 
 | Item | Existing reference | P0/P1 use |
 | --- | --- | --- |
@@ -43,37 +99,4 @@ One Chat contains the entire fixture bulletin. It goes through the existing Idea
 | Actor animation/voice | Existing Walt prefab Animator/ActorController and copied voice settings | Uses existing talk/idle behavior and configured TTS provider |
 | Replay collector | Existing FolderSource under Initializer | Configured for `PBNN`, one replay per batch, 24-hour preferred age and history size 80 |
 
-The original scene has 22 registered POI managers. PBNN registers only Home Office for this slice. The remaining copied set objects are staging inventory, not segment routing. P3 will author two cubicle shots and explicitly route their saved boundaries. A single eligible virtual camera makes selection deterministic; it does not yet guarantee a stationary composition when its Cinemachine follow/aim components are active.
-
-## Run the fixture
-
-1. Let Unity import the new assets and compile. Run **HBOx → PBNN → Install Fixture Prompts**. This copies the six tracked templates from `Docs/PBNN/Prompts` to the runtime `Vault/pbnn/Prompts` directory. They are already installed in this workspace; the menu makes setup reproducible on another checkout. Re-running it overwrites those fixture templates.
-2. Open `Assets/Main.unity`, enter Play mode, and select **PBNN** from the channel guide. Start from Main so the shared ChatManager and channel lifecycle are initialized.
-3. Run **HBOx → PBNN → Queue Fixture Bulletin** once. The action requires the viewed channel to be PBNN and refuses another queued/in-progress generation. It reads `Docs/PBNN/FixtureBulletin.txt`; no live soccer request or Reddit review runs.
-4. Confirm one Walt anchor appears in the Home Office staging, with intelligible speech and subtitles. The historical bulletin should identify October 7, 2026 and report Scotland 0–0 Netherlands from report `c6bc1932bc604687ba737f9b83811788`. It must not invent player quotes, captured images or match incidents.
-5. Confirm a JSON episode appears in `Documents/PBNN` with `Key: pbnn`, Walt as its actor, the original Idea and playable audio data. Generation does not provide a save-success event; inspect the completed file rather than treating its completion log as write confirmation.
-6. Let the existing replay flow play the saved bulletin, then switch to polbots and back. Verify the reloaded bulletin retains PBNN ownership and Walt, with no stranded camera/audio or actor duplication.
-
-Optional API input uses the existing route, with the fixture as a raw UTF-8 text body: `POST http://localhost:6789/api/channels/pbnn-default/ideas`. Select PBNN first for this slice. The menu action is the simpler verification path.
-
-## Exact remaining editor checks
-
-- Inspect the PBNN context's single SpawnPoints entry and Walt actor reference for missing imports. Confirm its ConfigManager points to `pbnn.json`.
-- Inspect Home Office and Two Shot in the copied scene. Position the placeholder anchor or adjust that scene's camera for a readable composition if the inherited office framing misses the host. Verify one effective rendered camera/audio listener. Do not edit the shared POI or actor prefab to make PBNN-only adjustments.
-- Confirm configured TTS can use Walt's copied voice. Change the PBNN actor asset's voice only if the active provider requires a different ID.
-- Run generation, saved replay, skip and channel-return checks above. Final station branding, a desk, a second cubicle and Paul Bott are not required to validate this single-host shell.
-
-## Validation and status
-
-The fixture menu compiled against the installed Unity 6000.3.10f1 libraries and current runtime assembly with zero warnings/errors. Static checks verified unique scene IDs, removal of old component references, isolated host ownership, ordered generator components, channel/build registration, config parsing and installed prompt copies. `git diff --check` passed.
-
-Unity was already open; this task did not run a second editor or perform the live generation/playback sweep. P0 inventory and P1 shell/config/prompts are implemented. The P1 playable/save/replay completion check remains pending the editor sweep. P2 source/rundown persistence and P3 cubicle cutaways are the next slices after that check.
-
-
-## Studio blocking preview (no Chat)
-
-Open PBNN directly in Edit mode and select the PBNN context. Its **Studio Preview** component starts disabled. Enable **Preview Enabled**, choose a **Location**, and use **Fill location spawns from context cast** to populate its spawn slots. Replace individual Actor assets to try another cast; repeated actors are allowed. **Spawn Override** accepts any Transform, including global points outside the POI hierarchy. Temporary actors follow moved spawn points.
-
-Click **View selected shot in Scene view** after selecting a shot or moving camera/spawn references. This evaluates the registered Cinemachine camera with the preview cast, frames the Scene view, then restores the camera/target transforms. It does not run the Game view broadcast or generate a Chat. Camera movement/blends and gameplay IK are not simulated. Optional Pose clips are sampled only on the temporary actor copies; otherwise the prefab's authored pose is used. Existing prefab mesh/costume choices are retained.
-
-Saving, entering Play mode, reloading scripts, closing the scene or disabling the component removes the temporary actors. Preview enablement is reset when saving/entering Play. Cast/location choices are ordinary serialized authoring settings. For RomeBots or another IP, select its context and use **Tools → Studio → Add Preview to Selected Context**, then use its registered locations, cameras and Actor assets. Only one context previews at a time.
+The original scene has 22 registered POI managers. PBNN registers only Home Office for this slice. The remaining copied set objects are staging inventory, not segment routing. The proposed P3 cubicle cutaways and saved-boundary routing were superseded by the October 18 studio-first reset; do not implement them as the next slice. A single eligible virtual camera makes selection deterministic; it does not yet guarantee a stationary composition when its Cinemachine follow/aim components are active.

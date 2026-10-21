@@ -89,7 +89,7 @@ public sealed class GoogleTtsClient
         }
     }
 
-    public async Task<byte[]> Synthesize(string text, string voice, string model, string prompt, string language, TTSConfigs settings, bool gemini)
+    public async Task<byte[]> Synthesize(string text, string voice, string model, string prompt, string language, TTSConfigs settings, bool gemini, int maxRetries = 4)
     {
 
         using (var output = new MemoryStream())
@@ -121,7 +121,7 @@ public sealed class GoogleTtsClient
                             {
                                 if (!response.IsSuccessStatusCode)
                                 {
-                                    if (attempt < 4 && (response.StatusCode == HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500))
+                                    if (attempt < maxRetries && (response.StatusCode == HttpStatusCode.TooManyRequests || (int)response.StatusCode >= 500))
                                     {
                                         await Task.Delay(1000 * (1 << attempt));
                                         continue;
@@ -138,8 +138,8 @@ public sealed class GoogleTtsClient
                             }
                         }
                     }
-                    catch (HttpRequestException) when (attempt < 4) { await Task.Delay(1000 * (1 << attempt)); }
-                    catch (TaskCanceledException) when (attempt < 4) { await Task.Delay(1000 * (1 << attempt)); }
+                    catch (HttpRequestException) when (attempt < maxRetries) { await Task.Delay(1000 * (1 << attempt)); }
+                    catch (TaskCanceledException) when (attempt < maxRetries) { await Task.Delay(1000 * (1 << attempt)); }
                 }
             }
             return output.ToArray();
