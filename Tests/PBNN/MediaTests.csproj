@@ -5,6 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Assets/Scenes/PBNN/Scripts/PbnnMediaPacket.cs" Link="PbnnMediaPacket.cs" />
+    <Compile Include="../../Assets/Core/DataModels/ImageAttachment.cs" Link="ImageAttachment.cs" />
+    <Compile Include="../../Assets/Core/DataModels/SceneImagePlan.cs" Link="SceneImagePlan.cs" />
+    <Compile Include="../../Assets/Core/Integrations/ImageAttachmentService.cs" Link="ImageAttachmentService.cs" />
     <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>
   </ItemGroup>
 </Project>

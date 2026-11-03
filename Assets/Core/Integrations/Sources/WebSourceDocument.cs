@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
@@ -31,6 +32,7 @@ public class WebSourceDocument
     public string logoUrl;
     public int? brandColor;
     public PolymarketSnapshot market;
+    public List<ImageAttachment> images = new List<ImageAttachment>();
 
     [JsonIgnore] public string Provider => string.IsNullOrWhiteSpace(provider) ? "reddit" : provider;
     [JsonIgnore] public string DisplayName => SourceBrand.Name(Provider);
@@ -42,6 +44,7 @@ public class WebSourceDocument
 
     public string Summary()
     {
+        if (Provider == "discord") return $"Discord submission | Author: {author} | Received: {fetchedAtUtc}";
         if (market == null)
             return $"{subreddit ?? DisplayName} | {Math.Max(0, score):N0} karma | {Math.Max(0, commentCount):N0} comments";
         var outcomes = string.Join(" | ", (market.outcomes ?? Array.Empty<string>()).Select((name, index) =>
@@ -70,9 +73,9 @@ public sealed class PolymarketSnapshot
 
 public static class SourceBrand
 {
-    public static string Name(string key) => key == "polymarket" ? "Polymarket" : key == "reddit" ? "Reddit" : key;
-    public static int Color(string key) => key == "reddit" ? 0xFF4500 : 0x2E5CFF;
+    public static string Name(string key) => key == "polymarket" ? "Polymarket" : key == "reddit" ? "Reddit" : key == "discord" ? "Discord" : key;
+    public static int Color(string key) => key == "reddit" ? 0xFF4500 : key == "discord" ? 0x5865F2 : 0x2E5CFF;
     public static string Logo(string key) => key == "reddit"
         ? "https://www.redditstatic.com/desktop2x/img/favicon/android-icon-192x192.png"
-        : "https://polymarket.com/icons/android-chrome-192x192.png";
+        : key == "discord" ? "https://discord.com/assets/favicon.ico" : "https://polymarket.com/icons/android-chrome-192x192.png";
 }

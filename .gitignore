@@ -82,6 +82,11 @@ replays-*.txt
 config.json
 reddit-pitches-*.json
 polymarket-*.json
+discord-submissions-*.json
+discord-submissions-*.json.tmp
+# Legacy submission deduplication history (read during migration).
+discord-tips-*.json
+discord-tips-*.json.tmp
 
 # hbox specific
 hbox.json
@@ -90,6 +95,10 @@ pbnn.json
 polbots.json
 romebots.json
 spacedrivel.json
+
+# Standalone server regression harness
+!/Tests/Server/ServerTests.csproj
+/Tests/Server/obj/
 
 # Standalone OBS regression harness
 !/Tests/Recording/RecordingTests.csproj

@@ -51,7 +51,7 @@ public abstract class WebSourceConfigs : WebSourceBatchConfigs, IConfig
     // If supplied, Batch replaces the legacy flat batch fields above.
     public WebSourceBatchConfigs Batch { get; set; }
     public bool Enabled { get; set; } = true;
-    public bool EnablePitchGate { get; set; }
+    public bool EnablePitchGate { get; set; } = true;
     public string PitchDiscordChannel { get; set; } = "#stream";
     public int PitchExpirationMinutes { get; set; } = 180;
     public int PitchApprovalScore { get; set; } = 1;

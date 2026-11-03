@@ -83,7 +83,37 @@ The shared `channels` entry controls which channels are loaded during startup. O
 
 Each config entry must contain a `Type` field. Only the systems present in your scene/context need to be configured.
 
-Example:
+### Control panel hostname and port
+
+The HTTP server reads a machine-wide `server` entry from `hbox.json` at startup (channel configs do not override it). Add this object to the existing JSON array to use `http://hbox.local`:
+
+```json
+{
+  "Type": "server",
+  "Port": 80,
+  "EnableMdns": true,
+  "HostName": "hbox"
+}
+```
+
+Without this entry the port remains **6789**, mDNS is enabled in both player builds and the Unity editor, and the hostname is `hbox.local`. For local development alongside another instance on the network, set a different `HostName` or set `EnableMdns` to `false`. With a port other than 80, include it in the URL, for example `http://hbox.local:6789`. Localhost and the selected LAN IPv4 address remain available. `/api/health` reports the configured localhost URL.
+
+`HostName` is a single DNS label without `.local`. Machines sharing a LAN must use distinct names, such as `hbox-studio` and `hbox-office`. Different networks can each use `hbox`. The advertiser probes for conflicting names before publishing an IPv4 address and an `_http._tcp.local` service with the configured port. If it detects a conflict, discovery stops with a warning while HTTP keeps running. Choose another name and restart. Settings take effect on restart.
+
+mDNS requires multicast between the client and host on the same network. Allow the player through the firewall on trusted local networks for UDP 5353 and the configured TCP port. On Windows, HTTP.sys may also require URL reservations for the account running HBOx. If startup reports access denied, run these in an elevated PowerShell, substituting the actual LAN IP, hostname and port:
+
+```powershell
+$account = "$env:USERDOMAIN\$env:USERNAME"
+netsh http add urlacl url=http://localhost:80/ user="$account"
+netsh http add urlacl url=http://192.168.1.50:80/ user="$account"
+netsh http add urlacl url=http://hbox.local:80/ user="$account"
+```
+
+The chosen port must be free; startup errors are logged rather than silently selecting another port.
+
+Run the standalone discovery/config regression harness with `dotnet run --project Tests/Server/ServerTests.csproj`. Append `-- --network` to also test a temporary unique hostname over real UDP mDNS and verify shutdown.
+
+### Configuration example
 
 ```json
 [
@@ -206,6 +236,8 @@ Example:
   },
   {
     "Type": "reddit",
+    "EnablePitchGate": true,
+    "PitchAutoApprovalBatchSize": 0,
     "Enabled": true,
     "SubReddits": {
       "worldnews+anime_titties+todayilearned": "Default",
@@ -222,11 +254,9 @@ Example:
       "ActiveHoursStart": "00:00",
       "ActiveHoursEnd": "23:59"
     },
-    "EnablePitchGate": true,
     "PitchDiscordChannel": "#stream",
     "PitchExpirationMinutes": 180,
     "PitchApprovalScore": 2,
-    "PitchAutoApprovalBatchSize": 0,
     "PitchMinimumVotesToQueue": 1,
     "PitchMemoryMaxChars": 4000,
     "PitchContinuityEpisodeLimit": 6,
@@ -253,6 +283,8 @@ Example:
   },
   {
     "Type": "polymarket",
+    "EnablePitchGate": true,
+    "PitchAutoApprovalBatchSize": 0,
     "Enabled": true,
     "TagSlugs": ["politics"],
     "DiscoveryPageSize": 50,
@@ -271,12 +303,10 @@ Example:
       "ActiveHoursStart": "00:00",
       "ActiveHoursEnd": "23:59"
     },
-    "EnablePitchGate": true,
     "PitchDiscordChannel": "#stream",
     "PitchExpirationMinutes": 180,
     "PitchApprovalScore": 2,
-    "PitchMinimumVotesToQueue": 1,
-    "PitchAutoApprovalBatchSize": 0
+    "PitchMinimumVotesToQueue": 1
   },
   {
     "Type": "obs",
@@ -306,16 +336,16 @@ Reddit and Polymarket run independently through the shared `WebSource` pipeline.
 | Setting | Behavior |
 | --- | --- |
 | `Batch.BatchSize` | Documents requested per adapter pass, and maximum passes per iteration. Reddit advances through subreddits; Polymarket rotates topic tags. |
-| `Batch.BatchSizeLimit` | Strict total accepted pitches or direct Ideas per drop, including autoapproved pitches. Rejections do not consume the limit. |
+| `Batch.BatchSizeLimit` | Strict total accepted pitches or direct ideas per drop, including automatically approved pitches. Rejections do not consume the limit. |
 | `Batch.BatchIterations` | Number of rounds of adapter passes. Each source document is evaluated at most once per drop. |
 | `Batch.BatchPeriodOffset` / `Batch.BatchPeriodInMinutes` | Local-time schedule aligned from midnight plus the offset. The period must be between one second and one year. |
-| `Batch.ActiveHoursStart` / `Batch.ActiveHoursEnd` | Window permitting autoapproval. Discovery and viewer voting continue outside it. Overnight windows work; equal start/end means all day. |
+| `Batch.ActiveHoursStart` / `Batch.ActiveHoursEnd` | Window permitting automatic approval. Discovery and viewer voting continue outside it; overnight windows are supported. |
 | `Enabled` | Set `false` to stop intake when reloading configuration. Removing a source block disables it on the next startup. |
 | `LogoUrl` / `BrandColor` | Optional voting-embed logo URL and integer color overrides. Defaults are Reddit orange (`16729344`, `#FF4500`) and Polymarket blue (`3038463`, `#2E5CFF`). |
 
 Legacy flat batch fields remain supported. When `Batch` is present, it replaces the flat batch policy entirely; omitted nested fields use shared defaults, not the flat values. Those defaults are size/limit `20`, iterations `1`, period `60` minutes, offset `00:00`, and active hours `00:00`–`23:59`.
 
-Both sources accept the same `Pitch*` settings shown in the Reddit example, including memory and evaluator context limits. `EnablePitchGate: false` sends accepted source material directly to Ideas. With the gate enabled, `PitchAutoApprovalBatchSize: 0` requires voting for every evaluator-approved pitch. Voting thresholds are saved on each new pitch, so the sources can use different thresholds across restarts.
+Both sources accept the same `Pitch*` settings, including memory/evaluator limits. `EnablePitchGate` is configurable and defaults to `true`. Set it to `false` for direct source-to-idea delivery during local testing, without pitch generation, evaluation or voting. With the gate enabled, `PitchAutoApprovalBatchSize` allows up to that many evaluator-approved pitches per active batch to skip voting; `0` requires viewer votes for every approved pitch. Rejected pitches never auto-approve. Overflow goes to voting, and active-hour settings limit automatic approvals. Both controls persist in config. The local server manual endpoint remains direct, and Discord commands/channel messages retain their shared submission pipeline.
 
 Polymarket-specific discovery settings:
 
@@ -338,18 +368,19 @@ Edit Polymarket prompts in Obsidian at `Vault/{show}/Prompts/Polymarket Source.m
 - Discord replay and pitch reactions count as **3 votes for administrators, 2 for boosters, and 1 for everyone else** (the highest tier wins). Both thumbs-up and thumbs-down use these weights, including pitch minimum-vote and approval-score thresholds. Discord's visible reaction counter still counts people, while HBOx stores weighted totals. Super-reactions do not add extra votes.
 - Administrators are detected from server ownership or roles with Discord's Administrator permission. `discord.AdminRoleIds` can designate additional roles, and `discord.AdminUserIds` can designate individual accounts for solo testing. Use ID strings, not display names. Boosters are detected from Discord boost membership/role metadata or the existing `BoosterRoleIds` list.
 - `/idea` uses the same tier detection: `DefaultDailyIdeaLimit` defaults to 3, `BoosterDailyIdeaLimit` to 10, and `AdminDailyIdeaLimit` to 30. Higher tiers never receive a lower quota than lower tiers. Quotas reset at local midnight and remain in memory, as before.
+- `/idea generator:<slug> prompt:<text>` accepts optional `image`, `image2`, `image3` and `image4` uploads plus `context_only:true`. PNG/JPEG files may be up to 2 MiB each; shared dimension limits apply. The bot privately acknowledges uploads, caches valid bytes, and submits the source to `DiscordSubmissionIntake` for the same Vault interpretation, evaluation and voting used by channel messages. The receipt confirms admission for review, not generation. Invalid uploads or failed admission consume no quota; an admitted command counts once even if its pitch is later rejected. Text-only submissions receive an immediate review receipt. Restart/reconnect the bot to refresh the slash-command description. This uses Discord's [attachment command options](https://docs.discord.com/developers/interactions/application-commands) and [deferred interaction responses](https://docs.discord.com/developers/interactions/receiving-and-responding).
 - Reaction weights are saved in `hbox-discord-votes.json` under Unity's persistent data directory. Removing a tracked reaction reverses its original weight, even after a role change or restart; repeated add/remove deliveries are ignored. Existing votes are not retroactively reweighted, and untracked legacy removals subtract 1. Keep this file with the replay/pitch manifests when retaining vote history. Gateway events missed while the bot is offline are not reconciled.
 
 - For web sources, remove a config block to disable it on the next startup, or set `Enabled: false` when reloading configuration.
 - `folder` is the active replay loader type registered at runtime.
 - `reddit.SubReddits` is a dictionary, not a simple string array.
-- `reddit.EnablePitchGate` changes Reddit intake from direct `RedditSource -> Idea` generation into `RedditSource -> PitchCandidate -> Discord vote -> Idea`. Polymarket can run alongside Reddit through the shared `WebSource` batch/pitch pipeline; see [web source configuration](Docs/WebSources.md) for independent batch policies, source-branded voting cards and compatibility details.
+- `reddit.EnablePitchGate: true` uses `RedditSource -> PitchCandidate -> approval/vote -> Idea`; `false` enables direct source-to-idea delivery for testing. Polymarket can run alongside Reddit through the shared `WebSource` batch/pitch pipeline; see [web source configuration](Docs/WebSources.md) for independent batch policies, source-branded voting cards and compatibility details.
 - `reddit.PitchDiscordChannel` must match a configured Discord webhook key, usually `#stream`.
-- `reddit.Batch.BatchPeriodOffset` and `reddit.Batch.BatchPeriodInMinutes` control Reddit fetch cadence all day; `reddit.Batch.ActiveHoursStart` and `reddit.Batch.ActiveHoursEnd` only gate automatic approvals. Polymarket uses the same nested settings independently.
+- `reddit.Batch.BatchPeriodOffset` and `reddit.Batch.BatchPeriodInMinutes` control fetch cadence. `ActiveHoursStart`/`ActiveHoursEnd` limit automatic approvals; discovery and voting continue outside the window. Polymarket uses the same nested settings independently.
 - Pitch votes queue immediately once the live vote score reaches `reddit.PitchApprovalScore` and the total vote count meets `reddit.PitchMinimumVotesToQueue`. Remaining posted pitches are resolved after the voting window closes: enough positive votes queue the pitch as an `Idea`; more thumbs-down rejects it; ties, too few votes, or positive scores below the approval score expire.
 - `reddit.PitchExpirationMinutes` is how long a posted pitch can receive approval votes before it is treated as stale.
 - `reddit.PitchApprovalScore` is the positive vote score required to queue a live or expired pitch.
-- `reddit.PitchAutoApprovalBatchSize` is how many top evaluator-approved Reddit pitches can skip Discord voting and queue directly per active Reddit batch slot. Set it to `0` to require voting for every pitch.
+- `reddit.PitchAutoApprovalBatchSize` sets the number of evaluator-approved pitches that can skip voting per active batch. The default `0` requires voting for all approved pitches.
 - `reddit.PitchMinimumVotesToQueue` is the minimum total vote count required before a positive voted pitch can queue.
 - `reddit.PitchMemoryMaxChars`, `reddit.PitchContinuityEpisodeLimit`, `reddit.PitchContinuityMaxChars`, and `reddit.PitchSourceSelftextMaxChars` bound the context used while writing pitch cards.
 - `reddit.PitchEvaluatorThreadMaxChars`, `reddit.PitchEvaluatorMemoryMaxChars`, `reddit.PitchEvaluatorContinuityMaxChars`, and `reddit.PitchEvaluatorActorLimit` keep the rejection filter cheap; rejected candidates no longer need to pay for generation-sized context.
@@ -366,6 +397,68 @@ Edit Polymarket prompts in Obsidian at `Vault/{show}/Prompts/Polymarket Source.m
 - OpenAI text generation and OpenAI TTS are configured separately.
 - `UseEmbeddings` enables semantic memory recall. When disabled, memory context falls back to the most recent saved memories.
 - Some integrations only matter in specific scenes, such as `soccer` in `polbots`.
+
+### Source image attachments
+
+Reddit image context is enabled by default; set `reddit.EnableImageContext` to `false` to disable new image collection. Image posts, ordered galleries and crossposts can supply up to four PNG/JPEG attachments per idea. Article thumbnails, video previews, animated gallery items, spoilers and NSFW images are omitted. Image downloads are limited to 2 MiB each, 8192 pixels per dimension and 16 million pixels total; oversized images are omitted rather than resized.
+
+`WebSourceDocument.images` and `Idea.Images` share the `ImageAttachment` model. Each attachment retains its ID, image URL, source link/label, caption, MIME type, embedded bytes, hash, retrieval time and cached analysis. Pitch generation analyzes images before creating/evaluating the pitch; direct ideas prepare them before episode generation. Analysis uses the configured `SceneReasoning` model, which must support image input. Readable text and visible details become bounded source context for pitch evaluation and subsequent generation stages. Image bytes are sent to the model for analysis once per attachment; they are excluded from text prompts. Screenshot claims remain source claims rather than verified reporting. The image-input format follows the [OpenAI vision documentation](https://developers.openai.com/api/docs/guides/images-vision?api-mode=chat).
+
+Attachments persist with pitch records and in the saved Chat's `Idea.Images`, keeping replay assets usable without the original image host. Existing pitches and replays without images continue to load. Failed downloads/analysis record `DownloadError`/`AnalysisError` and allow text generation to continue; clear the corresponding error to retry preparation. Successful bytes remain available even if analysis fails.
+
+`UseForGeneration` defaults to true and `PresentationEligible` to false. Images start unapproved for display; PBNN/polbots presentation planning can approve selected assets after dialogue generation. `ContextOnly: true` is an explicit veto that both the planner and playback enforce. Use `/idea context_only:true` to apply it to all command uploads, or set `ImagesContextOnly: true` on a submissions-channel route. These controls do not prevent image context from informing generation. Commands and channel messages cache source images before pitch review and carry them into `Idea.Images` only after a successful vote, so generation and replay do not depend on Discord's temporary attachment URLs.
+
+Image prompts follow the normal per-show Vault workflow: edit `Vault/{show}/Prompts/Source Images/Analysis.md` for vision instructions and `Vault/{show}/Prompts/Source Images/Context.md` for the wording around cached context. Starter files live in `Docs/Prompts/Source Images`; copy that folder into a new show's `Prompts` directory. There are no inline prompt fallbacks. Analysis placeholders are `{0}` attachment ID, `{1}` source label, `{2}` caption and `{3}` source link; the context template receives formatted attachment data as `{0}`. Analysis inputs/outputs and context inputs are saved under the show's normal Vault folders. Existing cached analyses remain until their `Analysis` value is cleared; clear `AnalysisError` as well when retrying a failed analysis after a prompt edit.
+
+Run `Tests/WebSources/Run.ps1` for image discovery, preparation, failure handling, pitch/direct queue delivery and production Chat JSON replay regression checks.
+
+### In-scene image presentation
+
+`ChatGenerator.OnChatGenerated` is an awaited scene-extension event: it runs after all dialogue/subgenerators complete and before locking/saving the Chat. The authored `SceneImagePresentation` components in PBNN and polbots subscribe to this event and run `Vault/{show}/Prompts/Source Images/Presentation.md`. Core has no channel whitelist or automatic show-component bootstrap. The editable prompt receives the original idea, topic, bounded image descriptions/provenance, indexed final dialogue and scene-registered displays, and selects images and inclusive start/exclusive end node ranges. Unselected images remain context-only for that episode. Empty cue lists are valid; image-selection instructions remain in Vault.
+
+The resulting `scene.images.v1` plan lives in `Chat.GeneratedData` and references `Idea.Images` by ID; it does not duplicate binary assets. Only validated cues authorize `PresentationEligible`. Unknown IDs/surfaces, overlapping cues on one surface, invalid ranges, missing analysis/attribution/bytes, and hard context-only images are rejected. Invalid or missing presentation prompts/model output leave the episode without attachment visuals, while dialogue generation can still finish. Playback uses the saved plan and bytes without network requests or further model calls. `Presentation.md` edits affect newly generated plans; existing replays keep their saved decisions.
+
+`SceneImagePresentation.OnCollectSurfaces` lets scene adapters register `ISceneImageSurface` implementations. Core only handles validated plans, attachment lookup, texture lifetime and existing ChatManager playback events. PBNN's `PbnnMediaPresentation` registers its TV (`news-tv`) and owns the caption/source overlay and legacy fixture handling. `PolbotsImagePresentation` registers `media-screen` and owns media-panel binding, letterboxing and soccer priority. Disabling adapters unregisters them; disabling the shared controller unsubscribes generation/playback handlers. Gaps between cue ranges clear the display, and completion, skip, channel switches or teardown restore the previous surface state.
+
+For future mounts or room displays in any show, author a `SceneImagePresentation` beside that scene's context and add `SceneImageSurface` components with unique IDs/descriptions. Bind either a renderer/material slot and image shader, or a UI RawImage; optional TMP caption/attribution targets can be assigned. For custom behavior, register an `ISceneImageSurface` through `OnCollectSurfaces` and unsubscribe on disable, as the existing scene adapters do. The surface's `CanDisplay(Chat)` owns display-priority policy. No new show requires Core changes. Duplicate IDs are excluded; geometry and camera staging remain authored scene work.
+
+The starter presentation prompt is in `Docs/Prompts/Source Images/Presentation.md`; show-specific copies are installed for PBNN and polbots. Use **HBOx → Images → Validate Scene Image Bindings** in Unity to inspect the authored TV/media-screen references and resource shader. `Tests/PBNN/Run.ps1` exercises shared plan authorization, cue boundaries, replay persistence and context-only/invalid-output rejection alongside legacy media checks.
+
+### Discord submissions channels
+
+Add `SubmissionChannels` to the target show's existing `discord` config entry. The key is the incoming Discord channel ID; no mapping means no submissions intake for that show. Each mapping names a generator and, optionally, a separate pitch-poll channel. Routes from loaded shows are shared with the existing enabled bot, so PBNN does not need a second bot session or webhooks. An enabled bot must be loaded for intake to work.
+
+There is one pitch interpretation/evaluation engine: `PitchCandidateService`, shared by Reddit, Polymarket and Discord. `DiscordSubmissionIntake` is the Discord delivery coordinator: it deduplicates received messages, calls that shared engine, publishes accepted candidates through the normal pitch gate, and maintains poll expiry. It does not have separate pitch-writing or evaluation logic. Transport, source history and scheduling stay with each intake adapter; voting, idea conversion and persistence stay in `PitchCandidateStore`.
+
+`/idea` uses this same intake. It inherits the target generator's configured submission prompt root, poll destination, image veto and vote thresholds. Without a matching channel route it uses the standard `Discord Submissions` templates and posts polls in the invoking channel. If multiple routes target the same generator, their policies must agree; conflicting policies reject the command rather than silently selecting a weaker gate. Command quotas and ephemeral upload receipts remain separate admission controls. Settings changes invalidate queued/in-flight commands just as they invalidate channel submissions. Command identities are stable `discord:command:<interaction ID>` source keys; accepted replay filenames are normalized separately so identity punctuation cannot create invalid Windows filenames.
+
+```json
+"SubmissionChannels": {
+  "1566526475971207289": {
+    "Enabled": true,
+    "GeneratorSlug": "pbnn-default",
+    "PitchChannelId": "1566526572335333537",
+    "PromptRoot": "Discord Submissions",
+    "PitchExpirationMinutes": 180,
+    "PitchMinimumVotesToQueue": 1,
+    "PitchApprovalScore": 1
+  }
+}
+```
+
+This mapping is installed in the local `pbnn.json`. Omitting `PitchChannelId` posts polls in the incoming submissions channel. Set `Enabled: false` or remove a mapping to disable it. Only new ordinary messages and replies in explicitly mapped channels are ingested. Bot/webhook/system messages are ignored; edits, deletions, historical backfill, link previews and thread children do not create new submissions. Duplicate mappings for the same Discord channel are disabled with a configuration warning.
+
+Enable **Message Content Intent** for the existing bot in the Discord Developer Portal, and grant it access to the submissions and poll channels with permission to send messages, embed links and add reactions. Pinning uses the existing optional bot pin behavior. The listener requests Guild Messages and Message Content only when submissions routes exist and reconnects when those requirements change. Discord documents [message-content intent requirements](https://docs.discord.com/developers/events/gateway#message-content-intent), including access to attachment fields.
+
+Intake caches supported PNG/JPEG uploads using the shared limits, then dispatches pitch work to Unity's main thread. Text-only and image-only suggestions are supported. Unsupported attachments are noted as unavailable; a usable message can still be evaluated. Discord permissions, moderation and slowmode govern channel intake; `/idea` daily quotas do not apply.
+
+The source is interpreted by `Vault/{show}/Prompts/Discord Submissions/Pitch Candidate.md`, then reviewed by `Pitch Evaluator.md` in the same folder. Both files are editable and contain no built-in show, genre or IP assumptions. Starter templates live under `Docs/Prompts/Discord Submissions`. They use the same placeholder order as the web-source pitch prompts: source, attachment notes, cast, memory, UTC time, then continuity for the candidate; the evaluator receives the proposed pitch at `{5}` and continuity at `{6}`. Image analysis continues to use `Source Images/Analysis.md`.
+
+Evaluator-approved submissions are posted as bot messages in the poll channel and saved in the existing pitch manifest. They require the configured vote thresholds before queueing as attributed ideas with their image assets. Rejected submissions never become generation jobs. Polls expire on a timer even without new submissions or web-source batches, and expired bot polls are deleted using their originating bot application. The per-generator `discord-submissions-*.json` history suppresses message redelivery after reconnect/restart, including evaluator rejections. Keep it with pitch/replay history when moving an installation. Disabling a route cancels queued/in-flight interpretation before poll publication; already-posted polls retain their normal voting and expiry behavior.
+
+Run `Tests/Discord/Run.ps1`, `Tests/WebSources/Run.ps1` and `Tests/Context/Run.ps1` for intake/transport, gate/persistence/replay and Vault-template checks.
+
+Migration: the legacy JSON key `TipsChannels` remains readable, but saved configs emit `SubmissionChannels`. An explicit `SubmissionChannels` mapping (including an empty one) takes precedence regardless of JSON property order. The old default prompt-root name maps to `Discord Submissions`; custom prompt roots are preserved. Local Vault folders have been renamed with their existing contents. Deduplication loads both `discord-tips-*.json` and `discord-submissions-*.json` and writes the combined history under the new name. Original Discord message/channel IDs and saved source identities stay stable.
 
 ### OpenAI model profiles and usage budgets
 

@@ -33,6 +33,8 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private const int IntentGuilds = 1 << 0;
     private const int IntentGuildMessageReactions = 1 << 10;
+    private const int IntentGuildMessages = 1 << 9;
+    private const int IntentMessageContent = 1 << 15;
 
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
     private static readonly string ThumbsUpEmoji = char.ConvertFromUtf32(0x1F44D);
@@ -44,6 +46,12 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
     private string applicationId;
     private string[] slashCommandGuildIds = Array.Empty<string>();
     private bool enableIdeaCommand = true;
+    private Dictionary<string, DiscordSubmissionChannelConfigs> submissionChannels = new Dictionary<string, DiscordSubmissionChannelConfigs>();
+    private static readonly HashSet<DiscordBotService> knownBots = new HashSet<DiscordBotService>();
+    private static Dictionary<string, DiscordSubmissionChannelConfigs> allSubmissionChannels = new Dictionary<string, DiscordSubmissionChannelConfigs>();
+    private readonly HashSet<string> submissionsInFlight = new HashSet<string>();
+    private readonly object submissionsLock = new object();
+    private int submissionsRevision;
     private DiscordParticipationPolicy participation = new DiscordParticipationPolicy(null);
     private DiscordReactionVotes reactionVotes;
 
@@ -65,6 +73,15 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     public void Configure(DiscordConfigs config)
     {
+        var routes = new Dictionary<string, DiscordSubmissionChannelConfigs>();
+        foreach (var pair in config?.SubmissionChannels ?? new Dictionary<string, DiscordSubmissionChannelConfigs>())
+        {
+            pair.Value?.Validate();
+            if (pair.Value?.Enabled == true && !string.IsNullOrWhiteSpace(pair.Key)) routes[pair.Key] = pair.Value;
+        }
+        submissionChannels = routes;
+        knownBots.Add(this);
+        RebuildSubmissionRoutes(this);
         enableBot = config?.EnableBot ?? false;
         botToken = config?.BotToken;
         gatewayUrl = string.IsNullOrWhiteSpace(config?.GatewayURL)
@@ -97,6 +114,8 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private void OnDestroy()
     {
+        knownBots.Remove(this);
+        RebuildSubmissionRoutes();
         if (Instance == this)
             Instance = null;
 
@@ -163,6 +182,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
 
     private void StopBot()
     {
+        submissionsRevision++;
         lifetimeCts?.Cancel();
         lifetimeCts?.Dispose();
         lifetimeCts = null;
@@ -322,7 +342,109 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             case "INTERACTION_CREATE":
                 await HandleInteractionAsync(payload);
                 break;
+            case "MESSAGE_CREATE":
+                await HandleSubmissionMessageAsync(payload);
+                break;
         }
+    }
+
+    private static void RebuildSubmissionRoutes(DiscordBotService configuring = null)
+    {
+        var neededMessageContent = allSubmissionChannels.Count > 0;
+        var routes = new Dictionary<string, DiscordSubmissionChannelConfigs>();
+        var conflicts = new HashSet<string>();
+        foreach (var bot in knownBots)
+        foreach (var pair in bot.submissionChannels)
+        {
+            if (routes.ContainsKey(pair.Key)) conflicts.Add(pair.Key);
+            else routes.Add(pair.Key, pair.Value);
+        }
+        foreach (var channel in conflicts)
+        {
+            routes.Remove(channel);
+            Debug.LogWarning($"Discord submissions channel {channel} has multiple routes; intake disabled until the configuration conflict is fixed.");
+        }
+        allSubmissionChannels = routes;
+        if (neededMessageContent != (routes.Count > 0))
+            foreach (var bot in knownBots)
+                if (!ReferenceEquals(bot, configuring) && bot.enableBot && !string.IsNullOrWhiteSpace(bot.botToken))
+                    bot.StartBot(); // Re-identify when a different show's routes change the required intents.
+    }
+
+    private bool IsSubmissionRouteCurrent(string channel, DiscordSubmissionChannelConfigs route) =>
+        allSubmissionChannels.TryGetValue(channel, out var current) && ReferenceEquals(current, route);
+
+    private async Task HandleSubmissionMessageAsync(JToken payload)
+    {
+        var channel = payload?.Value<string>("channel_id");
+        if (string.IsNullOrWhiteSpace(channel) || !allSubmissionChannels.TryGetValue(channel, out var route)) return;
+        var source = DiscordSubmissionMessage.Parse(payload);
+        if (source == null || source.author == selfUserId) return;
+        if (route.ImagesContextOnly) foreach (var image in source.images) image.ContextOnly = true;
+        lock (submissionsLock) if (!submissionsInFlight.Add(source.Identity)) return;
+        var revision = submissionsRevision;
+        try
+        {
+            if (!ServerSource.GetChannelSnapshot().Any(target => string.Equals(target.slug, route.GeneratorSlug, StringComparison.OrdinalIgnoreCase))) return;
+            // Cache signed CDN uploads promptly; vision/pitch work runs on Unity's main thread.
+            await PrepareSubmissionImagesAsync(source);
+            if (revision == submissionsRevision && IsSubmissionRouteCurrent(channel, route))
+                QueueDiscordSubmission(source, route, channel, () => revision == submissionsRevision && IsSubmissionRouteCurrent(channel, route));
+        }
+        catch (Exception e) { Debug.LogWarning("Discord submission intake failed: " + e.Message); }
+        finally { lock (submissionsLock) submissionsInFlight.Remove(source.Identity); }
+    }
+
+    private int GatewayIntents => IntentGuilds | IntentGuildMessageReactions |
+        (allSubmissionChannels.Count == 0 ? 0 : IntentGuildMessages | IntentMessageContent);
+
+    protected virtual Task PrepareSubmissionImagesAsync(WebSourceDocument source) => ImageAttachmentService.PrepareAsync(source.images, null);
+
+    private bool QueueDiscordSubmission(WebSourceDocument source, DiscordSubmissionChannelConfigs route, string channel, Func<bool> isCurrent) =>
+        ServerSource.QueueSubmission(route.GeneratorSlug, source, route, isCurrent,
+            (candidate, store) => PublishSubmissionPitchAsync(candidate, store, string.IsNullOrWhiteSpace(route.PitchChannelId) ? channel : route.PitchChannelId));
+
+    private DiscordSubmissionChannelConfigs CommandSubmissionRoute(string generatorSlug)
+    {
+        var routes = allSubmissionChannels.Values.Where(route => string.Equals(route.GeneratorSlug, generatorSlug, StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (routes.Length == 0) return new DiscordSubmissionChannelConfigs { GeneratorSlug = generatorSlug };
+        if (routes.Select(route => (route.PromptRoot, route.PitchChannelId, route.ImagesContextOnly, route.PitchExpirationMinutes,
+            route.PitchMinimumVotesToQueue, route.PitchApprovalScore)).Distinct().Count() != 1)
+            throw new ArgumentException("This generator has conflicting submission policies. Give its submission channels consistent review and voting settings before using `/idea`.");
+        return routes[0];
+    }
+
+    private async Task PublishSubmissionPitchAsync(PitchCandidate candidate, PitchCandidateStore store, string channel)
+    {
+        var response = await SendRestJsonAsync($"https://discord.com/api/v10/channels/{channel}/messages", "POST", new
+        {
+            content = "# :new: From Discord!",
+            embeds = new[] { PitchDiscordPublisher.BuildEmbed(candidate) },
+            allowed_mentions = new { parse = Array.Empty<string>() }
+        });
+        var posted = response?.ToObject<DiscordPostedMessage>();
+        if (string.IsNullOrWhiteSpace(posted?.id) || string.IsNullOrWhiteSpace(posted.channel_id))
+            throw new InvalidDataException("Discord did not return a posted pitch message.");
+        var previous = store.GetPostedPitchMessages(posted.channel_id, posted.id);
+        candidate.discordBotApplicationId = applicationId;
+        candidate.discordMessageId = posted.id;
+        candidate.discordChannelId = posted.channel_id;
+        candidate.status = PitchStatus.PostedForVote;
+        store.Save(candidate);
+        PinPitchMessage(posted, previous);
+        AddDefaultPitchReactions(posted);
+    }
+
+    public static void DeleteBotPitchMessage(PitchCandidate candidate)
+    {
+        var bot = knownBots.FirstOrDefault(value => value.applicationId == candidate.discordBotApplicationId && !string.IsNullOrWhiteSpace(value.botToken));
+        if (bot != null) _ = bot.DeleteBotPitchMessageAsync(candidate);
+    }
+
+    private async Task DeleteBotPitchMessageAsync(PitchCandidate candidate)
+    {
+        try { await SendRestRequestAsync($"https://discord.com/api/v10/channels/{candidate.discordChannelId}/messages/{candidate.discordMessageId}", "DELETE"); }
+        catch (Exception e) { Debug.LogWarning("Discord expired submission poll deletion failed: " + e.Message); }
     }
 
     private void HandleReactionEvent(JToken payload, bool isAdd)
@@ -515,7 +637,31 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         var userId = payload?["member"]?["user"]?["id"]?.Value<string>() ?? payload?["user"]?["id"]?.Value<string>();
         var limit = participation.DailyIdeaLimit(payload?["guild_id"]?.Value<string>(), userId, payload?["member"]);
 
-        if (!TryConsumeIdeaQuota(userId, limit, out var used, out var resetAt))
+        var target = ServerSource.GetChannelSnapshot()
+            .FirstOrDefault(channel => string.Equals(channel.slug, generatorSlug, StringComparison.OrdinalIgnoreCase));
+        if (target == null)
+        {
+            await RespondIdeaResultAsync(payload, $"Generator `{generatorSlug}` is not available right now.", false);
+            return;
+        }
+
+        WebSourceDocument source;
+        DiscordSubmissionChannelConfigs route;
+        try
+        {
+            var idea = DiscordIdeaSubmission.FromInteraction(payload, prompt);
+            source = DiscordSubmissionMessage.FromInteraction(payload, idea);
+            route = CommandSubmissionRoute(target.slug);
+            if (route.ImagesContextOnly) foreach (var image in source.images) image.ContextOnly = true;
+        }
+        catch (ArgumentException e)
+        {
+            await RespondIdeaResultAsync(payload, e.Message, false);
+            return;
+        }
+
+        // Reject exhausted users before downloading, then reserve atomically after preparation.
+        if (!TryConsumeIdeaQuota(userId, limit, out var used, out var resetAt, consume: false))
         {
             await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
             {
@@ -525,36 +671,75 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             return;
         }
 
-        var target = ServerSource.GetChannelSnapshot()
-            .FirstOrDefault(channel => string.Equals(channel.slug, generatorSlug, StringComparison.OrdinalIgnoreCase));
-        if (target == null)
+        var revision = submissionsRevision;
+        var inheritedPolicy = allSubmissionChannels.Values.Any(current => ReferenceEquals(current, route));
+        var channel = payload.Value<string>("channel_id") ?? payload["channel"]?.Value<string>("id");
+        if (string.IsNullOrWhiteSpace(route.PitchChannelId) && string.IsNullOrWhiteSpace(channel))
         {
-            await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
+            await RespondIdeaResultAsync(payload, "No channel is available for this submission's pitch vote.", false);
+            return;
+        }
+        bool IsCurrent() => revision == submissionsRevision && enableIdeaCommand && route.Enabled &&
+            (inheritedPolicy ? allSubmissionChannels.Values.Any(current => ReferenceEquals(current, route)) :
+             !allSubmissionChannels.Values.Any(current => string.Equals(current.GeneratorSlug, target.slug, StringComparison.OrdinalIgnoreCase)));
+        var deferred = source.images.Count > 0;
+        if (deferred)
+        {
+            await RespondToInteractionAsync(payload, DeferredChannelMessageWithSourceResponseType, new { flags = 64 });
+            try { await PrepareSubmissionImagesAsync(source); }
+            catch (Exception)
             {
-                content = $"Generator `{generatorSlug}` was not found.",
-                flags = 64
-            });
+                await RespondIdeaResultAsync(payload, "The images could not be prepared. Nothing was queued; please try again.", true);
+                return;
+            }
+            if (source.images.Any(image => string.IsNullOrEmpty(image.DataBase64)))
+            {
+                await RespondIdeaResultAsync(payload, "One or more images could not be downloaded or exceeded the image limits. Nothing was queued; please use PNG/JPEG images up to 2 MiB and try again.", true);
+                return;
+            }
+        }
+
+        if (!IsCurrent())
+        {
+            await RespondIdeaResultAsync(payload, "Submission settings changed while processing. Please try again.", deferred);
             return;
         }
 
-        if (!ServerSource.QueueIdea(generatorSlug, prompt))
+        if (!TryConsumeIdeaQuota(userId, limit, out used, out resetAt))
         {
-            await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
-            {
-                content = $"Generator `{generatorSlug}` is not available right now.",
-                flags = 64
-            });
+            await RespondIdeaResultAsync(payload, $"You have used {used}/{limit} idea submissions today. Try again after {resetAt:yyyy-MM-dd HH:mm} local time.", deferred);
             return;
         }
 
-        await RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new
+        if (!QueueDiscordSubmission(source, route, channel, IsCurrent))
         {
-            content = $"Queued your idea for `{target.slug}`. Usage: {used}/{limit} today.",
-            flags = 64
-        });
+            RefundIdeaQuota(userId, resetAt);
+            await RespondIdeaResultAsync(payload, $"Generator `{generatorSlug}` is not available right now.", deferred);
+            return;
+        }
+
+        var imageNote = source.images.Count == 0 ? string.Empty : $" Included {source.images.Count} image(s).";
+        await RespondIdeaResultAsync(payload, $"Submitted your idea for `{target.slug}` for pitch review. Approved pitches require a vote before generation.{imageNote} Usage: {used}/{limit} today.", deferred);
     }
 
-    private bool TryConsumeIdeaQuota(string userId, int limit, out int usedAfter, out DateTimeOffset resetAt)
+    private Task RespondIdeaResultAsync(JToken payload, string content, bool deferred)
+    {
+        if (!deferred)
+            return RespondToInteractionAsync(payload, ChannelMessageWithSourceResponseType, new { content, flags = 64 });
+        var appId = payload?["application_id"]?.Value<string>() ?? applicationId;
+        var interactionToken = payload?["token"]?.Value<string>();
+        return SendRestRequestAsync($"https://discord.com/api/v10/webhooks/{appId}/{interactionToken}/messages/@original", "PATCH", new { content });
+    }
+
+    private void RefundIdeaQuota(string userId, DateTimeOffset resetAt)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return;
+        lock (usageLock)
+            if (ideaUsage.TryGetValue(userId, out var usage) && usage.dayKey == resetAt.AddTicks(-1).ToString("yyyy-MM-dd") && usage.count > 0)
+                usage.count--;
+    }
+
+    private bool TryConsumeIdeaQuota(string userId, int limit, out int usedAfter, out DateTimeOffset resetAt, bool consume = true)
     {
         var now = DateTimeOffset.Now;
         var dayKey = now.ToString("yyyy-MM-dd");
@@ -577,8 +762,11 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
                 return false;
             }
 
-            usage.count++;
-            ideaUsage[userId] = usage;
+            if (consume)
+            {
+                usage.count++;
+                ideaUsage[userId] = usage;
+            }
             usedAfter = usage.count;
             return true;
         }
@@ -614,7 +802,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             commands.Add(new
             {
                 name = "idea",
-                description = "Queue an idea for a generator",
+                description = "Submit an idea for pitch review",
                 type = 1,
                 options = new object[]
                 {
@@ -630,11 +818,23 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
                     {
                         type = 3,
                         name = "prompt",
-                        description = "The idea or prompt to queue",
+                        description = "The idea or prompt to submit",
                         required = true,
                         max_length = 1000
                     }
-                }
+                }.Concat(DiscordIdeaSubmission.ImageOptionNames.Select(name => (object)new
+                {
+                    type = 11,
+                    name,
+                    description = "Optional PNG/JPEG image context (up to 2 MiB)",
+                    required = false
+                })).Concat(new object[] { new
+                {
+                    type = 5,
+                    name = "context_only",
+                    description = "Keep all uploaded images off screen; use them only as idea context",
+                    required = false
+                } }).ToArray()
             });
         }
 
@@ -713,7 +913,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             d = JToken.FromObject(new
             {
                 token = botToken,
-                intents = IntentGuilds | IntentGuildMessageReactions,
+                intents = GatewayIntents,
                 properties = new
                 {
                     os = SystemInfo.operatingSystemFamily.ToString(),
@@ -802,7 +1002,9 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
         return SendRestRequestAsync(url, "PUT", payload);
     }
 
-    private async Task SendRestRequestAsync(string url, string method, object payload = null)
+    protected virtual Task SendRestRequestAsync(string url, string method, object payload = null) => SendRestJsonAsync(url, method, payload);
+
+    protected virtual async Task<JToken> SendRestJsonAsync(string url, string method, object payload = null)
     {
         const int maxAttempts = 4;
 
@@ -829,7 +1031,9 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
             try
             {
                 using var response = (HttpWebResponse)await request.GetResponseAsync();
-                return;
+                using var reader = new StreamReader(response.GetResponseStream());
+                var text = await reader.ReadToEndAsync();
+                return string.IsNullOrWhiteSpace(text) ? null : JToken.Parse(text);
             }
             catch (WebException e) when (DiscordRateLimit.TryGetRetryDelay(e, out var retryDelay) && attempt < maxAttempts)
             {
@@ -837,6 +1041,7 @@ public class DiscordBotService : MonoBehaviour, IConfigurable<DiscordConfigs>
                 await Task.Delay(retryDelay);
             }
         }
+        return null;
     }
 
     [Serializable]

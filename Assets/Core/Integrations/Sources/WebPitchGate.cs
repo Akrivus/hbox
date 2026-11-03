@@ -36,6 +36,7 @@ public sealed class PitchCandidate
     public string discordMessageId;
     public string discordChannelId;
     public string discordChannelKey;
+    public string discordBotApplicationId;
     public string createdAtUtc;
     public string expiresAtUtc;
     public int upVotes;
@@ -83,6 +84,11 @@ public sealed class PitchCandidateStore
     {
         minimumVotesToQueue = Mathf.Max(0, minimumVotes);
         this.approvalScore = Mathf.Max(1, approvalScore);
+    }
+
+    public bool ContainsSource(string identity)
+    {
+        lock (sync) return manifest.candidates.Any(candidate => candidate?.source?.Identity == identity);
     }
 
     public void Save(PitchCandidate candidate)
@@ -349,9 +355,14 @@ public sealed class PitchCandidateStore
         if (generator == null || candidate.status == PitchStatus.QueuedAsIdea)
             return;
 
+        var idea = PitchToIdeaConverter.Convert(candidate);
+        if (!string.IsNullOrWhiteSpace(candidate.generatorSlug) && candidate.generatorSlug != generator.slug)
+        {
+            if (!ServerSource.QueueIdea(candidate.generatorSlug, idea)) return;
+        }
+        else generator.AddIdeaToQueue(idea);
         candidate.status = PitchStatus.QueuedAsIdea;
         candidate.queuedAtUtc = DateTime.UtcNow.ToString("O");
-        generator.AddIdeaToQueue(PitchToIdeaConverter.Convert(candidate));
         OperatorTelemetry.RecordEvent(eventName, $"Queued pitch: {PitchCandidateText.GetTitle(candidate)}", context, context.Key);
     }
 
@@ -359,6 +370,12 @@ public sealed class PitchCandidateStore
     {
         if (candidate == null || string.IsNullOrWhiteSpace(candidate.discordMessageId))
             return;
+
+        if (!string.IsNullOrWhiteSpace(candidate.discordBotApplicationId))
+        {
+            DiscordBotService.DeleteBotPitchMessage(candidate);
+            return;
+        }
 
         var contextKey = context?.Key ?? candidate.channelKey;
         DiscordManager.DeleteWebhookMessageForContext(contextKey, candidate.discordChannelKey, candidate.discordMessageId);
@@ -505,13 +522,20 @@ public static class PitchToIdeaConverter
         body.AppendLine("GENERATION NOTES:");
         body.AppendLine(source?.GenerationNotes);
 
-        return new Idea(body.ToString(), source?.author ?? "reddit", source?.IdeaSource ?? "web", candidate.id);
+        // Source identities contain ':'; keep those in the pitch record, not in Windows replay filenames.
+        return new Idea(body.ToString(), source?.author ?? "reddit", source?.IdeaSource ?? "web", ReplaySlug(candidate.id))
+        {
+            Images = source?.images ?? new List<ImageAttachment>()
+        };
     }
 
     public static string BuildSourceUrl(WebSourceDocument source)
     {
         return source?.SourceUrl ?? string.Empty;
     }
+
+    public static string ReplaySlug(string identity) => identity == null ? null : new string(identity.Select(character =>
+        char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == '.' ? character : '-').ToArray());
 }
 
 public static class PitchDiscordPublisher
@@ -559,7 +583,7 @@ public static class PitchDiscordPublisher
             Author = new DiscordEmbedAuthor
             {
                 Name = $"From {source?.DisplayName ?? "Reddit"}",
-                URL = provider == "reddit" ? "https://www.reddit.com" : "https://polymarket.com",
+                URL = provider == "reddit" ? "https://www.reddit.com" : provider == "discord" ? "https://discord.com" : "https://polymarket.com",
                 Icon = source?.logoUrl ?? SourceBrand.Logo(provider)
             },
             Thumbnail = new DiscordEmbedThumbnail { URL = source?.logoUrl ?? SourceBrand.Logo(provider) }
@@ -613,7 +637,7 @@ public static class PitchCandidateFactory
         return new PitchCandidate
         {
             // An event can return after its cooldown with a fresh snapshot and a fresh voting window.
-            id = source == null ? Guid.NewGuid().ToString("N") : source.Provider == "reddit"
+            id = source == null ? Guid.NewGuid().ToString("N") : source.Provider == "reddit" || source.Provider == "discord"
                 ? source.Identity : source.Identity + ":" + Guid.NewGuid().ToString("N"),
             source = source,
             body = NormalizeBody(text, source),

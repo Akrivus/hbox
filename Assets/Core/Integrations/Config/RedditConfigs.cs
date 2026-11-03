@@ -3,6 +3,7 @@
 public class RedditConfigs : WebSourceConfigs
 {
     public override string Type => "reddit";
+    public bool EnableImageContext { get; set; } = true;
     public Dictionary<string, string> SubReddits { get; set; }
     public float MaxPostAgeInHours { get; set; } = 24;
     public int MaxDepth { get; set; } = 3;

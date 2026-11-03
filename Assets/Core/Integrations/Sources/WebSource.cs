@@ -17,7 +17,7 @@ public abstract class WebSource : MonoBehaviour, IWebSource
     public abstract string PromptRoot { get; }
     protected ChatManagerContext chatManagerContext;
     private PitchCandidateStore pitchStore;
-    private WebPitchCandidateService pitchCandidateService;
+    private PitchCandidateService pitchCandidateService;
     private WebSourceConfigs config;
     private WebSourceBatchConfigs batch;
     private Coroutine schedule;
@@ -31,7 +31,7 @@ public abstract class WebSource : MonoBehaviour, IWebSource
         chatManagerContext = GetComponentInParent<ChatManagerContext>() ?? generator?.ManagerContext ?? ChatManagerContext.Current;
         if (generator == null) generator = chatManagerContext.GetComponentInChildren<ChatGenerator>();
         pitchStore = PitchCandidateStore.GetOrCreate(chatManagerContext, generator);
-        pitchCandidateService = new WebPitchCandidateService(chatManagerContext, generator);
+        pitchCandidateService = new PitchCandidateService(chatManagerContext, generator);
         RegisterConfig();
     }
 
@@ -137,10 +137,9 @@ public abstract class WebSource : MonoBehaviour, IWebSource
                         if (template == null) throw new InvalidOperationException($"Missing Vault prompt: {PromptRoot}.md");
                         var context = source.promptContext;
                         if (!string.IsNullOrWhiteSpace(context)) topic = WebSourcePrompts.Format(context, topic);
-                        // Never interpret braces in source material as format placeholders.
                         var prompt = WebSourcePrompts.Format(template, topic, DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"));
                         if (!CanContinue(runRevision)) return;
-                        generator.AddIdeaToQueue(new Idea(prompt, source.author, source.IdeaSource, source.Identity));
+                        generator.AddIdeaToQueue(new Idea(prompt, source.author, source.IdeaSource, PitchToIdeaConverter.ReplaySlug(source.Identity)) { Images = source.images });
                     }
                     RememberAccepted(source);
                     accepted++;

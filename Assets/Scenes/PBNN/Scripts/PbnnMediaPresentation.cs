@@ -2,9 +2,12 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
-public sealed class PbnnMediaPresentation : MonoBehaviour
+public sealed class PbnnMediaPresentation : MonoBehaviour, ISceneImageSurface
 {
+    public string SurfaceId = "news-tv";
+    public string Description = "Studio television";
     public Renderer TvRenderer;
     public int ScreenMaterialSlot = 1;
     public Shader ScreenShader;
@@ -21,6 +24,37 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
     private GameObject overlay;
     private TMP_Text headline;
     private TMP_Text source;
+    private SceneImagePresentation presentation;
+    private bool externallyDriven;
+    private bool externalImageShown;
+    string ISceneImageSurface.SurfaceId => SurfaceId;
+    string ISceneImageSurface.Description => Description;
+    public bool IsConfigured => this != null && enabled && TvRenderer != null && ScreenShader != null &&
+        ScreenMaterialSlot >= 0 && ScreenMaterialSlot < TvRenderer.sharedMaterials.Length;
+    public bool IsShowing => externalImageShown;
+    public bool CanDisplay(Chat chat) => IsConfigured;
+
+    private void OnEnable()
+    {
+        owner = GetComponent<ChatManagerContext>();
+        presentation = GetComponent<SceneImagePresentation>();
+        if (presentation != null) presentation.OnCollectSurfaces += CollectSurface;
+    }
+    private void CollectSurface(ICollection<ISceneImageSurface> surfaces) => surfaces.Add(this);
+
+    public void Show(Texture2D imageTexture, SceneImageCue cue, ImageAttachment image)
+    {
+        if (!EnsureScreen()) return;
+        externallyDriven = true;
+        screen.mainTexture = imageTexture;
+        screen.SetFloat("_ImageAspect", (float)imageTexture.width / imageTexture.height);
+        EnsureOverlay();
+        headline.text = cue.Caption;
+        source.text = image.SourceLabel;
+        overlay.SetActive(true);
+        externalImageShown = true;
+    }
+    void ISceneImageSurface.Clear() => Clear();
 
     private void Start()
     {
@@ -39,13 +73,13 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
 
     private bool OwnsPlayback => manager != null && owner != null &&
         ChatManagerContext.Current == owner && episode != null &&
-        manager.NowPlaying == episode && episode.Key == "pbnn" && !ChatManager.SkipToEnd;
+        manager.NowPlaying == episode && episode.Key == owner.Key && !ChatManager.SkipToEnd;
 
     private void Update()
     {
         Bind();
         // Also covers natural completion, skip during speech, scene teardown and aborted playback.
-        if (!OwnsPlayback) Clear();
+        if (!externallyDriven && !OwnsPlayback) Clear();
     }
 
     private void Load(Chat chat)
@@ -53,7 +87,10 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
         Clear();
         episode = null;
         packet = null;
-        if (chat == null || chat.Key != "pbnn" || ChatManagerContext.Current != owner) return;
+        externallyDriven = false;
+        if (chat == null || chat.Key != owner.Key || ChatManagerContext.Current != owner) return;
+        // Shared playback is owned by the generic controller; this path is only the legacy fixture.
+        if (chat.GeneratedData != null && chat.GeneratedData.ContainsKey(SceneImagePlan.Key)) { externallyDriven = true; return; }
         try
         {
             packet = PbnnMediaPacket.Read(chat.GeneratedData, chat.Nodes?.Count ?? 0);
@@ -64,6 +101,7 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
 
     private void Activate(ChatNode node)
     {
+        if (externallyDriven) return;
         if (!OwnsPlayback || packet == null) { Clear(); return; }
         var index = episode.Nodes.IndexOf(node);
         var segment = packet.AtNode(index);
@@ -75,8 +113,8 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
             if (!EnsureScreen()) return;
             texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             if (!ImageConversion.LoadImage(texture, Convert.FromBase64String(segment.ImageBase64), true) ||
-                texture.width > 4096 || texture.height > 4096)
-                throw new ArgumentException("Image could not be decoded or exceeds 4096 pixels per side.");
+                texture.width > 8192 || texture.height > 8192 || (long)texture.width * texture.height > 16000000)
+                throw new ArgumentException("Image could not be decoded or exceeds the shared image dimension limits.");
             screen.mainTexture = texture;
             screen.SetFloat("_ImageAspect", (float)texture.width / texture.height);
             EnsureOverlay();
@@ -156,6 +194,7 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
 
     private void ContextChanged(ChatManagerContext context)
     {
+        externallyDriven = false;
         Clear();
         episode = null;
         packet = null;
@@ -163,6 +202,7 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
 
     private void Clear()
     {
+        externalImageShown = false;
         shown = null;
         if (overlay != null) overlay.SetActive(false);
         if (screen != null) screen.mainTexture = Texture2D.blackTexture;
@@ -171,6 +211,9 @@ public sealed class PbnnMediaPresentation : MonoBehaviour
 
     private void OnDisable()
     {
+        if (presentation != null) presentation.OnCollectSurfaces -= CollectSurface;
+        presentation = null;
+        externallyDriven = false;
         Clear();
         episode = null;
         packet = null;

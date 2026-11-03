@@ -27,9 +27,9 @@ Daily bulletins may run roughly 3–15 minutes when the material supports it. No
 | Locations | `Assets/Core/Integrations/Location/LocationManager.cs`, `LocationDefinition.cs` | Chat.Location loads a location prefab on queue-take and assigns actor spawn points. This is episode-level staging, not an existing segment-by-segment director. |
 | Cameras | `Assets/Core/SpawnPointManager.cs` | Virtual-camera array exists; node activation resets its cameras' priorities and samples a camera. PBNN uses predefined fixed virtual shots; each of the five registered locations currently has one eligible shot. Registration supports episode-level staging, not segment switching. Verify Cinemachine selection and framing with the actual scene wiring. |
 | Playback cues | ChatNode.Actions, ChatManagerContext.OnChatNodeActivated | Existing media fixture handles node activation with ownership checks. Any future cue routing requires a concrete interaction and timing/lifecycle review; do not add a director now. |
-| Pitch review | `Assets/Core/Integrations/Sources/RedditPitchCandidateService.cs`, `RedditPitchGate.cs`, `RedditSource.cs` | GenerateAsync evaluates the pitch and returns null on rejection. Source then auto-queues accepted candidates or posts for voting. Reuse the flow; its source model, prompts, store names and converter are Reddit-specific. |
-| Discord | `Assets/Core/Integrations/DiscordBotService.cs`, `DiscordParticipationPolicy.cs` | Gateway handles reactions/interactions and vote integration. Dispatch currently has no MESSAGE_CREATE intake. Tips text/attachment acquisition is new work. |
-| Vote/config controls | `Assets/Core/Integrations/Config/RedditConfigs.cs` | Existing batch, auto-approval count, minimum votes, score, expiry, and active-window settings are references. Enlarging batch size alone does not define bulletin segment voting. |
+| Pitch review | `Assets/Core/Integrations/Sources/PitchCandidateService.cs`, `WebPitchGate.cs`, `RedditSource.cs` | One shared service interprets and evaluates Reddit, Polymarket and Discord sources. Rejected candidates return null; accepted candidates use the common store/voting/idea conversion flow. |
+| Discord | `DiscordBotService.cs`, `DiscordSubmissionMessage.cs`, `DiscordSubmissionIntake.cs` | Scoped MESSAGE_CREATE intake handles text and image attachments, main-thread dispatch and deduplication. The intake delegates pitch writing/evaluation to the shared service. |
+| Vote/config controls | `Assets/Core/Integrations/Config/RedditConfigs.cs` | Batch, minimum votes, score and expiry settings remain references. Pitch gates can be disabled for testing; automatic approval has a separate per-batch allowance after evaluator approval. Increasing batch size alone does not define bulletin segment voting. |
 | HBOx reports | SoccerEventStore, ServerSource `/api/soccer/reports?limit=50` | Soccer emits real match results. Use as first report adapter; RomeBots and polbots story-report hooks remain future work. |
 | Shared UI policy | `Assets/Core/UI/UiVisibilityCoordinator.cs`, `UiVisibilityPolicy.cs` | Keep global visibility rules here. PBNN’s ticker, image panel and segment transitions belong to its local presentation controller; avoid scattered global show/hide rules. |
 
@@ -41,7 +41,7 @@ The following data-flow, saved-record and presentation-cue ideas are retained fo
 
 ### Proposed data flow
 
-Tips, articles, Reddit material, weather, and HBOx reports feed independent adapters. Each adapter preserves originals and produces a common source packet. Review accepts or rejects a candidate. Accepted candidates either enter the bulletin pool immediately or wait for a vote. A compiler selects stories and produces a rundown; generation writes performance text against that rundown. Playback consumes saved segment cues and media references.
+Submissions, articles, Reddit material, weather, and HBOx reports feed independent adapters. Each adapter preserves originals and produces a common source packet. Review accepts or rejects a candidate. Accepted candidates either enter the bulletin pool immediately or wait for a vote. A compiler selects stories and produces a rundown; generation writes performance text against that rundown. Playback consumes saved segment cues and media references.
 
 Auto-approval means skipping the audience vote after review accepts a candidate. It does not bypass review and is not proof a factual claim is true. Keep rejected candidates out of the production pool. Voting chooses inclusion/priority, not factual accuracy. Trusted in-universe match results can use a simpler editorial suitability check than unverified submitted claims.
 
@@ -89,13 +89,13 @@ Use stable segment IDs and node-boundary cues initially, rather than invented fr
 
 These are later adapter considerations, not studio-completion prerequisites.
 
-### Discord tips hotline
+### Discord submissions intake
 
-One configured channel acts as a dropbox for household members and friends: text, links, screenshots and attachments. Inventory existing bot intents/permissions and participation policy before enabling message intake. Add MESSAGE_CREATE routing scoped to the configured channel, ignore bot/self loops, and marshal Unity work to the normal main-thread queue. Persist Discord message/channel IDs for deduplication, author/submission time, original text and stored attachment references.
+Configured channels act as submission inboxes for text, links, screenshots and attachments. `SubmissionChannels` maps each inbox to its generator and poll destination; absent mappings mean no intake. The implemented MESSAGE_CREATE adapter ignores bot/self loops, caches image bytes and marshals work to Unity's main thread. It preserves message/channel IDs, author, source text and attachments, and deduplicates delivery across reconnects/restarts.
 
-Separate acquisition from pitch generation/review. Adapt source-neutral packets into the existing review/voting flow without labeling submissions as Reddit posts. Start text-only, then add attachment capture and text extraction. Optional votes should target story candidates within a bulletin pool; do not accidentally generate an entire episode for each accepted tip unless that is the chosen first slice.
+Acquisition remains separate from pitch generation/review: `DiscordSubmissionIntake` coordinates delivery and history, while `PitchCandidateService` supplies the same interpretation/evaluation engine used by web sources. Vault prompts live under `Discord Submissions`. The current first slice queues one attributed idea after a pitch wins its configured vote; a future bulletin pool/compiler can consume accepted story candidates instead.
 
-Completion sequence: submit a text fixture twice and create one candidate; reject one fixture and verify it never queues; accept one fixture with automatic elevation; accept another for a vote and elevate exactly once; finally reload one screenshot submission and resolve its stored image. Review and auto-approval must be separately configurable. More batch capacity is a later tuning change.
+Completion sequence: submit channel and `/idea` fixtures through the same intake; redeliver one and create no duplicate candidate; reject one and verify it never queues; approve another and verify it queues exactly once only after meeting the voting thresholds; reload a screenshot submission and resolve its saved image. Web-source gate and automatic-approval settings remain available for local testing; default Discord submissions still use the shared review/voting path. More batch capacity is a later tuning change.
 
 ### HBOx universe reports
 

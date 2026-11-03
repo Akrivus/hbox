@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../Assets/Core/Integrations/Sources/Web*.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/PitchCandidateService.cs" />
     <Compile Include="../../Assets/Core/Integrations/Sources/PolymarketSource.cs" />
     <Compile Include="../../Assets/Core/Integrations/Sources/RedditSource.cs" />
     <Compile Include="../../Assets/Core/Integrations/Config/WebSourceConfigs.cs" />
@@ -20,6 +21,16 @@
     <Compile Include="../../Assets/Core/Extensions/StringExtensions.cs" />
     <Compile Include="../../Assets/Core/Extensions/TaskExtensions.cs" />
     <Compile Include="../../Assets/Core/DataModels/Idea.cs" />
+    <Compile Include="../../Assets/Core/DataModels/Chat.cs" />
+    <Compile Include="../../Assets/Core/DataModels/ImageAttachment.cs" />
+    <Compile Include="../../Assets/Core/DataModels/SceneImagePlan.cs" />
+    <Compile Include="../../Assets/Core/Generators/SceneImagePlanning.cs" />
+    <Compile Include="../../Assets/Core/Integrations/ImageAttachmentService.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/RedditImageAttachments.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/DiscordSubmissionIntake.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordSubmissionMessage.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordIdeaSubmission.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/DiscordSubmissionChannelConfigs.cs" />
     <Compile Include="WebSourceTests.cs" />
     <Compile Include="RuntimeStubs.cs" />
     <Reference Include="Newtonsoft.Json"><HintPath>$(NewtonsoftPath)</HintPath></Reference>

@@ -10,6 +10,13 @@
     <Compile Include="../../Assets/Core/Integrations/DiscordParticipationPolicy.cs" />
     <Compile Include="../../Assets/Core/Integrations/DiscordReactionVotes.cs" />
     <Compile Include="../../Assets/Core/Integrations/DiscordBotService.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordIdeaSubmission.cs" />
+    <Compile Include="../../Assets/Core/Integrations/DiscordSubmissionMessage.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Sources/WebSourceDocument.cs" />
+    <Compile Include="../../Assets/Core/Integrations/Config/DiscordSubmissionChannelConfigs.cs" />
+    <Compile Include="../../Assets/Core/Integrations/ImageAttachmentService.cs" />
+    <Compile Include="../../Assets/Core/DataModels/Idea.cs" />
+    <Compile Include="../../Assets/Core/DataModels/ImageAttachment.cs" />
     <Compile Include="../../Assets/Core/Integrations/Config/DiscordConfigs.cs" />
     <Compile Include="../../Assets/Core/Integrations/Config/IConfig.cs" />
     <Compile Include="DiscordTests.cs" />

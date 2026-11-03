@@ -18,6 +18,7 @@ public class RedditSource : WebSource, IConfigurable<RedditConfigs>
     private string fileName;
     private int i;
     private bool rankForPitch;
+    private bool enableImageContext = true;
 
     protected override void RegisterConfig()
     {
@@ -29,6 +30,7 @@ public class RedditSource : WebSource, IConfigurable<RedditConfigs>
         SubReddits = (c.SubReddits ?? new Dictionary<string, string>()).Shuffle().ToDictionary(k => k.Key, v => v.Value);
         MaxPostAgeInHours = c.MaxPostAgeInHours;
         rankForPitch = c.EnablePitchGate;
+        enableImageContext = c.EnableImageContext;
         RedditRequestGate.Configure(
             c.RequestSpacingSeconds,
             c.RateLimitCooldownSeconds,
@@ -121,7 +123,8 @@ public class RedditSource : WebSource, IConfigurable<RedditConfigs>
             url = url,
             score = score,
             commentCount = commentCount,
-            threadContext = string.Join("\n\n", top.Select(t => t.DialogueSeed))
+            threadContext = string.Join("\n\n", top.Select(t => t.DialogueSeed)),
+            images = enableImageContext ? RedditImageAttachments.Parse(post) : new List<ImageAttachment>()
         };
     }
 

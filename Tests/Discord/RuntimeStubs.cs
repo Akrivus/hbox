@@ -56,8 +56,18 @@ public static class FolderSource
     public static ReplayStatusRecord ApplyVote(string channel, string slug, int up, int down, string source, string message)
     { Counts.upVotes += up; Counts.downVotes += down; return Counts; }
 }
-public static class PitchCandidateStore
+public enum PitchStatus { Draft, PostedForVote }
+public class PitchCandidate
 {
+    public string discordBotApplicationId, discordMessageId, discordChannelId;
+    public PitchStatus status;
+}
+public static class PitchDiscordPublisher { public static object BuildEmbed(PitchCandidate candidate) => new { title = "Submission pitch" }; }
+public class PitchCandidateStore
+{
+    public PitchCandidate Saved;
+    public void Save(PitchCandidate candidate) => Saved = candidate;
+    public System.Collections.Generic.IReadOnlyList<DiscordMessageRef> GetPostedPitchMessages(string channel, string exclude) => Array.Empty<DiscordMessageRef>();
     public static ReplayStatusRecord Counts = new ReplayStatusRecord();
     public static bool TryApplyVote(string message, string channel, int up, int down, string source)
     { if (message != "pitch") return false; Counts.upVotes += up; Counts.downVotes += down; return true; }
@@ -65,8 +75,23 @@ public static class PitchCandidateStore
 public class Channel { public bool active; public string slug; public string name; public string context; }
 public static class ServerSource
 {
-    public static Channel[] GetChannelSnapshot() => Array.Empty<Channel>();
-    public static bool QueueIdea(string slug, string prompt) => true;
+    public static readonly System.Collections.Generic.List<Idea> Ideas = new System.Collections.Generic.List<Idea>();
+    public static bool AcceptIdeas = true;
+    public static bool AcceptSubmissions = true;
+    public static readonly System.Collections.Generic.List<(WebSourceDocument Source, DiscordSubmissionChannelConfigs Settings, Func<bool> Current, Func<PitchCandidate, PitchCandidateStore, Task> Publish)> Submissions = new System.Collections.Generic.List<(WebSourceDocument, DiscordSubmissionChannelConfigs, Func<bool>, Func<PitchCandidate, PitchCandidateStore, Task>)>();
+    public static bool QueueSubmission(string slug, WebSourceDocument source, DiscordSubmissionChannelConfigs settings, Func<bool> current, Func<PitchCandidate, PitchCandidateStore, Task> publish)
+    {
+        if (!AcceptSubmissions) return false;
+        Submissions.Add((source, settings, current, publish));
+        return true;
+    }
+    public static Channel[] GetChannelSnapshot() => new[] { new Channel { slug = "show-default", name = "Default", context = "Show", active = true } };
+    public static bool QueueIdea(string slug, Idea idea)
+    {
+        if (!AcceptIdeas) return false;
+        Ideas.Add(idea);
+        return true;
+    }
 }
 public static class DiscordRateLimit
 {

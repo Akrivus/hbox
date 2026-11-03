@@ -65,7 +65,18 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
         var model = ResolveModel(profile);
         var stopwatch = Stopwatch.StartNew();
-        var inputChars = EstimateMessageChars(messages);
+        var context = ImageAttachmentContext.Describe(chat?.Idea?.Images);
+        var requests = messages;
+
+        if (!string.IsNullOrWhiteSpace(context))
+        {
+            var contextPrompt = new PromptResolver(chat.ManagerContext, "Source Images", "Context");
+            await contextPrompt.Resolve(context);
+            await contextPrompt.SaveInput();
+            requests = new List<Message> { new Message(Role.User, contextPrompt.Text) }.Concat(messages).ToList();
+        }
+
+        var inputChars = EstimateMessageChars(requests);
         var inputTokens = inputChars / 3;
         var caller = LlmCallTelemetry.CaptureCaller();
 
@@ -85,7 +96,7 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
             await requestGate.WaitAsync();
             try
             {
-                request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(messages, model));
+                request = await API.ChatEndpoint.GetCompletionAsync(new ChatRequest(requests, model));
             }
             finally
             {
@@ -124,6 +135,27 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
     public static async Task<string> CompleteAsync(PromptResolver prompt, Chat chat, bool fast = false)
     {
         return await CompleteAsync(prompt, chat, fast ? LlmProfile.Fast : LlmProfile.Slow);
+    }
+
+    public static async Task PrepareImagesAsync(Chat chat) {
+        await ImageAttachmentService.PrepareAsync(chat?.Idea?.Images, image => AnalyzeImageAsync(image, chat));
+    }
+
+    public static async Task<string> AnalyzeImageAsync(ImageAttachment image, Chat owner)
+    {
+        var prompt = new PromptResolver(owner.ManagerContext, "Source Images", "Analysis");
+        await prompt.Resolve(image.Id, image.SourceLabel, image.Caption, image.SourceUrl);
+
+        // A separate owner avoids recursively feeding existing image summaries into analysis.
+        var analysisChat = new Chat(new Idea("Source image analysis: " + image.Id), owner.ManagerContext);
+        return await ChatAsync(analysisChat, new List<Message>
+        {
+            new Message(Role.User, new List<Content>
+            {
+                new Content(prompt.Text),
+                new Content(new ImageUrl(image.DataUrl))
+            })
+        }, LlmProfile.SceneReasoning, prompt);
     }
 
     public static async Task<string> CompleteAsync(PromptResolver prompt, Chat chat, LlmProfile profile)
@@ -255,7 +287,22 @@ public class LLM : MonoBehaviour, IConfigurable<OpenAIConfigs>
 
     private static int EstimateMessageChars(List<Message> messages)
     {
-        return messages?.Sum(m => m?.Content?.ToString()?.Length ?? 0) ?? 0;
+        // Image data URLs are binary payload, not millions of text tokens.
+        var count = 0;
+        foreach (var message in messages ?? new List<Message>())
+        {
+            if (message?.Content is IEnumerable<Content> parts)
+            {
+                foreach (var part in parts)
+                    if (part.Type == ContentType.Text)
+                        count += part.Text?.ToString()?.Length ?? 0;
+            }
+            else
+            {
+                count += message?.Content?.ToString()?.Length ?? 0;
+            }
+        }
+        return count;
     }
 
     private static int EstimateTokens(string text)

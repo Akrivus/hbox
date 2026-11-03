@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 [Serializable]
@@ -8,6 +9,7 @@ public class Idea
     public string Author { get; set; }
     public string Source { get; set; }
     public string Slug { get; set; }
+    public List<ImageAttachment> Images { get; set; } = new List<ImageAttachment>();
 
     private string NewSlug => Guid.NewGuid().ToString().Substring(0, 7);
 

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public class ShareScreenUIManager : MonoBehaviour
 {
@@ -40,6 +41,41 @@ public class ShareScreenUIManager : MonoBehaviour
     private bool fullScreenMatchActive;
 
     public Vector2 ActiveMediaScreenSize => GetMediaScreenLayout(activeVideoRail).Size;
+    public bool HasMediaSurface => _shareScreenPrefab != null && _shareScreenPrefab.GetComponentInChildren<RawImage>(true) != null;
+    private object attachmentOwner;
+    private bool attachmentPreviousActive;
+    private readonly Dictionary<RawImage, (Texture Texture, Material Material)> attachmentOriginals = new Dictionary<RawImage, (Texture, Material)>();
+
+    public bool TryShowAttachment(object owner, Texture texture, Material material)
+    {
+        if (!HasMediaSurface || owner == null || (attachmentOwner != null && !ReferenceEquals(owner, attachmentOwner))) return false;
+        if (attachmentOwner == null)
+        {
+            attachmentOwner = owner;
+            attachmentPreviousActive = _shareScreenActive;
+            foreach (var image in _shareScreenPrefab.GetComponentsInChildren<RawImage>(true))
+                attachmentOriginals[image] = (image.texture, image.material);
+        }
+        ShareScreenOn();
+        foreach (var image in attachmentOriginals.Keys) { image.texture = texture; image.material = material; }
+        return true;
+    }
+
+    public void ReleaseAttachment(object owner)
+    {
+        if (!ReferenceEquals(owner, attachmentOwner)) return;
+        var restoreActive = attachmentPreviousActive;
+        RestoreAttachment();
+        if (!restoreActive) ShareScreenOff();
+    }
+
+    private void RestoreAttachment()
+    {
+        foreach (var pair in attachmentOriginals)
+            if (pair.Key != null) { pair.Key.texture = pair.Value.Texture; pair.Key.material = pair.Value.Material; }
+        attachmentOriginals.Clear();
+        attachmentOwner = null;
+    }
 
     private void Awake()
     {
@@ -85,6 +121,7 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void ShareScreenOff()
     {
+        RestoreAttachment();
         RestoreMatchConstraint();
         RestoreDefaultGridLayout();
         ApplyShareScreenActive(false);
@@ -116,6 +153,7 @@ public class ShareScreenUIManager : MonoBehaviour
 
     public void SetMediaTexture(Texture texture)
     {
+        RestoreAttachment(); // An external broadcaster takes ownership immediately.
         if (_shareScreenPrefab == null)
             return;
 

@@ -11,6 +11,7 @@ public class DiscordConfigs : IConfig
     public string ApplicationId { get; set; }
     public string[] SlashCommandGuildIds { get; set; }
     public bool EnableIdeaCommand { get; set; } = true;
+    public Dictionary<string, DiscordSubmissionChannelConfigs> SubmissionChannels { get; set; }
     public int DefaultDailyIdeaLimit { get; set; } = 3;
     public int BoosterDailyIdeaLimit { get; set; } = 10;
     public string[] BoosterRoleIds { get; set; }

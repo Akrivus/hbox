@@ -7,7 +7,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
-public sealed class WebPitchCandidateService
+// Shared interpretation/evaluation for source adapters; each adapter supplies its Vault prompt root.
+public sealed class PitchCandidateService
 {
     private const int ContinuityTelemetryScanLimit = 100;
     private const long MaxContinuityOutputBytes = 128 * 1024;
@@ -24,7 +25,7 @@ public sealed class WebPitchCandidateService
     public int EvaluatorContinuityMaxChars { get; set; } = 1200;
     public int EvaluatorActorLimit { get; set; } = 40;
 
-    public WebPitchCandidateService(ChatManagerContext context, ChatGenerator generator)
+    public PitchCandidateService(ChatManagerContext context, ChatGenerator generator)
     {
         this.context = context;
         this.generator = generator;
@@ -35,11 +36,15 @@ public sealed class WebPitchCandidateService
         string topic,
         string discordChannelKey,
         int expirationMinutes,
-        string promptRoot = "Reddit Source")
+        string promptRoot)
     {
         var actors = "- " + string.Join("\n- ", context.Actors.Select(a => a.Name));
         var chat = new Chat(new Idea(topic), generator.ManagerContext);
-        var memory = LimitText(await MemoryBucket.GetContext(context, generator.slug, chat.BuildRecallQuery(null, source.title, source.selftext)), MemoryMaxChars);
+        
+        await ImageAttachmentService.PrepareAsync(source.images, image => LLM.AnalyzeImageAsync(image, chat));
+        
+        var memory = LimitText(await MemoryBucket.GetContext(context, generator.slug, chat.BuildRecallQuery(null, source.title, source.selftext,
+            ImageAttachmentContext.Describe(source.images))), MemoryMaxChars);
         var continuity = BuildEpisodeContinuityContext();
         var sourceJson = BuildPromptSourceJson(source);
         var threadMaterial = LimitText(source.threadContext, 0);
@@ -147,6 +152,9 @@ public sealed class WebPitchCandidateService
     {
         var sourceObject = JObject.FromObject(source);
         sourceObject.Remove(nameof(WebSourceDocument.threadContext));
+        // Binary assets stay in persisted source/Idea data, never in text prompts.
+        sourceObject.Remove(nameof(WebSourceDocument.images));
+        sourceObject["imageContext"] = ImageAttachmentContext.Describe(source.images);
         sourceObject[nameof(WebSourceDocument.selftext)] = LimitText(source.selftext, SourceSelftextMaxChars);
         return sourceObject.ToString(Formatting.Indented);
     }
@@ -222,7 +230,7 @@ public sealed class WebPitchCandidateService
             }
             catch (Exception e)
             {
-                Debug.LogWarning($"WebPitchCandidateService.LoadVaultContinuityOutputs failed for '{file}': {e.Message}");
+                Debug.LogWarning($"PitchCandidateService.LoadVaultContinuityOutputs failed for '{file}': {e.Message}");
                 continue;
             }
 
@@ -252,7 +260,7 @@ public sealed class WebPitchCandidateService
                 }
                 catch (Exception e)
                 {
-                    Debug.LogWarning($"WebPitchCandidateService failed to list continuity outputs in '{folder}': {e.Message}");
+                    Debug.LogWarning($"PitchCandidateService failed to list continuity outputs in '{folder}': {e.Message}");
                     return Array.Empty<string>();
                 }
             })

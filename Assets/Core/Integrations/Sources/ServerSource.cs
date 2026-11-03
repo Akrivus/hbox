@@ -32,6 +32,9 @@ public class ServerSource : MonoBehaviour
     private readonly Dictionary<string, GeneratorRuntimeInfo> generators = new Dictionary<string, GeneratorRuntimeInfo>(StringComparer.OrdinalIgnoreCase);
     private readonly object pendingIdeaLock = new object();
     private readonly Queue<PendingIdeaRequest> pendingIdeaRequests = new Queue<PendingIdeaRequest>();
+    private readonly Queue<PendingSubmissionRequest> pendingSubmissionRequests = new Queue<PendingSubmissionRequest>();
+    private readonly Dictionary<string, DiscordSubmissionIntake> submissionIntakes = new Dictionary<string, DiscordSubmissionIntake>();
+    private Task submissionTask = Task.CompletedTask;
     private IReadOnlyList<GeneratorRuntimeInfo> cachedGeneratorSnapshot = Array.Empty<GeneratorRuntimeInfo>();
     private string soccerReportDirectory;
 
@@ -39,8 +42,11 @@ public class ServerSource : MonoBehaviour
     private Thread thread;
     private readonly CancellationTokenSource cts = new CancellationTokenSource();
     private CancellationToken token;
+    private ServerConfigs serverConfig = new ServerConfigs();
+    private bool enableDiscovery;
+    private IPAddress serverAddress;
 
-    public bool IsListening { get; private set; } = true;
+    public bool IsListening { get; private set; }
 
     private void Awake()
     {
@@ -75,16 +81,38 @@ public class ServerSource : MonoBehaviour
     private void Start()
     {
         token = cts.Token;
-        listener = new HttpListener();
-        listener.Prefixes.Add($"http://{GetLocalIPAddress()}:6789/");
-        listener.Prefixes.Add("http://localhost:6789/");
-        thread = new Thread(() => Listen().GetAwaiter().GetResult());
-        thread.Start();
+        try
+        {
+            serverConfig = ConfigManager.LoadConfig<ServerConfigs>("hbox.json", "server") ?? new ServerConfigs();
+            serverConfig.Validate();
+            enableDiscovery = serverConfig.EnableMdns;
+            serverAddress = IPAddress.Parse(GetLocalIPAddress());
+            listener = new HttpListener();
+            // Mono resolves named prefixes at startup, before our mDNS name is advertised.
+            // Use one socket for discovery and validate the requested host before routing.
+            if (enableDiscovery)
+                listener.Prefixes.Add($"http://*:{serverConfig.Port}/");
+            else
+            {
+                listener.Prefixes.Add($"http://{serverAddress}:{serverConfig.Port}/");
+                listener.Prefixes.Add($"http://localhost:{serverConfig.Port}/");
+            }
+            thread = new Thread(() => Listen().GetAwaiter().GetResult()) { IsBackground = true };
+            thread.Start();
+        }
+        catch (Exception ex)
+        {
+            listener?.Close();
+            Debug.LogError($"Control panel configuration failed: {ex.Message}");
+        }
     }
 
     private void Update()
     {
         ProcessPendingIdeaRequests();
+        ProcessPendingSubmissionRequests();
+        foreach (var service in submissionIntakes.Values)
+            service.Tick();
         RefreshGeneratorSnapshot();
         OperatorTelemetry.CaptureRequestedMemorySnapshot();
     }
@@ -114,10 +142,14 @@ public class ServerSource : MonoBehaviour
 
     private async Task Listen()
     {
-        listener.Start();
-
+        var task = Task.CompletedTask;
         try
         {
+            listener.Start();
+            IsListening = true;
+            Debug.Log($"Control panel listening at {serverConfig.LocalUrl} (LAN {serverAddress}:{serverConfig.Port}).");
+            if (enableDiscovery)
+                task = RunDiscoveryAsync();
             while (!token.IsCancellationRequested && listener.IsListening && IsListening)
             {
                 HttpListenerContext context;
@@ -138,11 +170,34 @@ public class ServerSource : MonoBehaviour
                 await ProcessRequest(context);
             }
         }
+        catch (Exception ex) when (!token.IsCancellationRequested)
+        {
+            Debug.LogError($"Control panel failed on port {serverConfig.Port}: {ex.Message}. Check port availability and HTTP URL permissions.");
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+        }
         finally
         {
-            if (listener != null && listener.IsListening)
-                listener.Close();
+            IsListening = false;
+            cts.Cancel();
+            listener?.Close();
+            await task;
         }
+    }
+
+    private async Task RunDiscoveryAsync()
+    {
+        try
+        {
+            await ControlPanelDiscovery.RunAsync(serverConfig, serverAddress, token,
+                message => Debug.Log(message), message => Debug.LogWarning(message));
+        }
+        catch (Exception ex) when (!token.IsCancellationRequested)
+        {
+            Debug.LogWarning($"Control panel mDNS unavailable: {ex.Message}. HTTP remains available at {serverConfig.LocalUrl}.");
+        }
+        catch (Exception) when (token.IsCancellationRequested) { }
     }
 
     private async Task ProcessRequest(HttpListenerContext context)
@@ -151,6 +206,19 @@ public class ServerSource : MonoBehaviour
         var response = context.Response;
         response.KeepAlive = false;
         response.StatusCode = 200;
+
+        if (enableDiscovery)
+        {
+            var host = request.Url.Host;
+            if (!string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(host, serverAddress.ToString(), StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(host, serverConfig.HostName + ".local", StringComparison.OrdinalIgnoreCase))
+            {
+                response.StatusCode = 400;
+                response.Close();
+                return;
+            }
+        }
 
         var method = request.HttpMethod;
         var path = request.Url.AbsolutePath;
@@ -219,6 +287,8 @@ public class ServerSource : MonoBehaviour
             return;
 
         var info = new GeneratorRuntimeInfo(generator);
+        if (!submissionIntakes.ContainsKey(info.slug))
+            submissionIntakes[info.slug] = new DiscordSubmissionIntake(generator);
 
         lock (generatorLock)
             generators[info.slug] = info;
@@ -239,6 +309,7 @@ public class ServerSource : MonoBehaviour
             generators.Remove(generator.slug);
 
         RemoveRoute("POST", $"/api/channels/{generator.slug}/ideas");
+        submissionIntakes.Remove(generator.slug);
     }
 
     public static IReadOnlyList<GeneratorRuntimeInfo> GetChannelSnapshot()
@@ -254,7 +325,12 @@ public class ServerSource : MonoBehaviour
 
     public static bool QueueIdea(string slug, string prompt)
     {
-        if (Instance == null || string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
+        return QueueIdea(slug, new Idea(prompt));
+    }
+
+    public static bool QueueIdea(string slug, Idea idea)
+    {
+        if (Instance == null || string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(idea?.Prompt))
             return false;
 
         lock (Instance.generatorLock)
@@ -263,17 +339,67 @@ public class ServerSource : MonoBehaviour
                 return false;
         }
 
-        Instance.EnqueueIdeaRequest(slug, prompt);
+        Instance.EnqueueIdeaRequest(slug, idea);
         return true;
     }
 
     private void EnqueueIdeaRequest(string slug, string prompt)
     {
-        if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(prompt))
+        EnqueueIdeaRequest(slug, new Idea(prompt));
+    }
+
+    public static bool QueueSubmission(string slug, WebSourceDocument source, DiscordSubmissionChannelConfigs settings, Func<bool> isCurrent, Func<PitchCandidate, PitchCandidateStore, Task> publish)
+    {
+        if (Instance == null || source == null || string.IsNullOrWhiteSpace(slug))
+            return false;
+        lock (Instance.generatorLock)
+            if (!Instance.generators.ContainsKey(slug))
+                return false;
+        lock (Instance.pendingIdeaLock)
+            Instance.pendingSubmissionRequests.Enqueue(new PendingSubmissionRequest
+            {
+                Slug = slug,
+                Source = source,
+                Settings = settings,
+                IsCurrent = isCurrent,
+                Publish = publish
+            });
+        return true;
+    }
+
+    private void ProcessPendingSubmissionRequests()
+    {
+        if (!submissionTask.IsCompleted)
+            return;
+        PendingSubmissionRequest request;
+        lock (pendingIdeaLock)
+        {
+            if (pendingSubmissionRequests.Count == 0) return;
+            request = pendingSubmissionRequests.Dequeue();
+        }
+        if (submissionIntakes.TryGetValue(request.Slug, out var service))
+            submissionTask = ProcessSubmissionAsync(service, request);
+    }
+
+    private async Task ProcessSubmissionAsync(DiscordSubmissionIntake service, PendingSubmissionRequest request)
+    {
+        try
+        {
+            await service.SubmitAsync(request.Source, request.Settings, () => !cts.IsCancellationRequested && submissionIntakes.TryGetValue(request.Slug, out var current) && ReferenceEquals(current, service) && request.IsCurrent(), request.Publish);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("Discord submission pitch failed: " + e.Message);
+        }
+    }
+
+    private void EnqueueIdeaRequest(string slug, Idea idea)
+    {
+        if (string.IsNullOrWhiteSpace(slug) || string.IsNullOrWhiteSpace(idea?.Prompt))
             return;
 
         lock (pendingIdeaLock)
-            pendingIdeaRequests.Enqueue(new PendingIdeaRequest(slug, prompt));
+            pendingIdeaRequests.Enqueue(new PendingIdeaRequest(slug, idea));
     }
 
     private void ProcessPendingIdeaRequests()
@@ -294,7 +420,11 @@ public class ServerSource : MonoBehaviour
                 if (generators.TryGetValue(request.slug, out var info))
                     generator = info.generator;
 
-            generator?.AddPromptToQueue(request.prompt);
+            if (generator != null)
+            {
+                OperatorTelemetry.RecordIdeaReceived(generator, request.idea.Prompt);
+                generator.AddIdeaToQueue(request.idea);
+            }
         }
     }
 
@@ -316,7 +446,7 @@ public class ServerSource : MonoBehaviour
         {
             status = IsListening && listener != null && listener.IsListening ? "ok" : "starting",
             listening = IsListening && listener != null && listener.IsListening,
-            address = "http://localhost:6789"
+            address = serverConfig.LocalUrl
         });
     }
 
@@ -1291,13 +1421,22 @@ public class ServerSource : MonoBehaviour
     private readonly struct PendingIdeaRequest
     {
         public readonly string slug;
-        public readonly string prompt;
+        public readonly Idea idea;
 
-        public PendingIdeaRequest(string slug, string prompt)
+        public PendingIdeaRequest(string slug, Idea idea)
         {
             this.slug = slug;
-            this.prompt = prompt;
+            this.idea = idea;
         }
+    }
+
+    private sealed class PendingSubmissionRequest
+    {
+        public string Slug;
+        public WebSourceDocument Source;
+        public DiscordSubmissionChannelConfigs Settings;
+        public Func<bool> IsCurrent;
+        public Func<PitchCandidate, PitchCandidateStore, Task> Publish;
     }
 }
 

@@ -8,6 +8,8 @@ using UnityEngine;
 
 public class ChatGenerator : MonoBehaviour
 {
+    public event Func<Chat, Task> OnChatGenerated;
+
     public ChatManagerContext ManagerContext => chatManagerContext;
 
     public bool IsActive { get; private set; }
@@ -146,6 +148,7 @@ public class ChatGenerator : MonoBehaviour
 
     private async Task<Chat> Generate(PromptResolver prompt, Chat chat)
     {
+        await LLM.PrepareImagesAsync(chat);
         var options = "- " + string.Join("\n - ", GetCharacterNames());
         var secrets = string.Join(", ", GetCharacterNames(true));
         var locations = "- " + string.Join("\n - ", GetLocationNames());
@@ -207,6 +210,10 @@ public class ChatGenerator : MonoBehaviour
 
         UiEventBus.Publish(chatManagerContext, "Finalizing generators");
         await Task.WhenAll(tasks);
+
+        if (OnChatGenerated != null)
+            foreach (Func<Chat, Task> handler in OnChatGenerated.GetInvocationList())
+                await handler(chat);
 
         return chat;
     }

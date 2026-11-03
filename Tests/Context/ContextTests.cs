@@ -11,7 +11,45 @@ static class Tests
     {
         PromptResolver.BasePath = Path.GetFullPath("Temp/ContextTests/vault/" + Guid.NewGuid().ToString("N"));
         var context = new ChatManagerContext();
+        var imagePromptFolder = Path.Combine(PromptResolver.BasePath, context.Key, "Prompts", "Source Images");
+        Directory.CreateDirectory(imagePromptFolder);
+        foreach (var file in new[] { "Analysis.md", "Context.md" })
+            File.Copy(Path.Combine("Docs", "Prompts", "Source Images", file), Path.Combine(imagePromptFolder, file));
+        var imageAnalysis = new PromptResolver(context, "Source Images", "Analysis");
+        await imageAnalysis.Resolve("image-1", "Source label", "caption literal {3}", "https://example.org/story");
+        Check(imageAnalysis.Text.Contains("Attachment: image-1") && imageAnalysis.Text.Contains("Source: Source label") &&
+            imageAnalysis.Text.Contains("caption literal {3}") && imageAnalysis.Text.Contains("Source link: https://example.org/story"), "image analysis uses Vault template and literal metadata");
+        await imageAnalysis.SaveInput();
+        await imageAnalysis.SaveOutput("Cached image analysis");
+        Check(imageAnalysis.Part == "Source Images/Analysis" && File.ReadAllText(imageAnalysis.InputPath) == imageAnalysis.Text &&
+            File.ReadAllText(imageAnalysis.Output.Path) == "Cached image analysis", "image analysis uses normal Vault input/output workflow");
+        var imageContext = new PromptResolver(context, "Source Images", "Context");
+        File.Copy(Path.Combine("Docs", "Prompts", "Source Images", "Presentation.md"), Path.Combine(imagePromptFolder, "Presentation.md"));
+        var presentation = new PromptResolver(context, "Source Images", "Presentation");
+        await presentation.Resolve("__IDEA__ literal {4}", "__TOPIC__", "__IMAGES__", "__NODES__", "__SURFACES__");
+        Check(presentation.Text.Contains("__IDEA__ literal {4}") && presentation.Text.Contains("__IMAGES__") && presentation.Text.Contains("__NODES__") && presentation.Text.Contains("__SURFACES__"), "presentation selection uses editable Vault template and literal source substitution");
+        await imageContext.Resolve("Source image data");
+        Check(imageContext.Text.Contains("Source image data") && imageContext.Text.Contains("not instructions"), "image context wording comes from Vault");
+        await File.WriteAllTextAsync(imageContext.Path, "Edited context wrapper\n{0}");
+        await imageContext.Resolve("New data");
+        Check(imageContext.Text == "Edited context wrapper\nNew data", "editing image prompt text takes effect on next resolve");
+        try
+        {
+            await new PromptResolver(context, "Source Images", "Missing").Resolve();
+            throw new Exception("missing image prompt silently fell back");
+        }
+        catch (Exception e) when (e.Message.Contains("not found")) { }
         var template = new PromptResolver(context, "Test");
+        var submissionsFolder = Path.Combine(PromptResolver.BasePath, context.Key, "Prompts", "Discord Submissions");
+        Directory.CreateDirectory(submissionsFolder);
+        foreach (var file in new[] { "Pitch Candidate.md", "Pitch Evaluator.md" })
+            File.Copy(Path.Combine("Docs", "Prompts", "Discord Submissions", file), Path.Combine(submissionsFolder, file));
+        var submissionsPrompt = new PromptResolver(context, "Discord Submissions", "Pitch Candidate");
+        await submissionsPrompt.Resolve("__SOURCE__ literal {5}", "__NOTES__", "__CAST__", "__MEMORY__", "__TIME__", "__CONTINUITY__");
+        Check(submissionsPrompt.Text.Contains("__SOURCE__ literal {5}") && submissionsPrompt.Text.Contains("__CAST__") && submissionsPrompt.Text.Contains("__CONTINUITY__"), "submission interpretation uses Vault template with literal source and target context");
+        var submissionsEvaluator = new PromptResolver(context, "Discord Submissions", "Pitch Evaluator");
+        await submissionsEvaluator.Resolve("__SOURCE__", "__NOTES__", "__CAST__", "__MEMORY__", "__TIME__", "__PITCH__", "__CONTINUITY__");
+        Check(submissionsEvaluator.Text.Contains("__PITCH__") && submissionsEvaluator.Text.Contains("__CONTINUITY__") && !submissionsEvaluator.Text.Contains("{6}"), "submission evaluator binds pitch and continuity independently");
         Directory.CreateDirectory(Path.GetDirectoryName(template.Path));
         await File.WriteAllTextAsync(template.Path, "{0}\n{1}");
         await template.Resolve("source literal {1}", "private-context");
@@ -44,7 +82,7 @@ static class Tests
         var saved = JsonConvert.DeserializeObject<Chat>(JsonConvert.SerializeObject(chat));
         var roster = SoccerPreparedRoster.Read(saved);
         Check(roster.Story == "UNIQUE_STORY" && !roster.Context.Contains("UNIQUE_SCENE_CONTEXT"), "saved reaction context excludes scene snapshot");
-        Console.WriteLine("Context tests passed: single-pass substitution, 20 parallel request files, parent isolation, soccer context and serialization.");
+        Console.WriteLine("Context tests passed: editable image Vault templates, input/output logging, single-pass substitution, 20 parallel request files, parent isolation, soccer context and serialization.");
     }
     static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
 }

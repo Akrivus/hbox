@@ -95,6 +95,7 @@ public class Chat
         var sections = new List<string>();
 
         AddRecallSection(sections, "Idea", Idea?.Prompt);
+        AddRecallSection(sections, "Source images", ImageAttachmentContext.Describe(Idea?.Images));
         AddRecallSection(sections, "Topic", Topic);
         AddRecallSection(sections, "Title", Title);
         AddRecallSection(sections, "Synopsis", Synopsis);

@@ -1,6 +1,6 @@
 # Web sources and voting
 
-`RedditSource` and `PolymarketSource` implement `IWebSource` through `WebSource`. Adapters discover documents and remember accepted source IDs; `WebSource` owns cadence, batch limits, pitch generation/evaluation, voting delivery and direct Ideas. Each adapter has independent settings and runs alongside the other.
+`RedditSource` and `PolymarketSource` implement `IWebSource` through `WebSource`. Adapters discover documents and remember accepted source IDs; `WebSource` owns cadence, batch limits, pitch generation/evaluation, voting delivery. Pitch gates and automatic approval are configurable for local testing; the default gate is enabled. Each adapter has independent settings and runs alongside the other.
 
 Existing scenes register the optional Polymarket adapter from `ChatManagerContext.Start`, using the Reddit generator when available. It remains idle unless a `polymarket` configuration block exists. No scene edits, trading account, API key, or wallet are needed. The left-arrow manual drop runs all configured web sources for the active show; overlapping drops from the same adapter are ignored.
 
@@ -11,6 +11,8 @@ Add the following block to the show's JSON configuration array. Public data come
 ```json
 {
   "Type": "polymarket",
+  "EnablePitchGate": true,
+  "PitchAutoApprovalBatchSize": 0,
   "Enabled": true,
   "TagSlugs": ["politics"],
   "DiscoveryPageSize": 50,
@@ -29,12 +31,10 @@ Add the following block to the show's JSON configuration array. Public data come
     "ActiveHoursStart": "00:00",
     "ActiveHoursEnd": "23:59"
   },
-  "EnablePitchGate": true,
   "PitchDiscordChannel": "#stream",
   "PitchExpirationMinutes": 180,
   "PitchApprovalScore": 2,
-  "PitchMinimumVotesToQueue": 1,
-  "PitchAutoApprovalBatchSize": 0
+  "PitchMinimumVotesToQueue": 1
 }
 ```
 
@@ -42,10 +42,11 @@ Both sources accept the same `Batch` block and `Pitch*` fields. The batch policy
 
 - `BatchSize`: documents requested per adapter pass, and maximum passes per iteration, preserving Reddit's existing traversal budget. Reddit advances to another configured subreddit each pass; Polymarket rotates configured topic tags and scans up to `DiscoveryPages` for each pass.
 - `BatchIterations`: number of rounds of those passes. Within one drop, each source document is evaluated at most once, even if repeated in discovery results.
-- `BatchSizeLimit`: strict total accepted pitches/direct Ideas per drop, including autoapproved pitches. Evaluator rejections do not consume this limit. Zero disables intake; expired votes are still resolved at scheduled drops.
+- `BatchSizeLimit`: strict total accepted pitches/direct ideas per drop, including automatic approvals. Evaluator rejections do not consume this limit. Zero disables intake; expired votes are still resolved at scheduled drops.
 - `BatchPeriodOffset` and `BatchPeriodInMinutes`: wall-clock schedule aligned from midnight plus the offset, in local time. Period must be between one second and one year. Reloading replaces the schedule; stale asynchronous work cannot post or queue after reload/destruction.
-- `ActiveHoursStart` / `ActiveHoursEnd`: allow automatic approvals during that window. Overnight windows are supported; equal times mean all day. Discovery and viewer voting continue outside it.
-- `PitchAutoApprovalBatchSize: 0`: every evaluator-approved pitch goes to viewers. Positive values allow that many approvals to bypass voting per active drop.
+- `ActiveHoursStart` / `ActiveHoursEnd`: automatic approvals are allowed only in this local-time window. Overnight windows work; discovery and viewer voting continue outside it.
+- `EnablePitchGate`: defaults to true; false directly queues source ideas without pitch generation, evaluation or voting.
+- `PitchAutoApprovalBatchSize`: with the gate enabled, automatically queue up to this many evaluator-approved pitches per active batch. Zero requires votes for every approved pitch. Overflow goes to voting; evaluator rejection always wins. The allowance resets each batch.
 - Voting thresholds are stored on each new pitch. Different sources may use different rules, including across restarts. Legacy Reddit pitches use Reddit's configured thresholds.
 - `LogoUrl` and `BrandColor`: optional logo URL and integer Discord color overrides. Defaults use Reddit orange (`16729344`, `#FF4500`) and Polymarket blue (`3038463`, `#2E5CFF`). Embeds show the provider name and logo in the author line and thumbnail. Brand color replaces the former cast-based pitch color.
 
