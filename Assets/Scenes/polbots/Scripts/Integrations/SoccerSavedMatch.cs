@@ -61,8 +61,49 @@ public sealed class SoccerSavedMatch
     public SoccerMatchSetup Setup { get; set; }
     public int HomeScore { get; set; }
     public int AwayScore { get; set; }
+    // Null on original matches and legacy records: never implies a verified replay.
+    public SoccerReplayIntegrity ReplayIntegrity { get; set; }
     public double Duration { get; set; }
     public List<RecordedPlaybackNode> Nodes { get; set; } = new List<RecordedPlaybackNode>();
+
+    public void CompleteResult(int homeScore, int awayScore)
+    {
+        Status = "completed";
+        HomeScore = homeScore;
+        AwayScore = awayScore;
+        if (ReplayIntegrity != null)
+            ReplayIntegrity.Result = !ReplayIntegrity.OriginalCompleted ? "unavailable" :
+                homeScore == ReplayIntegrity.OriginalHomeScore && awayScore == ReplayIntegrity.OriginalAwayScore
+                    ? "match" : "mismatch";
+    }
+
+    public void FinishRecording()
+    {
+        if (Status == "completed") return;
+        Status = "aborted";
+        if (ReplayIntegrity != null) ReplayIntegrity.Result = "aborted";
+    }
+
+    [JsonIgnore]
+    public string ReplayDiagnostic => ReplayIntegrity == null ? null :
+        $"Replay {Id} of {ReplayOf}: {ReplayIntegrity.Result}; original " +
+        $"{ReplayIntegrity.OriginalHomeScore}-{ReplayIntegrity.OriginalAwayScore} ({(ReplayIntegrity.OriginalCompleted ? "completed" : "incomplete")}); " +
+        (Status == "completed" ? $"rerun {HomeScore}-{AwayScore}" : $"rerun {Status} (no final score)");
+}
+
+public sealed class SoccerReplayIntegrity
+{
+    public bool OriginalCompleted { get; set; }
+    public int OriginalHomeScore { get; set; }
+    public int OriginalAwayScore { get; set; }
+    public string Result { get; set; } = "pending";
+
+    public static SoccerReplayIntegrity FromOriginal(SoccerSavedMatch original) => new SoccerReplayIntegrity
+    {
+        OriginalCompleted = original.Status == "completed",
+        OriginalHomeScore = original.HomeScore,
+        OriginalAwayScore = original.AwayScore
+    };
 }
 
 public sealed class SoccerMatchStore

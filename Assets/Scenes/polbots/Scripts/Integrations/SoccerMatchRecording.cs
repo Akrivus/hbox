@@ -16,6 +16,7 @@ public partial class SoccerGameSource
     private SoccerMatchSetup pendingSetup;
     private RecordedPlaybackTimeline replayClock;
     private string replayOf;
+    private SoccerReplayIntegrity pendingReplayIntegrity;
     private double recordingStartedAt;
     private ChatManager recordingManager;
     private double nextRecordingSave;
@@ -63,7 +64,11 @@ public partial class SoccerGameSource
             Topic = "Mode: Soccer", Actors = cast.Select(actor => new ActorContext(actor)).ToArray()
         };
         chat.GeneratedData[SavedSetupKey] = JsonConvert.SerializeObject(setup);
-        if (source != null) chat.GeneratedData["soccer.replayOf"] = source.Id;
+        if (source != null)
+        {
+            chat.GeneratedData["soccer.replayOf"] = source.Id;
+            chat.GeneratedData["soccer.replayIntegrity"] = JsonConvert.SerializeObject(SoccerReplayIntegrity.FromOriginal(source));
+        }
         if (source != null && replayDialogue)
         {
             chat.GeneratedData["soccer.replayOf"] = source.Id;
@@ -99,6 +104,7 @@ public partial class SoccerGameSource
             pendingSetup = null;
             replayClock = trigger?.RecordedMatchPlayback;
             replayOf = null;
+            pendingReplayIntegrity = null;
             if (trigger?.GeneratedData != null && trigger.GeneratedData.TryGetValue(SavedSetupKey, out var json))
             {
                 pendingSetup = JsonConvert.DeserializeObject<SoccerMatchSetup>(json);
@@ -128,6 +134,8 @@ public partial class SoccerGameSource
                 awayTeam = restoredAway;
                 rosterContext = pendingSetup.RosterContext;
                 trigger.GeneratedData.TryGetValue("soccer.replayOf", out replayOf);
+                if (trigger.GeneratedData.TryGetValue("soccer.replayIntegrity", out var integrity))
+                    pendingReplayIntegrity = JsonConvert.DeserializeObject<SoccerReplayIntegrity>(integrity);
                 if (trigger.GeneratedData.TryGetValue("soccer.replayDuration", out var duration))
                     replayDuration = double.Parse(duration, CultureInfo.InvariantCulture);
             }
@@ -170,7 +178,7 @@ public partial class SoccerGameSource
 
     private void BeginMatchRecording()
     {
-        savedMatch = new SoccerSavedMatch { Id = currentMatchId, ReplayOf = replayOf, Setup = pendingSetup };
+        savedMatch = new SoccerSavedMatch { Id = currentMatchId, ReplayOf = replayOf, Setup = pendingSetup, ReplayIntegrity = pendingReplayIntegrity };
         recordingStartedAt = Time.timeAsDouble;
         nextRecordingSave = recordingStartedAt + 5;
         recordedNodes.Clear();
@@ -274,9 +282,8 @@ public partial class SoccerGameSource
     private void CompleteRecordedResult()
     {
         if (savedMatch == null) return;
-        savedMatch.Status = "completed";
-        savedMatch.HomeScore = MatchManager.Current.homeTeamScore;
-        savedMatch.AwayScore = MatchManager.Current.awayTeamScore;
+        savedMatch.CompleteResult(MatchManager.Current.homeTeamScore, MatchManager.Current.awayTeamScore);
+        if (savedMatch.ReplayIntegrity != null) SetStartupStatus(savedMatch.ReplayDiagnostic);
         SaveMatchRecording();
     }
 
@@ -284,8 +291,8 @@ public partial class SoccerGameSource
     {
         if (savedMatch != null)
         {
-            if (savedMatch.Status != "completed")
-                savedMatch.Status = "aborted";
+            savedMatch.FinishRecording();
+            if (savedMatch.ReplayIntegrity != null) SetStartupStatus(savedMatch.ReplayDiagnostic);
             SaveMatchRecording();
             savedMatch = null;
         }

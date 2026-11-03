@@ -67,6 +67,45 @@ static class SavedMatchTests
         Check(store.Load("original").Nodes.Count == 2 && store.Load("original").HomeScore == 2, "replay cannot overwrite original");
         loaded.Status = "aborted"; store.Save(loaded);
         Check(store.Load("replay").Status == "aborted", "incremental atomic updates preserve aborted runs");
+        var originalBytes = File.ReadAllText(Path.Combine(directory, "original.json"));
+        foreach (var score in new[] { (home: 2, away: 0, result: "match"), (home: 3, away: 0, result: "mismatch"), (home: 2, away: 1, result: "mismatch") })
+        {
+            var rerun = new SoccerSavedMatch
+            {
+                Id = "integrity-" + score.home + "-" + score.away, ReplayOf = original.Id,
+                Setup = setup, ReplayIntegrity = SoccerReplayIntegrity.FromOriginal(store.Load(original.Id))
+            };
+            store.Save(rerun);
+            Check(store.Load(rerun.Id).ReplayIntegrity.Result == "pending", "unfinished replay cannot match default scores");
+            rerun.CompleteResult(score.home, score.away);
+            rerun.FinishRecording(); // Normal teardown must retain the completed comparison.
+            store.Save(rerun);
+            var result = store.Load(rerun.Id);
+            Check(result.Status == "completed" && result.ReplayIntegrity.Result == score.result, "final score comparison survives reload");
+            Check(result.HomeScore == score.home && result.AwayScore == score.away &&
+                result.ReplayIntegrity.OriginalHomeScore == 2 && result.ReplayIntegrity.OriginalAwayScore == 0,
+                "both outcomes preserved");
+            Check(result.ReplayDiagnostic.Contains(score.result) && result.ReplayDiagnostic.Contains("original 2-0") &&
+                result.ReplayDiagnostic.Contains($"rerun {score.home}-{score.away}"), "operator diagnostics describe both scores");
+        }
+        var aborted = new SoccerSavedMatch
+        {
+            Id = "aborted-replay", ReplayOf = original.Id, Setup = setup,
+            ReplayIntegrity = SoccerReplayIntegrity.FromOriginal(original), HomeScore = 2
+        };
+        aborted.FinishRecording(); store.Save(aborted);
+        Check(store.Load(aborted.Id).ReplayIntegrity.Result == "aborted" &&
+            aborted.ReplayDiagnostic.Contains("no final score"), "aborted playback cannot report a matching score");
+        var incompleteOriginal = new SoccerSavedMatch { Status = "aborted" };
+        var unverified = new SoccerSavedMatch
+        {
+            Id = "unverified", Setup = setup, ReplayOf = "incomplete",
+            ReplayIntegrity = SoccerReplayIntegrity.FromOriginal(incompleteOriginal)
+        };
+        unverified.CompleteResult(0, 0); store.Save(unverified);
+        Check(store.Load(unverified.Id).ReplayIntegrity.Result == "unavailable", "incomplete original cannot verify a completed rerun");
+        Check(store.Load(original.Id).ReplayIntegrity == null, "legacy/original records have no implied verification");
+        Check(File.ReadAllText(Path.Combine(directory, "original.json")) == originalBytes, "all replay outcomes leave original bytes untouched");
         Reject(() => store.Load("../escape"), "path traversal accepted");
         setup.Version = 99; Reject(setup.Validate, "future schema accepted"); setup.Version = 1;
         setup.RandomAlgorithm = "other"; Reject(setup.Validate, "unknown RNG accepted"); setup.RandomAlgorithm = SoccerSimulationRandom.Algorithm;

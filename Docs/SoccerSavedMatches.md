@@ -51,6 +51,25 @@ backed up. Changing contents under an unchanged texture name is not detected.
 The team snapshots restore into independent runtime clones. The vendor's shallow kit
 and logo references must not let match recoloring mutate the template assets.
 
+## Replay score integrity
+
+Each new rerun (with saved or fresh dialogue) snapshots the source's final scores and
+completion state in `ReplayIntegrity`, alongside `ReplayOf`. The rerun's own
+`HomeScore`/`AwayScore` remain its outcome; the source file is never updated.
+At final whistle, `ReplayIntegrity.Result` becomes `match` or `mismatch` by comparing
+both scores. This checks final scores only, not gameplay or deterministic simulation.
+
+Before final whistle the result is `pending`. Teardown without final whistle marks
+it `aborted`, even if the partial score happens to equal the source. An interrupted
+process may leave a `pending` checkpoint; that is unverified, never a successful match.
+A completed rerun of an incomplete source has result `unavailable`. Original matches
+and older records have no `ReplayIntegrity` and carry no verification claim.
+
+The existing `StartupStatus` Inspector field and `[Soccer]` log show the rerun/source
+IDs, comparison result, original score/completion state, and rerun final score (or
+explicitly no final score for an unfinished run). Normal post-whistle teardown keeps
+the completed comparison. Saved-dialogue result-report suppression is unchanged.
+
 ## What the performance records
 
 Every host-channel node activated during the recording interval is copied, including
