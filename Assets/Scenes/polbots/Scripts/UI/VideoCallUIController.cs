@@ -8,7 +8,7 @@ public class VideoCallUIController : MonoBehaviour
 
     public bool IsVisible => gameObject.activeSelf;
     public bool IsMuted => _muteButton.enabled;
-    public bool IsTalking => _actor.IsTalking;
+    public bool IsTalking => _actor != null && _actor.IsTalking;
     public bool IsActive { get; private set; }
 
     private ActorController _actor;
@@ -43,7 +43,7 @@ public class VideoCallUIController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (IsVisible)
+        if (IsVisible && _actor != null && VideoCallUIManager.Instance != null)
             Hide();
         ReleaseRenderTexture();
     }
@@ -108,6 +108,17 @@ public class VideoCallUIController : MonoBehaviour
         SetMuteButton(false);
         SetVisibility(true);
         SetCaption(actor.Actor.Title);
+    }
+
+    public void SetPortrait(string caption, Texture2D portrait)
+    {
+        ReleaseRenderTexture();
+        _camera = null;
+        _actor = null;
+        _videoScreen.texture = portrait;
+        SetBorderOpacity(0f);
+        SetMuteButton(false);
+        SetCaption(caption);
     }
 
     public void Show()

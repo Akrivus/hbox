@@ -432,6 +432,10 @@ MonoBehaviour:
     displayName: PBNN
     scenePath: Scenes/PBNN
     icon: {fileID: 21300000, guid: ad1e3f6681538964799882348a9ba54d, type: 3}
+  - codeName: romanannals
+    displayName: Roman Annals
+    scenePath: Scenes/RomanAnnals
+    icon: {fileID: 21300000, guid: 779f6c9ee0433bf44aca11f3db974434, type: 3}
   sharedConfigPath: hbox.json
   defaultChannel: 0
   defaultScenePath: Reset

@@ -1,0 +1,21 @@
+{
+  "id": "late-republic-63-bce-catilinarian-debate",
+  "period": "Late Republic",
+  "year": "63 BCE",
+  "room": "Roman Senate",
+  "title": "What do we do with the prisoners?",
+  "result": "The Senate backed execution. Cicero had the five prisoners put to death that night.",
+  "cast": [
+    { "id": "cicero", "caption": "Cicero · Consul" },
+    { "id": "caesar", "caption": "Caesar · Senator" },
+    { "id": "cato", "caption": "Cato · Senator" }
+  ],
+  "lines": [
+    { "speaker": "cicero", "text": "We caught five men working with Catiline. He's got an army outside Rome. We need to decide what to do with the men in custody." },
+    { "speaker": "caesar", "text": "Take their property. Lock them up in towns that can hold them. We can do that without executing citizens on a Senate vote." },
+    { "speaker": "cato", "text": "Catiline's army is still out there. If they win, who's going to keep your prisoners locked up?" },
+    { "speaker": "caesar", "text": "Okay, and next time a consul pulls up this vote and says Cicero got to do it, what are you going to tell him?" },
+    { "speaker": "cato", "text": "Our ancestors didn't wait until an army was at the gates to act. Why are we acting like we've got all week?" },
+    { "speaker": "cicero", "text": "You've heard both proposals. Senators, let's vote." }
+  ]
+}
